@@ -7,6 +7,7 @@ use App\Models\Attendence;
 use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Reefer;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ApiController extends Controller
@@ -40,6 +41,11 @@ class ApiController extends Controller
         $query = $request->get('query');
         $products = Reefer::where('branch_id', auth()->user()->branch_id)
             ->where('name', 'LIKE', '%' . $query . '%')->get(['name','id as referID']);
+        return response()->json($products);
+    }  public function searchUserPhone(Request $request)
+    {
+        $query = $request->get('query');
+        $products = User::where('phone', 'LIKE', '%' . $query . '%')->get(['name','id as userId','phone']);
         return response()->json($products);
     }
 

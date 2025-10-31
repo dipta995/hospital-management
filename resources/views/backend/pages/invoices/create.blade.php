@@ -79,28 +79,28 @@
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_name">Patient Name <span class="text-danger">*</span></x-default.label>
-                                                <x-default.input name="patient_name" class="form-control" id="patient_name" type="text"></x-default.input>
+                                                <x-default.input   name="patient_name"  value="{{ old('patient_name',$user_data->name) }}" class="form-control" id="patient_name" type="text"></x-default.input>
                                                 <x-default.input-error name="patient_name"></x-default.input-error>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_age_year">Age  <span class="text-danger">*</span></x-default.label>
-                                                <x-default.input name="patient_age_year" class="form-control" id="patient_age_year" type="text" ></x-default.input>
+                                                <x-default.input name="patient_age_year" value="{{ old('patient_age_year',$user_data->age) }}" class="form-control" id="patient_age_year" type="text" ></x-default.input>
                                                 <x-default.input-error name="patient_age_year"></x-default.input-error>
                                             </div>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_phone">Phone  <span class="text-danger">*</span></x-default.label>
-                                                <x-default.input name="patient_phone" class="form-control" id="patient_phone" type="text" ></x-default.input>
+                                                <x-default.input name="patient_phone" class="form-control" value="{{ old('patient_phone',$user_data->phone) }}"  id="patient_phone" type="text" ></x-default.input>
                                                 <x-default.input-error name="patient_phone"></x-default.input-error>
                                             </div>
                                         </div>
                                         <div class="col-md-2">
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_blood_group">Blood Group</x-default.label>
-                                                <x-default.input name="patient_blood_group" class="form-control" id="patient_blood_group" type="text" ></x-default.input>
+                                                <x-default.input name="patient_blood_group" class="form-control" value="{{ old('patient_blood_group',$user_data->blood_group) }}"  id="patient_blood_group" type="text" ></x-default.input>
                                                 <x-default.input-error name="patient_blood_group"></x-default.input-error>
                                             </div>
                                         </div>
@@ -108,9 +108,9 @@
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_gender">Gender</x-default.label>
                                                 <select class="form-control" name="patient_gender" id="patient_gender">
-                                                    <option value="Male">Male</option>
-                                                    <option value="Female">Female</option>
-                                                    <option value="Other">Other</option>
+                                                    <option @selected($user_data->gender== 'Male') value="Male">Male</option>
+                                                    <option @selected($user_data->gender== 'Female') value="Female">Female</option>
+                                                    <option @selected($user_data->gender== 'Other') value="Other">Other</option>
                                                 </select>
                                                 <x-default.input-error name="patient_gender"></x-default.input-error>
                                             </div>
@@ -118,7 +118,7 @@
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <x-default.label required="true" for="patient_address">Address</x-default.label>
-                                                <x-default.input name="patient_address" class="form-control" id="patient_address" type="text" ></x-default.input>
+                                                <x-default.input name="patient_address" class="form-control" value="{{ old('address',$user_data->address) }}"  id="patient_address" type="text" ></x-default.input>
                                                 <x-default.input-error name="patient_address"></x-default.input-error>
                                             </div>
                                         </div>

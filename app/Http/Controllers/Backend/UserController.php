@@ -44,9 +44,12 @@ class UserController extends Controller
      */
     public function index()
     {
+        $query = \request()->get('query');
         $this->checkOwnPermission('users.index');
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = User::orderBy('id', 'DESC')->paginate(10);
+        $data['datas'] = User::orderBy('id', 'DESC')
+            ->where('phone', 'LIKE', '%' . $query . '%')
+            ->paginate(20);
         return view('backend.pages.users.index', $data);
     }
 
@@ -74,15 +77,20 @@ class UserController extends Controller
         $this->checkOwnPermission('users.create');
         $rules = [
             'name' => 'required|max:50',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:8|confirmed',
+            'phone' => 'required',
+//            'password' => 'required|min:8|confirmed',
         ];
         $request->validate($rules);
         try {
             $user = new User();
             $user->name = $request->name;
-            $user->email = $request->email;
-            $user->password = Hash::make($request->password);
+//            $user->email = $request->name.'1@email.com';
+            $user->phone = $request->phone;
+            $user->age = $request->age;
+            $user->gender = $request->gender;
+            $user->blood_group = $request->blood_group;
+            $user->address = $request->address;
+            $user->password = Hash::make(12345678);
 
             if ($user->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> User Created Successfully');

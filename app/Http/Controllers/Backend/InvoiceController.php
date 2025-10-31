@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Reefer;
 use App\Models\Setting;
 use App\Models\TestReport;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
@@ -228,6 +229,7 @@ class InvoiceController extends Controller
         $this->checkOwnPermission('invoices.create');
         $data['pageHeader'] = $this->pageHeader;
         $data['invoice_number'] = $this->generateInvoiceNumber();
+        $data['user_data'] = User::find(request('for'));
         return view('backend.pages.invoices.create', $data);
     }
 
@@ -264,6 +266,7 @@ class InvoiceController extends Controller
             if (!Invoice::where('branch_id', auth()->user()->branch_id)->where('invoice_number', $request->invoice_number)->where('patient_no', self::getNextPatientNo())->exists()) {
                 $invoiceId = \DB::transaction(function () use ($rules, $request) {
                     $row = new Invoice();
+                    $row->user_id = request('for') ?? null;
                     $row->branch_id = auth()->user()->branch_id;
                     $row->patient_no = self::getNextPatientNo();
                     $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];

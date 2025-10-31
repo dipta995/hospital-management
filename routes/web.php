@@ -127,7 +127,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('admin/employees/salary/delete/{id}', [EmployeeController::class, 'salaryDelete'])->name('employees.salary.delete');
     Route::resource('cost-categories', CostCategoryController::class, ['names' => 'cost_categories']);
     Route::resource('costs', CostController::class, ['names' => 'costs']);
-    
+
     Route::get('/admin/employees/{id}/after-cost', [EmployeeController::class, 'getAfterCost']);
 
     Route::post('/costs/multiple/store', [CostController::class, 'storeMultiple'])->name('cost.store-multiple');
@@ -188,6 +188,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/get-products', [ApiController::class, 'getProducts']);
     Route::get('/get-doctors', [ApiController::class, 'getDoctors']);
     Route::get('/get-referrals', [ApiController::class, 'getReefs']);
+    Route::get('/search-phone', [ApiController::class, 'searchUserPhone']);
 
 });
 

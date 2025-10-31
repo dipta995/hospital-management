@@ -131,6 +131,35 @@
             @endif
 
 
+            {{--   User's   --}}
+            @if ( $userGuard->can('users.index') || $userGuard->can('users.create') || $userGuard->can('users.edit') || $userGuard->can('users.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.users.create') || Route::is('admin.users.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarUser" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarUser">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-user-secret"></i>
+                                   </span>
+                        <span class="nav-text"> User's </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.users.create') || Route::is('admin.users.index') ? 'active' : 'collapse' }}"
+                        id="sidebarUser">
+                        <ul class="nav sub-navbar-nav">
+                            <li class="sub-nav-item">
+                                <a class="sub-nav-link"
+                                   href="{{ route('admin.users.create') }}">{{ __('language.create') }}</a>
+                            </li>
+                            <li class="sub-nav-item">
+                                <a class="sub-nav-link"
+                                   href="{{ route('admin.users.index') }}">{{ __('language.list') }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+
             {{--   Category's   --}}
             @if ( $userGuard->can('categories.index') || $userGuard->can('categories.create') || $userGuard->can('categories.edit') || $userGuard->can('categories.delete'))
                 <li class="nav-item">
