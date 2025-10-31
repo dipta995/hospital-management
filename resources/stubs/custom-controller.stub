@@ -1,0 +1,202 @@
+<?php
+
+namespace App\Http\Controllers\Backend;
+
+use App\Helper\RedirectHelper;
+use App\Http\Controllers\Controller;
+use App\Models\{{modelName}};
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
+
+class {{controllerName}} extends Controller
+{
+    public $pageHeader;
+    public $show_fields;
+    public $insert_fields;
+    public $update_fields;
+    public $except_column;
+    public $index_route = "admin.{{plural_name}}.index";
+    public $create_route = "admin.{{plural_name}}.create";
+    public $store_route = "admin.{{plural_name}}.store";
+    public $edit_route = "admin.{{plural_name}}.edit";
+    public $update_route = "admin.{{plural_name}}.update";
+
+    public function __construct()
+    {
+        $this->checkGuard();
+        Paginator::useBootstrapFive();
+        $this->pageHeader = [
+            'title' => "{{modelName}}s",
+            'sub_title' => "",
+            'plural_name' => "{{plural_name}}",
+            'singular_name' => "{{modelName}}",
+            'index_route' => $this->index_route,
+            'create_route' => $this->create_route,
+            'store_route' => $this->store_route,
+            'edit_route' => $this->edit_route,
+            'update_route' => $this->update_route,
+            'base_url' => url('admin/{{plural_name}}'),
+
+        ];
+$this->show_fields = {{show_fields}}
+$this->insert_fields = {{insert_fields}}
+$this->update_fields = {{update_fields}}
+
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        $this->checkOwnPermission('{{plural_name}}.index');
+        $data['pageHeader'] = $this->pageHeader;
+        $data['datas'] = {{modelName}}::orderBy('id', 'DESC')->paginate(10);
+        return view('backend.pages._ajax_index', $data);
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        $this->checkOwnPermission('{{plural_name}}.create');
+        $data['pageHeader'] = $this->pageHeader;
+        return view('backend.pages._ajax_index', $data);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $this->checkOwnPermission('{{plural_name}}.create');
+        $rules = [
+            'name' => 'required|max:50',
+            'opening_balance' => 'required|max:50',
+            'account_number' => 'required||numeric',
+            'description' => 'nullable|max:150',
+        ];
+        $request->validate($rules);
+        try {
+            $row = new {{modelName}}();
+            $row->name = $request->name;
+            $row->opening_balance = $request->opening_balance;
+            $row->account_number = $request->account_number;
+            $row->description = $request->description;
+
+            if ($row->save()) {
+                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> {{modelName}} Created Successfully');
+
+            } else {
+                return RedirectHelper::backWithInput();
+            }
+        } catch (QueryException $e) {
+            return $e;
+            return RedirectHelper::backWithInputFromException();
+        }
+
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        //
+
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        $this->checkOwnPermission('{{plural_name}}.edit');
+        $data['pageHeader'] = $this->pageHeader;
+        if($data['edited'] = {{modelName}}::find($id)) {
+        return view('backend.pages._ajax_index', $data);
+        }else{
+            return RedirectHelper::backWithInputFromException();
+        }
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $this->checkOwnPermission('{{plural_name}}.edit');
+
+        if ($user = {{modelName}}::find($id)) {
+            $request->validate([
+                'name' => 'required|max:50',
+                'opening_balance' => 'required|max:50',
+                'account_number' => 'required||numeric',
+                'description' => 'nullable|max:150',
+            ]);
+            try {
+                if($row = {{modelName}}::find($id)){
+
+
+                $row->name = $request->name;
+                $row->opening_balance = $request->opening_balance;
+                $row->account_number = $request->account_number;
+                $row->description = $request->description;
+
+                if ($row->save()) {
+                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> {{modelName}} Created Successfully');
+
+                } else {
+                    return RedirectHelper::backWithInput();
+                }
+                }else{
+                    return RedirectHelper::routeError($this->index_route, '<strong>Sorry !!!</strong>Data not found');
+
+                }
+            } catch (QueryException $e) {
+                return $e;
+                return RedirectHelper::backWithInputFromException();
+            }
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public
+    function destroy($id)
+    {
+        $this->checkOwnPermission('{{plural_name}}.delete');
+        $deleteData = {{modelName}}::find($id);
+
+        if (!is_null($deleteData)) {
+            if ($deleteData->delete()) {
+                return response()->json(['status' => 200]);
+            } else {
+                return response()->json(['status' => 422]);
+            }
+        }
+    }
+}
