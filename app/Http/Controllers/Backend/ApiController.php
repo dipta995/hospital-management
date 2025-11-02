@@ -7,6 +7,7 @@ use App\Models\Attendence;
 use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Reefer;
+use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -25,6 +26,19 @@ class ApiController extends Controller
             ->get(['name', 'price', 'reefer_fee', 'id as productID']);
 
         return response()->json($products);
+    }
+    public function getServices(Request $request)
+    {
+        $query = $request->get('query');
+        $branchId = auth()->user()->branch_id;
+
+        $services = Service::where('branch_id', $branchId) // Always filter by branch
+        ->where(function ($q) use ($query) {
+            $q->where('name', 'LIKE', '%' . $query . '%');
+        })
+            ->get(['name', 'price', 'id as serviceID']);
+
+        return response()->json($services);
     }
 
     public function getDoctors(Request $request)

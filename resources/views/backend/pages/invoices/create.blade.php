@@ -66,6 +66,7 @@
 {{--                            <form class="cmxform" method="post" action="{{ route($pageHeader['store_route']) }}">--}}
 {{--                                @csrf--}}
                                 <fieldset>
+                                    <input type="hidden" id="customer_id" class="customer_id" value="{{ $user_data->id }}">
 
                                      <h4 class="card-title bg-info p-1 mt-3 mb-3">Patient Details</h4>
                                     <div class="row">
@@ -495,6 +496,7 @@
                 const customerDetails = {
                     invoice_number: $("#invoice_number").val(),
                     patient_name: $("#patient_name").val(),
+                    for: $("#customer_id").val(),
                     patient_age_year: $("#patient_age_year").val(),
                     patient_phone: $("#patient_phone").val(),
                     patient_blood_group: $("#patient_blood_group").val(),

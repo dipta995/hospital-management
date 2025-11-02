@@ -33,7 +33,6 @@ use App\Http\Controllers\Backend\TestReportDemoController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\AdmitController;
 use App\Http\Controllers\Backend\ReceptController;
-use App\Http\Controllers\Backend\ReceptListController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
@@ -118,7 +117,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
 
     Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);
-    Route::resource('receptlists', ReceptListController::class, ['names' => 'receptlists']);
+    Route::get('/recepts/pdf-preview/{id}', [ReceptController::class, 'receptPdfPreview'])->name('recepts.pdf-preview');
 
     Route::resource('services', ServiceController::class, ['names' => 'services']);
 
@@ -198,6 +197,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
 //    API FOR AJAX
 
     Route::get('/get-products', [ApiController::class, 'getProducts']);
+    Route::get('/get-services', [ApiController::class, 'getServices']);
     Route::get('/get-doctors', [ApiController::class, 'getDoctors']);
     Route::get('/get-referrals', [ApiController::class, 'getReefs']);
     Route::get('/search-phone', [ApiController::class, 'searchUserPhone']);

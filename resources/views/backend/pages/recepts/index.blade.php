@@ -16,8 +16,9 @@
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>User ID</th>
-                                        <th>Branch ID</th>
+                                        <th>Customer</th>
+                                        <th>Total||Discount</th>
+                                        <th>Due</th>
                                         <th>Created Date</th>
                                         <th>Action</th>
                                     </tr>
@@ -26,16 +27,20 @@
                                     @forelse($datas as $item)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $item->user_id }}</td>
-                                            <td>{{ $item->branch_id }}</td>
-                                            <td>{{ $item->created_date }}</td>
+                                            <td>{{ $item->user->name }}</td>
+                                            <td>{{ $item->total_amount }}</td>
+                                            <td><strong class="text-danger">{{ $item->discount_amount }}</strong></td>
+                                            <td>{{ $item->receptPayments->sum('paid_amount') }}
+                                            </td>
                                             <td>
+                                                <a target="_blank"
+                                                   href="{{ route('admin.recepts.pdf-preview',$item->id) }}"
+                                                   class="badge bg-danger"><i class="fas fa-file-pdf"></i></a>
+                                                <br>
                                                 <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
                                                 <a href="javascript:void(0)" class="badge bg-danger"
                                                    onclick="dataDelete({{ $item->id }}, '{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
-                                                <a href="{{ route('admin.receptlists.create', ['recept_id' => $item->id]) }}" class="badge bg-success">
-                                                    <i class="fas fa-list"></i> Recept List
-                                                </a>   
+
                                             </td>
                                         </tr>
                                     @empty

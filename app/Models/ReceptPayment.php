@@ -5,21 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ReceptList extends Model
+class ReceptPayment extends Model
 {
     use HasFactory;
 
-
+    protected $table = 'recept_payments';
     protected $fillable = [
-        'branch_id',
-        'user_id',
         'recept_id',
-        'service_id',
-        'price',
-        'discount',
-        'amount'
+        'branch_id',
+        'admin_id',
+        'recept_id',
+        'paid_amount',
+        'creation_date'
     ];
-    public function service(){
-        return $this->belongsTo(Service::class);
-    }
 }

@@ -23,9 +23,32 @@ class Recept extends Model
      */
     protected $fillable = [
         'user_id',
+        'admin_id',
         'branch_id',
-        'created_date',
+        'total_amount',
+        'discount_amount',
+        'created_date'
     ];
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }   public function admin()
+    {
+        return $this->belongsTo(Admin::class);
+    }
+    public function branch(){
+        return $this->belongsTo(Branch::class);
+    }
 
-   
+    public function receptPayments()
+    {
+        return $this->hasMany(ReceptPayment::class, 'recept_id', 'id');
+    }
+    public function receptList()
+    {
+        return $this->hasMany(ReceptList::class, 'recept_id', 'id');
+    }
+
+
+
 }

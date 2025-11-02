@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('recept_lists', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('branch_id');
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('recept_id');
-            $table->unsignedBigInteger('service_id'); 
+            $table->unsignedBigInteger('service_id');
             $table->decimal('price', 10, 2);
             $table->decimal('discount', 10, 2)->default(0);
             $table->decimal('amount', 10, 2);
-            $table->unsignedBigInteger('branch_id');
             $table->timestamps();
         });
     }

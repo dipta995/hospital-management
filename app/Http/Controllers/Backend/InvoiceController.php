@@ -266,7 +266,7 @@ class InvoiceController extends Controller
             if (!Invoice::where('branch_id', auth()->user()->branch_id)->where('invoice_number', $request->invoice_number)->where('patient_no', self::getNextPatientNo())->exists()) {
                 $invoiceId = \DB::transaction(function () use ($rules, $request) {
                     $row = new Invoice();
-                    $row->user_id = request('for') ?? null;
+                    $row->user_id = $request->for ?? null;
                     $row->branch_id = auth()->user()->branch_id;
                     $row->patient_no = self::getNextPatientNo();
                     $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];

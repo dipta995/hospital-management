@@ -5,9 +5,16 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Recept;
+use App\Models\ReceptList;
+use App\Models\ReceptPayment;
+use App\Models\User;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ReceptController extends Controller
 {
@@ -46,31 +53,69 @@ class ReceptController extends Controller
     {
         $this->checkOwnPermission('recepts.create');
         $data['pageHeader'] = $this->pageHeader;
+        $data['user_data'] = User::find(request('for'));
         return view('backend.pages.recepts.create', $data);
     }
 
     public function store(Request $request)
     {
+//        return $request;
         $this->checkOwnPermission('recepts.create');
-        $request->validate([
-            'user_id' => 'required|integer',
-            'branch_id' => 'required|integer',
-            'created_date' => 'required|date',
-        ]);
+
+        DB::beginTransaction(); // 🔹 Start transaction
 
         try {
+            // 1️⃣ Create Recept
             $row = new Recept();
-            $row->user_id = $request->user_id;
+            $row->admin_id = auth()->id();
+            $row->user_id = $request['customerDetails']['customer_id'];
             $row->branch_id = auth()->user()->branch_id;
-            $row->created_date = $request->created_date;
+            $row->total_amount = $request['paymentDetails']['total_amount'];
+            $row->discount_amount = $request['paymentDetails']['discount_amount'];
+            $row->created_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            $row->discount_amount = $request['paymentDetails']['discount_amount'] ?? 0;
+            $row->save();
 
-            if ($row->save()) {
-                return RedirectHelper::routeSuccess($this->index_route, 'Recept created successfully.');
-            } else {
-                return RedirectHelper::backWithInput();
+            // Total products count (avoid undefined var)
+            $totalProducts = count($request['services']) > 0 ? count($request['services']) : 1;
+
+            // 2️⃣ Create ReceptList entries
+            foreach ($request['services'] as $service) {
+                ReceptList::create([
+                    'branch_id'      => auth()->user()->branch_id,
+                    'user_id'        => $request['customerDetails']['customer_id'],
+                    'recept_id'      => $row->id,
+                    'service_id'     => $service['service_id'],
+                    'price'          => $service['price'],
+                    'discount' => ($row->discount_amount / $totalProducts),
+                    'amount' =>  $service['price']-($row->discount_amount / $totalProducts),
+                ]);
             }
+
+            // 3️⃣ Create Payment entry
+            $duePaid = new ReceptPayment();
+            $duePaid->paid_amount = $request['paymentDetails']['paid_amount'];
+            $duePaid->recept_id = $row->id;
+            $duePaid->branch_id = auth()->user()->branch_id;
+            $duePaid->admin_id = auth()->id();
+            $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            $duePaid->save();
+
+            // 🔹 Commit all only if every step was successful
+            DB::commit();
+
+            return response()->json(
+                [
+                    'recept_id' => $row->id,
+                    'customer_name' => $row->user->name,
+                ]
+            );
         } catch (QueryException $e) {
+            DB::rollBack(); // 🔹 Cancel everything on error
             return RedirectHelper::backWithInputFromException($e);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return RedirectHelper::backWithInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -126,5 +171,28 @@ class ReceptController extends Controller
                 return response()->json(['status' => 422]);
             }
         }
+    }
+
+    public function receptPdfPreview ($id)
+    {
+        $data['recept'] = Recept::with('receptList')->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
+        $qrCode = new QrCode($data['recept']->id);
+
+        $writer = new PngWriter();
+        $result = $writer->write($qrCode);
+        $data['qrcode'] = base64_encode($result->getString());
+// Set Dhaka timezone
+        $nowDhaka = \Carbon\Carbon::now('Asia/Dhaka');
+
+        // Compare with 2 PM
+        if ($nowDhaka->lt($nowDhaka->copy()->setTime(14, 0))) {
+            $data['deliverytime'] = $nowDhaka->copy()->setTime(16, 0)->format('jS F Y h a');
+        } else {
+            $data['deliverytime'] = $nowDhaka->copy()->addDay()->setTime(10, 0)->format('jS F Y h a');
+        }
+
+//        return Pdf::loadView('backend.pages.recepts.recept-pdf', $data)->stream($data['recept']->patient_name.'.pdf');
+        return view('backend.pages.recepts.recept-regular', $data);
     }
 }
