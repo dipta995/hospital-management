@@ -6,6 +6,7 @@ use App\Http\Controllers\Backend\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Backend\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Backend\BranchController;
 use App\Http\Controllers\Backend\CategoryController;
+use App\Http\Controllers\Backend\ServiceController;
 use App\Http\Controllers\Backend\CostCategoryController;
 use App\Http\Controllers\Backend\CostController;
 use App\Http\Controllers\Backend\DashboardController;
@@ -30,6 +31,9 @@ use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\TestReportController;
 use App\Http\Controllers\Backend\TestReportDemoController;
 use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\Backend\AdmitController;
+use App\Http\Controllers\Backend\ReceptController;
+use App\Http\Controllers\Backend\ReceptListController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
@@ -110,6 +114,14 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     //    Accounts
     Route::resource('branches', BranchController::class, ['names' => 'branches']);
     Route::resource('categories', CategoryController::class, ['names' => 'categories']);
+    Route::resource('admits', AdmitController::class, ['names' => 'admits']);
+    Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
+
+    Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);
+    Route::resource('receptlists', ReceptListController::class, ['names' => 'receptlists']);
+
+    Route::resource('services', ServiceController::class, ['names' => 'services']);
+
     Route::resource('products', ProductController::class, ['names' => 'products']);
     Route::resource('invoices', InvoiceController::class, ['names' => 'invoices']);
     Route::get('/invoices/pdf-preview/{id}', [InvoiceController::class, 'pdfPreview'])->name('invoices.pdf-preview');

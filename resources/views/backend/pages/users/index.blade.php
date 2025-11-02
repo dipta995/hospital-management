@@ -46,7 +46,7 @@
                                             <td>
                                                 <a href="{{ route('admin.invoices.create').'?for='.$item->id }}" class="btn bg-success text-white"><i class="fa fa-flask"
                                                                                                 aria-hidden="true"></i>
-                                                    <a href="" class="btn bg-dark text-white"><i class="fa fa-bed"
+                                                    <a href="{{ route('admin.admits.create').'?for='.$item->id }}" class="btn bg-dark text-white"><i class="fa fa-bed"
                                                                                                  aria-hidden="true"></i>
                                                     </a>
                                                     <a href="{{ route($pageHeader['edit_route'],$item->id) }}"

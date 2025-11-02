@@ -126,6 +126,38 @@ class RolePermissionSeeder extends Seeder
                     'categories.delete',
                 ]
             ],
+                        // Services
+            [
+                'group_name' => 'services',
+                'permissions' => [
+                    'services.index',
+                    'services.create',
+                    'services.edit',
+                    'services.delete',
+                ]
+            ],
+            // Recepts
+            [
+                'group_name' => 'recepts',
+                'permissions' => [
+                    'recepts.index',
+                    'recepts.create',
+                    'recepts.edit',
+                    'recepts.delete',
+                ]
+            ],
+            // ReceptLists
+            [
+                'group_name' => 'recept_lists',
+                'permissions' => [
+                    'receptlists.index',
+                    'receptlists.create',
+                    'receptlists.edit',
+                    'receptlists.delete',
+                ]
+            ],
+
+
 
             //             branches
             [
