@@ -142,7 +142,7 @@
                                    <span class="nav-icon">
                                         <i class="fas fa-user-secret"></i>
                                    </span>
-                        <span class="nav-text"> User's </span>
+                        <span class="nav-text"> Patients's </span>
                     </a>
                     <div
                         class="{{ Route::is('admin.users.create') || Route::is('admin.users.index') ? 'active' : 'collapse' }}"

@@ -201,6 +201,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/get-doctors', [ApiController::class, 'getDoctors']);
     Route::get('/get-referrals', [ApiController::class, 'getReefs']);
     Route::get('/search-phone', [ApiController::class, 'searchUserPhone']);
+    Route::post('/create-user-api', [ApiController::class, 'storeUser'])->name('users.store.api');
 
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend;
 
+use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Attendence;
 use App\Models\Employee;
@@ -10,6 +11,7 @@ use App\Models\Reefer;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class ApiController extends Controller
 {
@@ -89,5 +91,41 @@ class ApiController extends Controller
             // Return a failure response (0) to ESP
             return response('0', 404)->header('Content-Type', 'text/plain');
         }
+    }
+    public function storeUser(Request $request)
+    {
+//        return $request;
+        $rules = [
+            'name'    => 'required|string|max:50',
+            'phone'   => 'required|digits:11',
+            'age'     => 'required',
+            'address' => 'required|string|max:255',
+//            'password' => 'required|min:8|confirmed',
+        ];
+        $request->validate($rules);
+
+            $user = new User();
+            $user->name = $request->name;
+//            $user->email = $request->name.'1@email.com';
+            $user->phone = $request->phone;
+            $user->age = $request->age;
+            $user->gender = $request->gender;
+            $user->blood_group = $request->blood_group;
+            $user->address = $request->address;
+            $user->password = Hash::make(12345678);
+
+            if ($user->save()) {
+                return response()->json(
+                    [
+                        'id' => $user->id,
+                        'customer_name' => $user->name,
+                    ]
+                );
+
+            } else {
+                return response()->json(['error' => 400]);
+            }
+
+
     }
 }

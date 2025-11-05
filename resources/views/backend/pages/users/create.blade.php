@@ -56,7 +56,7 @@
                                     </div>
                                     <div class="col-md-4">
                                             <div class="form-group">
-                                                <x-default.label required="true" for="blood_group">Gender</x-default.label>
+                                                <x-default.label required="true" for="blood_group">Blood Group</x-default.label>
                                                 <select class="form-control" name="blood_group" id="blood_group">
                                                     <option value="A+">A+</option>
                                                     <option value="A-">A-</option>

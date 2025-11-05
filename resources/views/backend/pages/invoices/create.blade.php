@@ -126,7 +126,10 @@
 
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <x-default.label required="true" for="dr_refer_name">Dr Name</x-default.label>
+                                                <x-default.label required="true" for="dr_refer_name">
+                                                    Dr Name
+                                                    <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
+                                                </x-default.label>
                                                 <x-default.input name="dr_refer_name" class="form-control" required id="dr_refer_name" type="text" ></x-default.input>
                                                 <x-default.input-error name="dr_refer_name"></x-default.input-error>
                                                 <input type="hidden" name="dr_refer_id" id="dr_refer_id">
@@ -135,7 +138,8 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
-                                                <x-default.label required="true" for="refer_name">Referred By</x-default.label>
+                                                <x-default.label required="true" for="refer_name">Referred By<button type="button" class="badge bg-info openOtherModal" data-target-input="refer_name">Add PC</button>
+                                                </x-default.label>
                                                 <x-default.input name="refer_name" required class="form-control" id="refer_name" type="text" ></x-default.input>
                                                 <x-default.input-error name="refer_name"></x-default.input-error>
                                                 <input type="hidden" name="refer_id" id="refer_id">
@@ -273,6 +277,91 @@
                 </div>
             </div>
         </div>
+        <!-- Doctor Add Modal -->
+        <div class="modal fade" id="doctorAddModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="doctorAddForm">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Doctor</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Doctor Name</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" class="form-control" name="phone" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Parcent</label>
+                                <input type="number" class="form-control" name="percent" value="0" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-control" name="type" required>
+                                    <option value="{{ \App\Models\Reefer::$typeArray[0] }}">{{ \App\Models\Reefer::$typeArray[0] }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Save Doctor</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Other Add Modal -->
+        <div class="modal fade" id="otherAddModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="otherAddForm">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New PC</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">PC Name</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" class="form-control" name="phone" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Parcent</label>
+                                <input type="number" class="form-control" name="percent" value="0" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-control" name="type" required>
+                                    <option value="{{ \App\Models\Reefer::$typeArray[1] }}">{{ \App\Models\Reefer::$typeArray[1] }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Save PC</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
         <!-- content-wrapper ends -->
         <!-- partial -->
     </div>
@@ -565,7 +654,7 @@
                 });
             });
 
-        });
+
 
         $(document).ready(function () {
             const message = localStorage.getItem('invoiceMessage');
@@ -574,6 +663,55 @@
                 localStorage.removeItem('invoiceMessage'); // Clear the message after displaying it
             }
         });
+            $(document).on('click', '.openDoctorModal', function() {
+                let target = $(this).attr('data-target-input');
+                $('#doctorAddModal').data('target-input', target).modal('show');
+            }); $(document).on('click', '.openOtherModal', function() {
+                let target = $(this).attr('data-target-input');
+                $('#otherAddModal').data('target-input', target).modal('show');
+            });
 
+            $('#doctorAddForm').on('submit', function(e) {
+                e.preventDefault();
+
+                let formData = $(this).serialize();
+
+                $.ajax({
+                    url: "{{ route('admin.reefers.store') }}",
+                    type: "POST",
+                    data: formData,
+                    success: function(response) {
+
+                        let targetInput = $('#doctorAddModal').data('target-input');
+
+                        $("#" + targetInput).val(response.name);  // insert name
+                        $("#"+targetInput.replace("_name","_id")).val(response.id); // insert id
+
+                        $('#doctorAddModal').modal('hide');
+                        $('#doctorAddForm')[0].reset();
+                    }
+                });
+            });
+            $('#otherAddForm').on('submit', function(e) {
+                e.preventDefault();
+
+                let formData = $(this).serialize()
+                $.ajax({
+                    url: "{{ route('admin.reefers.store') }}",
+                    type: "POST",
+                    data: formData,
+                    success: function(response) {
+
+                        let targetInput = $('#otherAddModal').data('target-input');
+
+                        $("#" + targetInput).val(response.name);  // insert name
+                        $("#"+targetInput.replace("_name","_id")).val(response.id); // insert id
+
+                        $('#otherAddModal').modal('hide');
+                        $('#otherAddForm')[0].reset();
+                    }
+                });
+            });
+        });
     </script>
 @endpush

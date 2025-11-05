@@ -76,8 +76,10 @@ class UserController extends Controller
 //        return $request;
         $this->checkOwnPermission('users.create');
         $rules = [
-            'name' => 'required|max:50',
-            'phone' => 'required',
+            'name'    => 'required|string|max:50',
+            'phone'   => 'required|digits:11',
+            'age'     => 'required',
+            'address' => 'required|string|max:255',
 //            'password' => 'required|min:8|confirmed',
         ];
         $request->validate($rules);

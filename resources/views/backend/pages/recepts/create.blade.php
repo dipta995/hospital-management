@@ -3,8 +3,6 @@
     Create New {{ $pageHeader['title'] }}
 @endsection
 @push('style')
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
     <style>
         #ordered-services tfoot td {
@@ -53,6 +51,7 @@
     </style>
 @endpush
 @section('admin-content')
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <div class="main-panel">
         <div class="content-wrapper">
             <div class="row">
