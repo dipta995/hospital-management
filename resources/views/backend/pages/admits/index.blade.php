@@ -29,7 +29,8 @@
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Patient Name</th>
+                                        <th>Patient</th>
+                                        <th>DR.</th>
                                         <th>Admit Date</th>
                                         <th>Release Date</th>
                                         <th>NID</th>
@@ -42,6 +43,7 @@
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
+                                            <td>{{ $data->reefer?->name }}</td>
                                             <td>{{ $data->admit_at ?? 'N/A' }}</td>
                                             <td>
                                                 @if(!$data->release_at)

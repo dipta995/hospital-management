@@ -3,8 +3,12 @@
 @section('title')
     Create New {{ $pageHeader['title'] }}
 @endsection
+@push('style')
+
+@endpush
 
 @section('admin-content')
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 <div class="main-panel">
     <div class="content-wrapper">
         <div class="row">
@@ -52,7 +56,7 @@
                     <div class="card-body">
                         <h4 class="card-title">Admit Patient</h4>
                         @include('backend.layouts.partials.message')
-
+<fieldset>
                         <form method="POST" action="{{ route($pageHeader['store_route']) }}">
                             @csrf
                             <input type="hidden" name="user_id" value="{{ $user->id }}">
@@ -60,6 +64,12 @@
                             <div class="form-group mb-3">
                                 <label for="admit_at" class="form-label">Admit Date</label>
                                 <input type="datetime-local" class="form-control" name="admit_at" id="admit_at" required>
+                            </div>
+                            <div class="form-group mb-3">
+                                    <x-default.label required="true" for="dr_refer_name">Dr Name</x-default.label>
+                                    <x-default.input name="dr_refer_name" class="form-control" required id="dr_refer_name" type="text" ></x-default.input>
+                                    <x-default.input-error name="dr_refer_name"></x-default.input-error>
+                                    <input type="hidden" name="dr_refer_id" id="dr_refer_id">
                             </div>
 
                             {{-- <div class="form-group mb-3">
@@ -81,6 +91,7 @@
                                 Admit Now
                             </button>
                         </form>
+</fieldset>
                     </div>
                 </div>
 
@@ -89,3 +100,47 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function () {
+        function configureAutocomplete(fieldId, sourceUrl, onSelectCallback) {
+            $(`#${fieldId}`).autocomplete({
+                source: function (request, response) {
+                    if (request.term.trim() === "") {
+                        response([]);
+                        return;
+                    }
+                    $.ajax({
+                        url: sourceUrl,
+                        type: "GET",
+                        data: { query: request.term },
+                        success: function (data) {
+                            response(data.map(item => ({
+                                label: item.name,
+                                value: item.id,
+                                ...item
+                            })));
+                        },
+                        error: function () {
+                            alert("Error fetching data.");
+                        }
+                    });
+                },
+                select: function (event, ui) {
+                    onSelectCallback(ui.item);
+                },
+                minLength: 1
+            });
+        }
+
+        // Configure doctors autocomplete
+        configureAutocomplete("dr_refer_name", "/admin/get-doctors", function (item) {
+            $("#dr_refer_id").val(item.referID);
+            $("#dr_refer_name").val(item.name);
+        });
+        });
+    </script>
+@endpush

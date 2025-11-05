@@ -47,7 +47,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label for="address">Age <strong class="text-danger">*</strong></label>
+                                            <label for="address">Address <strong class="text-danger">*</strong></label>
                                             <input id="address" class="form-control @error('address') is-invalid @enderror" name="address" type="text" value="{{ old('address') }}">
                                             @error('address')
                                             <strong class="text-danger">{{ $errors->first('address') }}</strong>

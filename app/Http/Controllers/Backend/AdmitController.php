@@ -6,6 +6,7 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Admit;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -39,10 +40,10 @@ class AdmitController extends Controller
         $this->checkOwnPermission('admits.index');
 
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = Admit::where('branch_id', auth()->user()->branch_id)
+        $data['datas'] = Admit::with('reefer')->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC')->paginate(10);
 
-        $data['users'] = User::all(); 
+        $data['users'] = User::all();
 
         return view('backend.pages.admits.index', $data);
     }
@@ -75,12 +76,11 @@ class AdmitController extends Controller
             $row = new Admit();
             $row->user_id = $request->user_id;
             $row->branch_id = auth()->user()->branch_id;
-            $row->reffer_id = auth()->id();
-            $row->admit_at = $request->admit_at;
-            $row->release_at = $request->release_at;
+            $row->reffer_id = $request->dr_refer_id;
+            $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
+            $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
             $row->nid = $request->nid;
             $row->note = $request->note;
-
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, 'Admit created successfully.');
             } else {
@@ -98,7 +98,7 @@ class AdmitController extends Controller
 
         $data['pageHeader'] = $this->pageHeader;
         $data['edited'] = \App\Models\Admit::findOrFail($id);
-        $data['users'] = \App\Models\User::all(); 
+        $data['users'] = \App\Models\User::all();
 
         return view('backend.pages.admits.edit', $data);
     }
@@ -114,8 +114,10 @@ class AdmitController extends Controller
 
         try {
             if ($row = Admit::where('branch_id', auth()->user()->branch_id)->find($id)) {
-                $row->name = $request->name;
-                $row->price = $request->price;
+//                $row->reffer_id = $request->dr_refer_id;
+                $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
+                $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
+                $row->nid = $request->nid;
                 $row->note = $request->note;
 
                 if ($row->save()) {
@@ -149,7 +151,7 @@ class AdmitController extends Controller
     {
         $admit = Admit::findOrFail($id);
         if (!$admit->release_at) {
-            $admit->release_at = $request->release_at;
+            $admit->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
             $admit->save();
             return response()->json(['status' => 200, 'message' => 'Release date added successfully']);
         }
