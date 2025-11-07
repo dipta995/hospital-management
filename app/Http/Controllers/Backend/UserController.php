@@ -145,15 +145,16 @@ class UserController extends Controller
         if ($user = User::find($id)) {
             $request->validate([
                 'name' => 'required|max:50',
-                'email' => 'required|email|unique:users,email,' . $id,
-                'password' => 'nullable|min:8|confirmed',
+
             ]);
             try {
                 $user->name = $request->name;
-                $user->email = $request->email;
-                if ($request->password != null) {
-                    $user->password = Hash::make($request->password);
-                }
+//            $user->email = $request->name.'1@email.com';
+                $user->phone = $request->phone;
+                $user->age = $request->age;
+                $user->gender = $request->gender;
+                $user->blood_group = $request->blood_group;
+                $user->address = $request->address;
                 if ($user->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> User Created Successfully');
 

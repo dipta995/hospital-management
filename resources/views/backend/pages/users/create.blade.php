@@ -13,7 +13,7 @@
                 <div class="col-lg-12">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="card-title">Create New {{ $pageHeader['title'] }}</h4>
+                            <h4 class="card-title">Create New Patient</h4>
                             @include('backend.layouts.partials.message')
                             <form  method="post" action="{{ route($pageHeader['store_route']) }}">
                                 @csrf

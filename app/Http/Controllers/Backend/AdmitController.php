@@ -97,7 +97,7 @@ class AdmitController extends Controller
         $this->checkOwnPermission('admits.edit');
 
         $data['pageHeader'] = $this->pageHeader;
-        $data['edited'] = \App\Models\Admit::findOrFail($id);
+        $data['edited'] = \App\Models\Admit::with('reefer')->findOrFail($id);
         $data['users'] = \App\Models\User::all();
 
         return view('backend.pages.admits.edit', $data);
@@ -108,13 +108,13 @@ class AdmitController extends Controller
     {
         $this->checkOwnPermission('admits.edit');
         $request->validate([
-            'name' => 'required|max:200',
-            'price' => 'required|numeric',
+//            'name' => 'required|max:200',
+//            'price' => 'required|numeric',
         ]);
 
         try {
             if ($row = Admit::where('branch_id', auth()->user()->branch_id)->find($id)) {
-//                $row->reffer_id = $request->dr_refer_id;
+                $row->reffer_id = $request->dr_refer_id;
                 $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
                 $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
                 $row->nid = $request->nid;
@@ -129,6 +129,7 @@ class AdmitController extends Controller
                 return RedirectHelper::routeError($this->index_route, 'Admit not found.');
             }
         } catch (QueryException $e) {
+            return $e;
             return RedirectHelper::backWithInputFromException($e);
         }
     }

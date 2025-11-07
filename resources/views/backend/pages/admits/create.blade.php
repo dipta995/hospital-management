@@ -31,9 +31,9 @@
                                                required>
                                     </div>
                                     <div class="form-group mb-3">
-                                        <x-default.label required="true" for="dr_refer_name">Dr Name                                                     <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
+                                        <x-default.label  for="dr_refer_name">Dr Name                                                     <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
                                         </x-default.label>
-                                        <x-default.input name="dr_refer_name" class="form-control" required
+                                        <x-default.input name="dr_refer_name" class="form-control"
                                                          id="dr_refer_name" type="text"></x-default.input>
                                         <x-default.input-error name="dr_refer_name"></x-default.input-error>
                                         <input type="hidden" name="dr_refer_id" id="dr_refer_id">
