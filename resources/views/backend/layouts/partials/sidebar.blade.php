@@ -226,6 +226,39 @@
                 </li>
             @endif
 
+            {{--   ServiceCategory's   --}}
+            @if ( $userGuard->can('service_categories.index') || $userGuard->can('service_categories.create') || $userGuard->can('service_categories.edit') || $userGuard->can('service_categories.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.service_categories.create') || Route::is('admin.service_categories.index') ? 'active' : 'collapsed' }}"
+                    href="#sidebarServiceCategory" data-bs-toggle="collapse" role="button"
+                    aria-expanded="false" aria-controls="sidebarServiceCategory">
+                        <span class="nav-icon">
+                                <i class="fas fa-briefcase-medical"></i>
+                        </span>
+                        <span class="nav-text">Service {{ __('Category') }} </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.service_categories.create') || Route::is('admin.service_categories.index') ? 'active' : 'collapse' }}"
+                        id="sidebarServiceCategory">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('service_categories.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                    href="{{ route('admin.service_categories.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('service_categories.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                    href="{{ route('admin.service_categories.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+
             {{--   Service's   --}}
             @if ( $userGuard->can('services.index') || $userGuard->can('services.create') || $userGuard->can('services.edit') || $userGuard->can('services.delete'))
                 <li class="nav-item">
