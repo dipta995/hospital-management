@@ -27,7 +27,7 @@
                                     @forelse($datas as $item)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $item->user->name }}</td>
+                                            <td>{{ $item->user->name ?? '' }}</td>
                                             <td>{{ $item->total_amount }}</td>
                                             <td><strong class="text-danger">{{ $item->discount_amount }}</strong></td>
                                             <td>{{ $item->receptPayments->sum('paid_amount') }}
