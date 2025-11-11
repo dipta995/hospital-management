@@ -33,6 +33,46 @@
                                 <x-default.input-error name="dr_refer_name"></x-default.input-error>
                                 <input type="hidden" name="dr_refer_id" value="{{ $edited->reffer_id ?? '' }}" id="dr_refer_id">
                             </div>
+
+
+                            <div class="form-group mb-3">
+                                <label for="bed_cabin">Bed/Cabin</label>
+                                <input type="text" id="bed_cabin" name="bed_cabin" class="form-control"
+                                    value="{{ old('bed_cabin', $edited->bed_cabin) }}" placeholder="Enter bed or cabin number">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="father_spouse">Father/Spouse</label>
+                                <input type="text" id="father_spouse" name="father_spouse" class="form-control"
+                                    value="{{ old('father_spouse', $edited->father_spouse) }}" placeholder="Enter father or spouse name">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="received_by">Received By</label>
+                                <input type="text" id="received_by" name="received_by" class="form-control"
+                                    value="{{ old('received_by', $edited->received_by) }}" placeholder="Enter who received the patient">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="clinical_diagnosis">Clinical Diagnosis</label>
+                                <textarea id="clinical_diagnosis" name="clinical_diagnosis" class="form-control" rows="3"
+                                        placeholder="Enter clinical diagnosis">{{ old('clinical_diagnosis', $edited->clinical_diagnosis) }}</textarea>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="refer_id">Refer ID</label>
+                                <input type="text" id="refer_id" name="refer_id" class="form-control"
+                                    value="{{ old('refer_id', $edited->refer_id) }}" placeholder="Enter refer ID">
+                            </div>
+
+                            {{-- <div class="form-group mb-3">
+                                <label for="dr_refer_id">Dr Refer ID</label>
+                                <input type="text" id="dr_refer_id" name="dr_refer_id" class="form-control"
+                                    value="{{ old('dr_refer_id', $edited->dr_refer_id) }}" placeholder="Enter doctor refer ID">
+                            </div> --}}
+
+
+
                             <div class="form-group mb-3">
                                 <label for="admit_at">Admit Date <strong class="text-danger">*</strong></label>
                                 <input type="date" id="admit_at" name="admit_at" class="form-control"

@@ -91,6 +91,9 @@ class UserController extends Controller
             $user->age = $request->age;
             $user->gender = $request->gender;
             $user->blood_group = $request->blood_group;
+            $user->marital_status = $request->marital_status; 
+            $user->occupation = $request->occupation;         
+            $user->religion = $request->religion;  
             $user->address = $request->address;
             $user->password = Hash::make(12345678);
 
@@ -154,6 +157,9 @@ class UserController extends Controller
                 $user->age = $request->age;
                 $user->gender = $request->gender;
                 $user->blood_group = $request->blood_group;
+                $user->marital_status = $request->marital_status; 
+                $user->occupation = $request->occupation;        
+                $user->religion = $request->religion;
                 $user->address = $request->address;
                 if ($user->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> User Created Successfully');

@@ -19,6 +19,9 @@ return new class extends Migration
             $table->integer('age')->nullable();
             $table->string('gender')->nullable();
             $table->string('blood_group')->nullable();
+            $table->string('marital_status')->nullable(); 
+            $table->string('occupation')->nullable(); 
+            $table->string('religion')->nullable();
             $table->text('address')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();

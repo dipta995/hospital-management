@@ -25,6 +25,9 @@ class User extends Authenticatable
         'age',
         'gender',
         'blood_group',
+        'marital_status', 
+        'occupation',     
+        'religion', 
         'address'
     ];
     protected $table = 'users';

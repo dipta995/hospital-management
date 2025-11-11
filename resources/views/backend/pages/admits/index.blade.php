@@ -31,6 +31,13 @@
                                         <th>#</th>
                                         <th>Patient</th>
                                         <th>DR.</th>
+                                        <th>Father/Spouse</th>
+                                        {{-- <th>DR.</th> --}}
+                                        <th>Bed/Cabin</th>
+                                        <th>Admit Date</th>
+                                        <th>Release Date</th>
+                                        <th>Received By</th>
+                                        <th>Diagnosis</th>
                                         <th>Admit Date</th>
                                         <th>Release Date</th>
                                         <th>NID</th>
@@ -45,6 +52,11 @@
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
                                             <td>{{ $data->reefer?->name }}</td>
                                             <td>{{ $data->admit_at ?? 'N/A' }}</td>
+                                            <td>{{ $data->father_spouse ?? 'N/A' }}</td>
+                                            <td>{{ Str::limit($data->clinical_diagnosis, 30) ?? 'N/A' }}</td>
+                                             <td>{{ $data->received_by ?? 'N/A' }}</td>
+                                            {{-- <td>{{ $data->reefer?->name ?? 'N/A' }}</td> --}}
+                                            <td>{{ $data->bed_cabin ?? 'N/A' }}</td>
                                             <td>
                                                 @if(!$data->release_at)
                                                     <button class="btn btn-sm btn-warning add-release-btn"

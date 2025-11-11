@@ -84,6 +84,43 @@
                                             <x-default.input-error name="gender"></x-default.input-error>
                                         </div>
                                     </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="marital_status">Marital Status</label>
+                                            <select class="form-control" name="marital_status" id="marital_status">
+                                                <option value="">--Select--</option>
+                                                <option value="Single">Single</option>
+                                                <option value="Married">Married</option>
+                                                <option value="Divorced">Divorced</option>
+                                                <option value="Widowed">Widowed</option>
+                                            </select>
+                                            @error('marital_status')
+                                                <strong class="text-danger">{{ $message }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="occupation">Occupation</label>
+                                            <input id="occupation" class="form-control @error('occupation') is-invalid @enderror" name="occupation" type="text" value="{{ old('occupation') }}">
+                                            @error('occupation')
+                                                <strong class="text-danger">{{ $message }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="religion">Religion</label>
+                                            <input id="religion" class="form-control @error('religion') is-invalid @enderror" name="religion" type="text" value="{{ old('religion') }}">
+                                            @error('religion')
+                                                <strong class="text-danger">{{ $message }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    
 
 
 

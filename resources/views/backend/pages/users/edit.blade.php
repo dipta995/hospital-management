@@ -85,6 +85,42 @@
                                         </div>
                                     </div>
 
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="marital_status">Marital Status</label>
+                                            <select class="form-control" name="marital_status" id="marital_status">
+                                                <option value="">-- Select Marital Status --</option>
+                                                <option @selected($edited->marital_status=='Single') value="Single">Single</option>
+                                                <option @selected($edited->marital_status=='Married') value="Married">Married</option>
+                                                <option @selected($edited->marital_status=='Divorced') value="Divorced">Divorced</option>
+                                                <option @selected($edited->marital_status=='Widowed') value="Widowed">Widowed</option>
+                                            </select>
+                                            @error('marital_status')
+                                                <strong class="text-danger">{{ $errors->first('marital_status') }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="occupation">Occupation</label>
+                                            <input id="occupation" class="form-control @error('occupation') is-invalid @enderror" name="occupation" type="text" value="{{ old('occupation', $edited->occupation) }}">
+                                            @error('occupation')
+                                                <strong class="text-danger">{{ $errors->first('occupation') }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="religion">Religion</label>
+                                            <input id="religion" class="form-control @error('religion') is-invalid @enderror" name="religion" type="text" value="{{ old('religion', $edited->religion) }}">
+                                            @error('religion')
+                                                <strong class="text-danger">{{ $errors->first('religion') }}</strong>
+                                            @enderror
+                                        </div>
+                                    </div>
+
 
 
                                     {{--                                    <div class="col-md-4">--}}

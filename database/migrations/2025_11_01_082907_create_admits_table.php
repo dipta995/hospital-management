@@ -20,6 +20,14 @@ return new class extends Migration
             $table->string('release_at')->nullable();
             $table->string('nid')->nullable();    
             $table->text('note')->nullable();
+
+            $table->string('bed_or_cabin')->nullable();              
+            $table->string('father_or_spouse')->nullable();          
+            $table->string('received_by')->nullable();               
+            $table->string('clinical_diagnosis')->nullable();
+            // $table->unsignedBigInteger('refer_id')->nullable();         
+            $table->unsignedBigInteger('dr_refer_id')->nullable();
+
             $table->timestamps();
         });
         
