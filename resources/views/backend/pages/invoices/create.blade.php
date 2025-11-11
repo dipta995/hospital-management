@@ -296,11 +296,15 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" name="phone" required>
+                                <input type="text" class="form-control" name="phone" >
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Parcent</label>
+                                <label class="form-label">Parent(%)</label>
                                 <input type="number" class="form-control" name="percent" value="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Designation</label>
+                                <input type="text" class="form-control" name="designation" required>
                             </div>
 
                             <div class="mb-3">
@@ -338,10 +342,10 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" name="phone" required>
+                                <input type="text" class="form-control" name="phone" >
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Parcent</label>
+                                <label class="form-label">Parent(%)</label>
                                 <input type="number" class="form-control" name="percent" value="0" required>
                             </div>
 

@@ -13,6 +13,18 @@
                         @include('backend.layouts.partials.message')
                         <form method="POST" action="{{ route($pageHeader['store_route']) }}">
                             @csrf
+                            <div class="form-group col-md-6">
+                                <div class="form-group">
+                                    <x-default.label required="true" for="service_category_id">Category</x-default.label>
+                                    <select class="form-control" name="service_category_id" id="service_category_id">
+                                        <option value="">--Choose--</option>
+                                        @foreach($categories as $item)
+                                            <option value="{{ $item->id }}">{{ $item->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-default.input-error name="service_category_id"></x-default.input-error>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <x-default.label required="true" for="name">Name</x-default.label>
                                 <x-default.input name="name" class="form-control" id="name" type="text"/>

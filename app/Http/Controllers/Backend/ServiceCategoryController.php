@@ -4,39 +4,39 @@ namespace App\Http\Controllers\Backend;
 
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\ServiceCategory;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 use Illuminate\Pagination\Paginator;
 
-class UserController extends Controller
+class ServiceCategoryController extends Controller
 {
     public $pageHeader;
-    public $index_route = "admin.users.index";
-    public $create_route = "admin.users.create";
-    public $store_route = "admin.users.store";
-    public $edit_route = "admin.users.edit";
-    public $update_route = "admin.users.update";
+    public $index_route = "admin.service_categories.index";
+    public $create_route = "admin.service_categories.create";
+    public $store_route = "admin.service_categories.store";
+    public $edit_route = "admin.service_categories.edit";
+    public $update_route = "admin.service_categories.update";
 
     public function __construct()
     {
         $this->checkGuard();
         Paginator::useBootstrapFive();
         $this->pageHeader = [
-            'title' => "Users",
+            'title' => "Cost Categories",
             'sub_title' => "",
-            'plural_name' => "users",
-            'singular_name' => "User",
+            'plural_name' => "service_categories",
+            'singular_name' => "ServiceCategory",
             'index_route' => $this->index_route,
             'create_route' => $this->create_route,
             'store_route' => $this->store_route,
             'edit_route' => $this->edit_route,
             'update_route' => $this->update_route,
-            'base_url' => url('admin/users'),
+            'base_url' => url('admin/service-categories'),
 
         ];
     }
+
     /**
      * Display a listing of the resource.
      *
@@ -44,13 +44,11 @@ class UserController extends Controller
      */
     public function index()
     {
-        $query = \request()->get('query');
-        $this->checkOwnPermission('users.index');
+        $this->checkOwnPermission('service_categories.index');
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = User::orderBy('id', 'DESC')
-            ->where('phone', 'LIKE', '%' . $query . '%')
-            ->paginate(20);
-        return view('backend.pages.users.index', $data);
+        $data['datas'] = ServiceCategory::where('branch_id', auth()->user()->branch_id)
+            ->orderBy('id', 'DESC')->paginate(10);
+        return view('backend.pages.service_categories.index', $data);
     }
 
     /**
@@ -60,9 +58,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        $this->checkOwnPermission('users.create');
+        $this->checkOwnPermission('service_categories.create');
         $data['pageHeader'] = $this->pageHeader;
-        return view('backend.pages.users.create', $data);
+        return view('backend.pages.service_categories.create', $data);
     }
 
     /**
@@ -74,32 +72,24 @@ class UserController extends Controller
     public function store(Request $request)
     {
 //        return $request;
-        $this->checkOwnPermission('users.create');
+        $this->checkOwnPermission('service_categories.create');
         $rules = [
-            'name'    => 'required|string|max:50',
-            'phone'   => 'required|digits:11',
-            'age'     => 'required',
-//            'address' => 'required|string|max:255',
-//            'password' => 'required|min:8|confirmed',
+            'name' => 'required|max:200',
         ];
         $request->validate($rules);
         try {
-            $user = new User();
-            $user->name = $request->name;
-//            $user->email = $request->name.'1@email.com';
-            $user->phone = $request->phone;
-            $user->age = $request->age;
-            $user->gender = $request->gender;
-            $user->blood_group = $request->blood_group;
-            $user->address = $request->address;
-            $user->password = Hash::make(12345678);
+            $row = new ServiceCategory();
+            $row->branch_id = auth()->user()->branch_id;
+            $row->name = $request->name;
 
-            if ($user->save()) {
-                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> User Created Successfully');
+            if ($row->save()) {
+                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> ServiceCategory Created Successfully');
+
             } else {
                 return RedirectHelper::backWithInput();
             }
         } catch (QueryException $e) {
+            return $e;
             return RedirectHelper::backWithInputFromException();
         }
 
@@ -125,10 +115,14 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $this->checkOwnPermission('users.edit');
+        $this->checkOwnPermission('service_categories.edit');
         $data['pageHeader'] = $this->pageHeader;
-        $data['edited'] = User::find($id);
-        return view('backend.pages.users.edit', $data);
+        if($data['edited'] = ServiceCategory::where('branch_id', auth()->user()->branch_id)
+            ->find($id)) {
+        return view('backend.pages.service_categories.edit', $data);
+        }else{
+            return RedirectHelper::backWithInputFromException();
+        }
     }
 
     /**
@@ -140,31 +134,29 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->checkOwnPermission('users.edit');
-
-        if ($user = User::find($id)) {
+        $this->checkOwnPermission('service_categories.edit');
             $request->validate([
-                'name' => 'required|max:50',
-
+                'name' => 'required|max:200',
             ]);
             try {
-                $user->name = $request->name;
-//            $user->email = $request->name.'1@email.com';
-                $user->phone = $request->phone;
-                $user->age = $request->age;
-                $user->gender = $request->gender;
-                $user->blood_group = $request->blood_group;
-                $user->address = $request->address;
-                if ($user->save()) {
-                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> User Created Successfully');
+                if($row = ServiceCategory::where('branch_id', auth()->user()->branch_id)
+                    ->find($id)){
+                $row->name = $request->name;
+                    if ($row->save()) {
+                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> ServiceCategory Created Successfully');
 
                 } else {
                     return RedirectHelper::backWithInput();
                 }
+                }else{
+                    return RedirectHelper::routeError($this->index_route, '<strong>Sorry !!!</strong>Data not found');
+
+                }
             } catch (QueryException $e) {
+                return $e;
                 return RedirectHelper::backWithInputFromException();
             }
-        }
+
     }
 
     /**
@@ -176,8 +168,9 @@ class UserController extends Controller
     public
     function destroy($id)
     {
-        $this->checkOwnPermission('users.delete');
-        $deleteData = User::find($id);
+        $this->checkOwnPermission('service_categories.delete');
+        $deleteData = ServiceCategory::where('branch_id', auth()->user()->branch_id)
+            ->find($id);
 
         if (!is_null($deleteData)) {
             if ($deleteData->delete()) {

@@ -58,6 +58,9 @@
                                             <td>{{ $data->nid ?? 'N/A' }}</td>
                                             <td>{{ Str::limit($data->note, 40) ?? 'N/A' }}</td>
                                             <td>
+                                                </a>   <a href="{{ route('admin.recepts.create').'?for='.$data->user->id }}" class="btn bg-info text-white"><i class="fa fa-pager"
+                                                                                                                                                         aria-hidden="true"></i>
+                                                </a>
                                                 <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="badge bg-info">
                                                     <i class="fas fa-pen"></i>
                                                 </a>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -46,6 +47,7 @@ class ServiceController extends Controller
     {
         $this->checkOwnPermission('services.create');
         $data['pageHeader'] = $this->pageHeader;
+        $data['categories'] = ServiceCategory::get();
         return view('backend.pages.services.create', $data);
     }
 
@@ -54,12 +56,14 @@ class ServiceController extends Controller
         $this->checkOwnPermission('services.create');
         $request->validate([
             'name' => 'required|max:200',
+            'service_category_id' => 'required',
             'price' => 'required|numeric',
         ]);
 
         try {
             $row = new Service();
             $row->branch_id = auth()->user()->branch_id;
+            $row->service_category_id = $request->service_category_id;
             $row->name = $request->name;
             $row->price = $request->price;
             $row->note = $request->note;
@@ -78,6 +82,7 @@ class ServiceController extends Controller
     {
         $this->checkOwnPermission('services.edit');
         $data['pageHeader'] = $this->pageHeader;
+        $data['categories'] = ServiceCategory::get();
 
         if ($data['edited'] = Service::where('branch_id', auth()->user()->branch_id)->find($id)) {
             return view('backend.pages.services.edit', $data);
@@ -96,6 +101,7 @@ class ServiceController extends Controller
 
         try {
             if ($row = Service::where('branch_id', auth()->user()->branch_id)->find($id)) {
+                $row->service_category_id = $request->service_category_id;
                 $row->name = $request->name;
                 $row->price = $request->price;
                 $row->note = $request->note;

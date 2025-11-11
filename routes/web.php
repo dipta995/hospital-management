@@ -6,6 +6,7 @@ use App\Http\Controllers\Backend\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Backend\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Backend\BranchController;
 use App\Http\Controllers\Backend\CategoryController;
+use App\Http\Controllers\Backend\ServiceCategoryController;
 use App\Http\Controllers\Backend\ServiceController;
 use App\Http\Controllers\Backend\CostCategoryController;
 use App\Http\Controllers\Backend\CostController;
@@ -118,7 +119,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
 
     Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);
     Route::get('/recepts/pdf-preview/{id}', [ReceptController::class, 'receptPdfPreview'])->name('recepts.pdf-preview');
-
+    Route::resource('service-categories', ServiceCategoryController::class, ['names' => 'service_categories']);
     Route::resource('services', ServiceController::class, ['names' => 'services']);
 
     Route::resource('products', ProductController::class, ['names' => 'products']);

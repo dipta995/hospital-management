@@ -654,7 +654,7 @@ class InvoiceController extends Controller
 
     public function invoiceStatus($id)
     {
-        $this->checkOwnPermission('invoices.edit');
+//        $this->checkOwnPermission('invoices.edit');
         $row = Invoice::where('branch_id', auth()->user()->branch_id)
             ->find($id);
         if (Invoice::$deliveryStatusArray[0] == $row->status) {
