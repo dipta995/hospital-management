@@ -430,6 +430,35 @@
                 $('.success-pdf').html(message);
                 localStorage.removeItem('receptMessage');
             }
+            $("#service_category_id").on("change", function () {
+                let categoryId = $(this).val();
+                if (!categoryId) return;
+
+                $.ajax({
+                    url: "/admin/get-services-by-category/" + categoryId,
+                    type: "GET",
+                    success: function (data) {
+                        if (!Array.isArray(data) || data.length === 0) {
+                            alert("No services found for this category!");
+                            return;
+                        }
+
+                        data.forEach(item => {
+                            // Prevent duplicates
+                            const exists = selectedRecepts.some(s => s.service_id == item.id);
+                            if (!exists) {
+                                selectedRecepts.push({
+                                    service_id: item.id,
+                                    name: item.name,
+                                    price: parseFloat(item.price)
+                                });
+                            }
+                        });
+
+                        updateTable(); // Refresh UI
+                    }
+                });
+            });
 
         });
     </script>

@@ -128,4 +128,11 @@ class ApiController extends Controller
 
 
     }
+
+    public function getByCategory($id)
+    {
+        $services = Service::where('service_category_id', $id)->select('id', 'name', 'price')->get();
+        return response()->json($services);
+    }
+
 }
