@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Recept;
 use App\Models\ReceptList;
 use App\Models\ReceptPayment;
+use App\Models\ServiceCategory;
 use App\Models\User;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
@@ -54,6 +55,7 @@ class ReceptController extends Controller
         $this->checkOwnPermission('recepts.create');
         $data['pageHeader'] = $this->pageHeader;
         $data['user_data'] = User::find(request('for'));
+        $data['service_categories'] = ServiceCategory::all();
         return view('backend.pages.recepts.create', $data);
     }
 

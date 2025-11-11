@@ -114,6 +114,17 @@
                                     </div>
 
                                     <!-- ================= Service Details ================= -->
+                                    <h4 class="card-title bg-info p-1 mt-3 mb-3">Service Category</h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <select class="form-control" name="service_category_id" id="service_category_id">
+                                                <option value="">Choose</option>
+                                                @foreach($service_categories as $item)
+                                                    <option value="{{ $item->id }}">{{ $item->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
                                     <h4 class="card-title bg-info p-1 mt-3 mb-3">Services</h4>
                                     <div class="row">
                                         <div class="col-md-8">
