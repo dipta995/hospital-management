@@ -35,13 +35,12 @@
                                         {{-- <th>DR.</th> --}}
                                         <th>Bed/Cabin</th>
                                         <th>Admit Date</th>
-                                        <th>Release Date</th>
                                         <th>Received By</th>
                                         <th>Diagnosis</th>
-                                        <th>Admit Date</th>
-                                        <th>Release Date</th>
-                                        <th>NID</th>
                                         <th>Note</th>
+                                        <th>bed     </th>
+                                        <th>Release Date</th>
+
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -51,12 +50,14 @@
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
                                             <td>{{ $data->reefer?->name }}</td>
+                                            <td>{{ ($data->father_or_spouse) ?? 'N/A' }}</td>
+                                            <td>{{ ($data->bed_or_cabin) ?? 'N/A' }}</td>
                                             <td>{{ $data->admit_at ?? 'N/A' }}</td>
-                                            <td>{{ $data->father_spouse ?? 'N/A' }}</td>
-                                            <td>{{ Str::limit($data->clinical_diagnosis, 30) ?? 'N/A' }}</td>
+                                            <td>{{ $data->clinical_diagnosis ?? 'N/A' }}</td>
                                              <td>{{ $data->received_by ?? 'N/A' }}</td>
                                             {{-- <td>{{ $data->reefer?->name ?? 'N/A' }}</td> --}}
                                             <td>{{ $data->bed_cabin ?? 'N/A' }}</td>
+                                            <td>{{ $data->note ?? 'N/A'}}</td>
                                             <td>
                                                 @if(!$data->release_at)
                                                     <button class="btn btn-sm btn-warning add-release-btn"
@@ -67,12 +68,8 @@
                                                     {{ $data->release_at }}
                                                 @endif
                                             </td>
-                                            <td>{{ $data->nid ?? 'N/A' }}</td>
-                                            <td>{{ Str::limit($data->note, 40) ?? 'N/A' }}</td>
                                             <td>
-                                                </a>   <a href="{{ route('admin.recepts.create').'?for='.$data->user->id }}" class="btn bg-info text-white"><i class="fa fa-pager"
-                                                                                                                                                         aria-hidden="true"></i>
-                                                </a>
+
                                                 <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="badge bg-info">
                                                     <i class="fas fa-pen"></i>
                                                 </a>

@@ -69,24 +69,12 @@
                                     </div>
 
                                     <div class="form-group mb-3">
-                                        <label for="refer_id" class="form-label">Refer ID</label>
-                                        <input type="text" class="form-control" name="refer_id" id="refer_id"
-                                               placeholder="Enter refer ID">
+                                        <label for="refer_id" class="form-label">Refer ID(PC)<button type="button" class="badge bg-info openOtherModal" data-target-input="refer_name">Add PC</button></label>
+                                        <x-default.input name="refer_name" required class="form-control" id="refer_name" type="text" ></x-default.input>
+                                        <x-default.input-error name="refer_name"></x-default.input-error>
+                                        <input type="hidden" name="refer_id" id="refer_id">
                                     </div>
 
-                                   
-                                    {{-- <div class="form-group mb-3">
-                                        <x-default.label for="dr_refer_name">
-                                            Dr Name
-                                            <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">
-                                                Add Doctor
-                                            </button>
-                                        </x-default.label>
-                                        <x-default.input name="dr_refer_name" class="form-control"
-                                                         id="dr_refer_name" type="text"></x-default.input>
-                                        <x-default.input-error name="dr_refer_name"></x-default.input-error>
-                                        <input type="hidden" name="dr_refer_id" id="dr_refer_id">
-                                    </div> --}}
 
                                     <div class="form-group mb-3">
                                         <label for="nid" class="form-label">NID</label>
@@ -192,6 +180,47 @@
                 </form>
             </div>
         </div>
+
+        <div class="modal fade" id="otherAddModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="otherAddForm">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New PC</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">PC Name</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" class="form-control" name="phone" >
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Parent(%)</label>
+                                <input type="number" class="form-control" name="percent" value="0" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-control" name="type" required>
+                                    <option value="{{ \App\Models\Reefer::$typeArray[1] }}">{{ \App\Models\Reefer::$typeArray[1] }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Save PC</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -235,6 +264,12 @@
                 $("#dr_refer_id").val(item.referID);
                 $("#dr_refer_name").val(item.name);
             });
+            // Configure referrals autocomplete
+            configureAutocomplete("refer_name", "/admin/get-referrals", function (item) {
+                $("#refer_id").val(item.referID);
+                $("#refer_name").val(item.name);
+            });
+
 
             $(document).on('click', '.openDoctorModal', function() {
                 let target = $(this).attr('data-target-input');
@@ -262,6 +297,26 @@
 
                         $('#doctorAddModal').modal('hide');
                         $('#doctorAddForm')[0].reset();
+                    }
+                });
+            });
+            $('#otherAddForm').on('submit', function(e) {
+                e.preventDefault();
+
+                let formData = $(this).serialize()
+                $.ajax({
+                    url: "{{ route('admin.reefers.store') }}",
+                    type: "POST",
+                    data: formData,
+                    success: function(response) {
+
+                        let targetInput = $('#otherAddModal').data('target-input');
+
+                        $("#" + targetInput).val(response.name);  // insert name
+                        $("#"+targetInput.replace("_name","_id")).val(response.id); // insert id
+
+                        $('#otherAddModal').modal('hide');
+                        $('#otherAddForm')[0].reset();
                     }
                 });
             });

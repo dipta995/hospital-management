@@ -77,7 +77,7 @@ class UserController extends Controller
         $this->checkOwnPermission('users.create');
         $rules = [
             'name'    => 'required|string|max:50',
-            'phone'   => 'required|digits:11',
+            'phone'   => 'required',
             'age'     => 'required',
 //            'address' => 'required|string|max:255',
 //            'password' => 'required|min:8|confirmed',
@@ -91,9 +91,9 @@ class UserController extends Controller
             $user->age = $request->age;
             $user->gender = $request->gender;
             $user->blood_group = $request->blood_group;
-            $user->marital_status = $request->marital_status; 
-            $user->occupation = $request->occupation;         
-            $user->religion = $request->religion;  
+            $user->marital_status = $request->marital_status;
+            $user->occupation = $request->occupation;
+            $user->religion = $request->religion;
             $user->address = $request->address;
             $user->password = Hash::make(12345678);
 
@@ -157,8 +157,8 @@ class UserController extends Controller
                 $user->age = $request->age;
                 $user->gender = $request->gender;
                 $user->blood_group = $request->blood_group;
-                $user->marital_status = $request->marital_status; 
-                $user->occupation = $request->occupation;        
+                $user->marital_status = $request->marital_status;
+                $user->occupation = $request->occupation;
                 $user->religion = $request->religion;
                 $user->address = $request->address;
                 if ($user->save()) {

@@ -12,25 +12,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('admits', function (Blueprint $table) {
-            $table->id();         
+            $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('branch_id');
+            $table->unsignedBigInteger('dr_refer_id')->nullable();
             $table->unsignedBigInteger('reffer_id')->nullable();
             $table->string('admit_at')->nullable();
             $table->string('release_at')->nullable();
-            $table->string('nid')->nullable();    
+            $table->string('nid')->nullable();
             $table->text('note')->nullable();
 
-            $table->string('bed_or_cabin')->nullable();              
-            $table->string('father_or_spouse')->nullable();          
-            $table->string('received_by')->nullable();               
-            $table->string('clinical_diagnosis')->nullable();
-            // $table->unsignedBigInteger('refer_id')->nullable();         
-            $table->unsignedBigInteger('dr_refer_id')->nullable();
+            $table->string('bed_or_cabin')->nullable();
+            $table->string('father_or_spouse')->nullable();
+            $table->string('received_by')->nullable();
+                $table->string('clinical_diagnosis')->nullable();
+            // $table->unsignedBigInteger('refer_id')->nullable();
 
             $table->timestamps();
         });
-        
+
     }
 
     /**

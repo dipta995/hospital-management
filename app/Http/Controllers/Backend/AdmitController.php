@@ -74,9 +74,10 @@ class AdmitController extends Controller
 
         try {
             $row = new Admit();
-            $row->user_id = $request->user_id;
-            $row->branch_id = auth()->user()->branch_id;          
-            $row->reffer_id = $request->dr_refer_id;
+                $row->user_id = $request->user_id;
+            $row->branch_id = auth()->user()->branch_id;
+            $row->refer_id = $request->refer_id;
+            $row->dr_refer_id = $request->dr_refer_id;
             $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
             $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
             $row->nid = $request->nid;
@@ -128,7 +129,7 @@ class AdmitController extends Controller
                 $row->nid = $request->nid;
                 $row->note = $request->note;
 
-                
+
                 $row->bed_or_cabin = $request->bed_or_cabin;
                 $row->father_or_spouse = $request->father_or_spouse;
                 $row->received_by = $request->received_by;
