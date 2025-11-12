@@ -140,6 +140,7 @@
                                     <div class="form-group">
                                         <x-default.label required="true" for="blood_group">Blood Group</x-default.label>
                                         <select class="form-control" name="blood_group" id="blood_group">
+                                            <option value="">--Choose--</option>
                                             <option value="A+">A+</option>
                                             <option value="A-">A-</option>
                                             <option value="B+">B+</option>
