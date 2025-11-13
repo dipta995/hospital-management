@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('recepts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('admin_id')->nullable();
+            $table->unsignedBigInteger('admit_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('branch_id')->nullable();
             $table->decimal('total_amount', 15, 2)->nullable();

@@ -41,12 +41,21 @@ class ReceptController extends Controller
         ];
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->checkOwnPermission('recepts.index');
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = Recept::where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'DESC')->paginate(10);
+        $for = $request->get('for'); // example: ?for=5
+
+        $query = Recept::where('branch_id', auth()->user()->branch_id)
+            ->orderBy('id', 'DESC');
+
+        if (!empty($for)) {
+            $query->where('admit_id', $for);
+        }
+
+        $data['datas'] = $query->paginate(10);
+
         return view('backend.pages.recepts.index', $data);
     }
 
@@ -69,6 +78,7 @@ class ReceptController extends Controller
         try {
             // 1️⃣ Create Recept
             $row = new Recept();
+            $row->admit_id = $request['customerDetails']['admit_id'];
             $row->admin_id = auth()->id();
             $row->user_id = $request['customerDetails']['customer_id'];
             $row->branch_id = auth()->user()->branch_id;

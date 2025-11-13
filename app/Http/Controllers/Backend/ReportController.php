@@ -9,6 +9,8 @@ use App\Models\Cost;
 use App\Models\Invoice;
 use App\Models\InvoiceList;
 use App\Models\InvoicePayment;
+use App\Models\Recept;
+use App\Models\ReceptPayment;
 use App\Models\Reefer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -141,7 +143,102 @@ class ReportController extends Controller
         return view('backend.pages.reports.collections', $data);
     }
 
+    public function hospitalCollections(Request $request)
+    {
+        $this->checkOwnPermission('reports.index');
 
+        $data['pageHeader'] = [
+            'title' => "Hospital Collections",
+            'sub_title' => "",
+            'plural_name' => "hospital_collections",
+            'singular_name' => "Hospital Collection",
+            'base_url' => url('admin/hospital_collections'),
+        ];
+
+        $nowDhaka = Carbon::now('Asia/Dhaka');
+
+        // Query payments linked to invoices of the same branch
+        $query = ReceptPayment::with(['recept.receptList'])
+            ->whereHas('recept', function ($q) {
+                $q->where('branch_id', auth()->user()->branch_id);
+            });
+
+        // Query invoices for accurate total calculations
+        $invQuery = Recept::where('branch_id', auth()->user()->branch_id);
+
+        // Apply date filters
+        if (!$request->filled('start_date') && !$request->filled('end_date')) {
+            $query->whereDate('creation_date', $nowDhaka->toDateString());
+            $invQuery->whereDate('created_date', $nowDhaka->toDateString());
+        } else {
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('creation_date', [$request->start_date, $request->end_date]);
+                $invQuery->whereBetween('created_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->where('creation_date', '>=', $request->start_date);
+                $invQuery->where('created_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->where('creation_date', '<=', $request->end_date);
+                $invQuery->where('created_date', '<=', $request->end_date);
+            }
+        }
+
+        // Get unique invoices to prevent duplicate amount calculations
+        $uniqueInvoices = $invQuery->get()->keyBy('id');
+
+        // Sum total amounts and discounts once per invoice
+        $overallTotalAmount = $uniqueInvoices->sum('total_amount');
+        $overallTotalDiscount = $uniqueInvoices->sum('discount_amount');
+
+        // Sum payments (since each payment entry is unique)
+        $overallTotalCollection = $query->sum('paid_amount');
+
+        // Fetch payment data
+        $dataPaginator = $query->orderBy('id', 'asc');
+
+        // If exporting as PDF, fetch all data
+        if ($request->query('export') == 'pdf') {
+            $dataPaginator = $dataPaginator->get();
+        } else {
+            $dataPaginator = $dataPaginator->paginate(2000);
+        }
+
+        // Group payments by DATE and INVOICE to avoid duplicate invoice totals
+        $groupedDatas = collect($dataPaginator instanceof \Illuminate\Pagination\LengthAwarePaginator
+            ? $dataPaginator->items()
+            : $dataPaginator
+        )->groupBy(function ($item) {
+            return \Carbon\Carbon::parse($item->creation_date)->format('Y-m-d'); // Group by date
+        })->map(function ($dateGroup) {
+            return $dateGroup->groupBy('recept_id')->map(function ($group) {
+                $firstInvoice = $group->first()->recept; // Get invoice data only once
+
+                return [
+                    'data' => $group,
+                    'total_collection' => $group->sum('paid_amount'), // Sum of payments per invoice
+                    'total_amount' => $firstInvoice->total_amount ?? 0, // Total invoice amount (once)
+                    'total_discount' => $firstInvoice->discount_amount ?? 0, // Total discount (once)
+                ];
+            });
+        });
+
+        // If not exporting as PDF, set paginated results
+        if ($request->query('export') != 'pdf') {
+            $dataPaginator->setCollection(collect($groupedDatas));
+        }
+
+        // Assign data to view
+        $data['datas'] = $groupedDatas ?? collect();
+        $data['overall_total_collection'] = $overallTotalCollection;
+        $data['overall_total_amount'] = $overallTotalAmount;
+        $data['overall_total_discount'] = $overallTotalDiscount;
+//return $data;
+        // Return the correct view
+        if ($request->query('export') == 'pdf') {
+            return view('backend.pages.reports.recept-collections-pdf', $data);
+        }
+        return view('backend.pages.reports.recept-collections', $data);
+    }
     public function references(Request $request)
     {
         $this->checkOwnPermission('reports.index');

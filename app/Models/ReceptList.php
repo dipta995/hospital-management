@@ -22,4 +22,11 @@ class ReceptList extends Model
     public function service(){
         return $this->belongsTo(Service::class);
     }
+    public function recept()
+    {
+        return $this->belongsTo(Recept::class, 'recept_id', 'id');
+    } public function services()
+    {
+        return $this->belongsTo(Service::class);
+    }
 }

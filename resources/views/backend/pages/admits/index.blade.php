@@ -69,7 +69,10 @@
                                                 @endif
                                             </td>
                                             <td>
-
+                                                  <a href="{{ route('admin.recepts.create').'?admitId='.$data->id .'&for='.$data->user_id }}" class="btn bg-info text-white"><i class="fa fa-pager"
+                                                  </a>  <a href="{{ route('admin.recepts.index').'?for='.$data->id }}" class="btn bg-warning text-white"><i class="fa fa-eye"
+                                                                                                                                                         aria-hidden="true"></i>
+                                                </a>
                                                 <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="badge bg-info">
                                                     <i class="fas fa-pen"></i>
                                                 </a>

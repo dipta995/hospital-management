@@ -18,6 +18,9 @@ class Admit extends Model
     public function reefer()
 {
     return $this->belongsTo(Reefer::class,'refer_id','id');
+}    public function drreefer()
+{
+    return $this->belongsTo(Reefer::class,'dr_refer_id','id');
 }
 
 }

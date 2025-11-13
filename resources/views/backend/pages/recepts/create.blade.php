@@ -65,6 +65,7 @@
                                 @csrf
                                 <fieldset>
                                     <input type="hidden" id="customer_id" name="customer_id" value="{{ $user_data->id }}">
+                                    <input type="hidden" id="admit_id" name="admit_id" value="{{ request('admitId') }}">
                                     <!-- ================= Patient Details ================= -->
                                     <h4 class="card-title bg-info p-1 mt-3 mb-3">Patient Details</h4>
                                     <div class="row">
@@ -382,12 +383,14 @@
                 const services = selectedRecepts;
                 const customerDetails = {
                     customer_id: $("#customer_id").val(),
+                    admit_id: $("#admit_id").val(),
                     discount_by: "admin"
                 };
                 const paymentDetails = {
                     paid_amount: parseFloat($("#paid-amount").val()) || 0,
                     discount_amount: parseFloat($("#discount-amount").text()) || 0,
                     total_amount: parseFloat($("#final-amount").text()) || 0
+
                 };
 
                 if (!services.length) {
@@ -404,6 +407,7 @@
 
                         // alert("Order saved successfully!");
                         if(response.recept_id){
+
                             const receptId = response.recept_id;
                             const customer_name = response.customer_name;
                             const receptUrl = `{{ route('admin.recepts.pdf-preview', ':id') }}`.replace(':id', receptId);

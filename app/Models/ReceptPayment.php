@@ -18,4 +18,13 @@ class ReceptPayment extends Model
         'paid_amount',
         'creation_date'
     ];
+    public function recept()
+    {
+        return $this->belongsTo(Recept::class, 'recept_id', 'id');
+    }
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id', 'id');
+    }
+
 }

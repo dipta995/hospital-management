@@ -773,6 +773,10 @@
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.collections') }}">Collections</a>
                                 </li>
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reports.recept-collections') }}">Hospital Collections</a>
+                                </li>
 
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"

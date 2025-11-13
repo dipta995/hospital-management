@@ -24,15 +24,22 @@ class Recept extends Model
     protected $fillable = [
         'user_id',
         'admin_id',
+        'admit_id',
         'branch_id',
         'total_amount',
         'discount_amount',
         'created_date'
     ];
-    public function user()
+    public function admit()
+    {
+        return $this->belongsTo(Admit::class);
+
+    }   public function user()
     {
         return $this->belongsTo(User::class);
-    }   public function admin()
+    }
+
+    public function admin()
     {
         return $this->belongsTo(Admin::class);
     }
@@ -49,6 +56,14 @@ class Recept extends Model
         return $this->hasMany(ReceptList::class, 'recept_id', 'id');
     }
 
+    public function reeferDr()
+    {
+        return $this->belongsTo(Reefer::class, 'dr_refer_id', 'id');
+    }
+    public function reeferBy()
+    {
+        return $this->belongsTo(Reefer::class, 'refer_id', 'id');
+    }
 
 
 }
