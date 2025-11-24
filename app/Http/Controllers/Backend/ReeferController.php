@@ -98,18 +98,18 @@ class ReeferController extends Controller
             $row->type = $request->type;
             $row->office_time = $request->office_time;
             $row->save();
-            if ($request->has('custom_percent')=='yes') {
-                foreach ($request->custom_percent as $categoryId => $percent) {
-                    if ($percent !== null) {
-                        CustomPercent::create([
-                            'branch_id' => auth()->user()->branch_id,
-                            'refer_id' => $row->id,
-                            'category_id' => $categoryId,
-                            'percentage' => $percent,
-                        ]);
-                    }
-                }
-            }
+//            if ($request->has('custom_percent')=='yes') {
+//                foreach ($request->custom_percent as $categoryId => $percent) {
+//                    if ($percent !== null) {
+//                        CustomPercent::create([
+//                            'branch_id' => auth()->user()->branch_id,
+//                            'refer_id' => $row->id,
+//                            'category_id' => $categoryId,
+//                            'percentage' => $percent,
+//                        ]);
+//                    }
+//                }
+//            }
             DB::commit();
             return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Reefer Created Successfully');
 
@@ -180,22 +180,22 @@ class ReeferController extends Controller
                 $row->office_time = $request->office_time;
 
                $row->save();
-                if ($request->has('custom_percent')=='yes') {
-                    foreach ($request->custom_percent as $categoryId => $percent) {
-                        if ($percent !== null) {
-                            CustomPercent::updateOrCreate(
-                                [
-                                    'branch_id' => auth()->user()->branch_id,
-                                    'refer_id' => $row->id,
-                                    'category_id' => $categoryId,
-                                ],
-                                [
-                                    'percentage' => $percent,
-                                ]
-                            );
-                        }
-                    }
-                }
+//                if ($request->has('custom_percent')=='yes') {
+//                    foreach ($request->custom_percent as $categoryId => $percent) {
+//                        if ($percent !== null) {
+//                            CustomPercent::updateOrCreate(
+//                                [
+//                                    'branch_id' => auth()->user()->branch_id,
+//                                    'refer_id' => $row->id,
+//                                    'category_id' => $categoryId,
+//                                ],
+//                                [
+//                                    'percentage' => $percent,
+//                                ]
+//                            );
+//                        }
+//                    }
+//                }
 
                 DB::commit();
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Sorry !!!</strong>Data not found');
