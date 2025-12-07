@@ -83,6 +83,10 @@ class InvoiceController extends Controller
         if ($request->filled('invoice_number')) {
             $query->where('invoice_number', $request->invoice_number);
         }
+        // Invoice number customer
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
         // Invoice number Admin
         if ($request->filled('admin_id')) {
             $query->where('admin_id', $request->admin_id);
@@ -266,7 +270,7 @@ class InvoiceController extends Controller
             if (!Invoice::where('branch_id', auth()->user()->branch_id)->where('invoice_number', $request->invoice_number)->where('patient_no', self::getNextPatientNo())->exists()) {
                 $invoiceId = \DB::transaction(function () use ($rules, $request) {
                     $row = new Invoice();
-                    $row->user_id = $request->for ?? null;
+                    $row->user_id = $request['customerDetails']['for'] ?? null;
                     $row->branch_id = auth()->user()->branch_id;
                     $row->patient_no = self::getNextPatientNo();
                     $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];

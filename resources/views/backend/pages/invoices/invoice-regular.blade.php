@@ -145,7 +145,7 @@
 <div class="title">Money Receipt</div>
 <table class="details">
     <tr>
-        <th>Patient ID</th>
+        <th>Invoice ID</th>
         <td><strong>{{ $invoice->patient_no }}</strong></td>
         <th>Date</th>
         <td>{{ \Carbon\Carbon::parse($invoice->created_at)->setTimezone('Asia/Dhaka')->format('d-m-Y h:i A') }}</td>
@@ -157,8 +157,8 @@
         <td>{{ $invoice->discount_by }}</td>
     </tr>
     <tr>
-        <th>Patient's Name</th>
-        <td>{{ $invoice->patient_name }}</td>
+        <th>Patient's Name (ID)</th>
+        <td>{{ $invoice->patient_name }} ({{ $invoice->user_id }})</td>
         <th>Mobile</th>
         <td>{{ $invoice->patient_phone }}</td>
     </tr>

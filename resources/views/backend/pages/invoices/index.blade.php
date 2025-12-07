@@ -79,13 +79,33 @@
                                     </div>
 
 
-                                    <div class="col-md-2">
-                                        <label for="end_date">Invoice:</label>
-                                        <input type="text" name="invoice_number" id="invoice_number"
-                                               class="form-control"
-                                               value="{{ request('invoice_number') }}">
-                                    </div>
-                                    <div class="col-md-12 mt-2 d-flex justify-content-end align-items-end">
+                                        <!-- SELECT -->
+                                        <div class="col-md-2">
+                                            <label>Choose Field:</label>
+                                            <select id="fieldSelector" class="form-control">
+                                                <option value="">Select One</option>
+                                                <option value="invoice">Invoice</option>
+                                                <option value="patient">Patient ID</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Invoice Field -->
+                                        <div class="col-md-2" id="invoiceField">
+                                            <label for="invoice_number">Invoice:</label>
+                                            <input type="text" name="invoice_number" id="invoice_number"
+                                                   class="form-control">
+                                        </div>
+
+                                        <!-- Patient Field -->
+                                        <div class="col-md-2" id="patientField">
+                                            <label for="user_id">Patient Id:</label>
+                                            <input type="text" name="user_id" id="user_id"
+                                                   class="form-control">
+                                        </div>
+
+
+
+                                        <div class="col-md-12 mt-2 d-flex justify-content-end align-items-end">
                                         <button type="submit" class="btn btn-primary">Filter</button>
                                         <a href="{{ route('admin.invoices.index') }}" class="btn btn-secondary ms-2">Reset</a>
                                     </div>
@@ -263,6 +283,40 @@
                         placeholder: "Select reagents",
                         allowClear: true
                     });
+
+                    let $selector = $('#fieldSelector');
+                    let $invoice = $('#invoiceField');
+                    let $patient = $('#patientField');
+
+                    // Hide both initially
+                    $invoice.hide();
+                    $patient.hide();
+
+                    function updateFields(val) {
+
+                        // Always clear both fields when switching
+                        $('#invoice_number').val('');
+                        $('#user_id').val('');
+
+                        if (val === 'invoice') {
+                            $invoice.show();
+                            $patient.hide();
+                        }
+                        else if (val === 'patient') {
+                            $invoice.hide();
+                            $patient.show();
+                        }
+                        else {
+                            $invoice.hide();
+                            $patient.hide();
+                        }
+                    }
+
+                    // On dropdown change
+                    $selector.on('change', function() {
+                        updateFields($(this).val());
+                    });
+
                 });
             </script>
             <script>
