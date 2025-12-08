@@ -29,6 +29,7 @@ class ApiController extends Controller
 
         return response()->json($products);
     }
+
     public function getServices(Request $request)
     {
         $query = $request->get('query');
@@ -47,8 +48,8 @@ class ApiController extends Controller
     {
         $query = $request->get('query');
         $products = Reefer::where('branch_id', auth()->user()->branch_id)
-            ->where('type',Reefer::$typeArray[0])
-            ->where('name', 'LIKE', '%' . $query . '%')->get(['name','id as referID']);
+            ->where('type', Reefer::$typeArray[0])
+            ->where('name', 'LIKE', '%' . $query . '%')->get(['name', 'id as referID']);
         return response()->json($products);
     }
 
@@ -56,12 +57,15 @@ class ApiController extends Controller
     {
         $query = $request->get('query');
         $products = Reefer::where('branch_id', auth()->user()->branch_id)
-            ->where('name', 'LIKE', '%' . $query . '%')->get(['name','id as referID']);
+            ->where('name', 'LIKE', '%' . $query . '%')->get(['name', 'id as referID']);
         return response()->json($products);
-    }  public function searchUserPhone(Request $request)
+    }
+
+    public function searchUserPhone(Request $request)
     {
         $query = $request->get('query');
-        $products = User::where('phone', 'LIKE', '%' . $query . '%')->get(['name','id as userId','phone']);
+        $products = User::where('phone', 'LIKE', '%' . $query . '%')->get(['name', 'id as userId', 'phone',
+            'email','age', 'gender','blood_group','address']);
         return response()->json($products);
     }
 
@@ -92,39 +96,40 @@ class ApiController extends Controller
             return response('0', 404)->header('Content-Type', 'text/plain');
         }
     }
+
     public function storeUser(Request $request)
     {
 //        return $request;
         $rules = [
-            'name'    => 'required|string|max:50',
-            'phone'   => 'required|digits:11',
-            'age'     => 'required',
+            'name' => 'required|string|max:50',
+            'phone' => 'required|digits:11',
+            'age' => 'required',
             'address' => 'required|string|max:255',
 //            'password' => 'required|min:8|confirmed',
         ];
         $request->validate($rules);
 
-            $user = new User();
-            $user->name = $request->name;
+        $user = new User();
+        $user->name = $request->name;
 //            $user->email = $request->name.'1@email.com';
-            $user->phone = $request->phone;
-            $user->age = $request->age;
-            $user->gender = $request->gender;
-            $user->blood_group = $request->blood_group;
-            $user->address = $request->address;
-            $user->password = Hash::make(12345678);
+        $user->phone = $request->phone;
+        $user->age = $request->age;
+        $user->gender = $request->gender;
+        $user->blood_group = $request->blood_group;
+        $user->address = $request->address;
+        $user->password = Hash::make(12345678);
 
-            if ($user->save()) {
-                return response()->json(
-                    [
-                        'id' => $user->id,
-                        'customer_name' => $user->name,
-                    ]
-                );
+        if ($user->save()) {
+            return response()->json(
+                [
+                    'id' => $user->id,
+                    'customer_name' => $user->name,
+                ]
+            );
 
-            } else {
-                return response()->json(['error' => 400]);
-            }
+        } else {
+            return response()->json(['error' => 400]);
+        }
 
 
     }

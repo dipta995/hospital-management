@@ -233,8 +233,11 @@ class InvoiceController extends Controller
         $this->checkOwnPermission('invoices.create');
         $data['pageHeader'] = $this->pageHeader;
         $data['invoice_number'] = $this->generateInvoiceNumber();
-        $data['user_data'] = User::find(request('for'));
+        if($data['user_data'] = User::find(request('for'))){
         return view('backend.pages.invoices.create', $data);
+        }else{
+        return view('backend.pages.invoices.create-direct', $data);
+        }
     }
 
     /**
@@ -267,10 +270,26 @@ class InvoiceController extends Controller
             if (Invoice::where('branch_id', auth()->user()->branch_id)->where('patient_no', self::getNextPatientNo())->exists()) {
                 return response()->json(['error' => 401]);
             }
-            if (!Invoice::where('branch_id', auth()->user()->branch_id)->where('invoice_number', $request->invoice_number)->where('patient_no', self::getNextPatientNo())->exists()) {
+            if (!Invoice::where('branch_id', auth()->user()->branch_id)
+                ->where('invoice_number', $request->invoice_number)
+                ->where('patient_no', self::getNextPatientNo())->exists()) {
                 $invoiceId = \DB::transaction(function () use ($rules, $request) {
+                    if ($request['customerDetails']['for'] ===null){
+                        $cust = new User();
+                        $cust->name = $request['customerDetails']['patient_name'];
+                        $cust->age = $request['customerDetails']['patient_age_year'];
+                        $cust->phone = $request['customerDetails']['patient_phone'];
+                        $cust->email = $request['customerDetails']['patient_email'] ?? null;
+                        $cust->gender = $request['customerDetails']['patient_gender'];
+                        $cust->blood_group = $request['customerDetails']['patient_blood_group'];
+                        $cust->address = $request['customerDetails']['patient_address'];
+                        $cust->save();
+                        $userID = $cust->id;
+                    }else{
+                        $userID =  $request['customerDetails']['for'];
+                    }
                     $row = new Invoice();
-                    $row->user_id = $request['customerDetails']['for'] ?? null;
+                    $row->user_id = $userID;
                     $row->branch_id = auth()->user()->branch_id;
                     $row->patient_no = self::getNextPatientNo();
                     $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];

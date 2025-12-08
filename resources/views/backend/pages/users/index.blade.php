@@ -53,9 +53,9 @@
                                             <td>{{ $item->address }}</td>
                                             <td>
                                                 <a href="{{ route('admin.invoices.create').'?for='.$item->id }}" class="btn bg-success text-white"><i class="fa fa-flask"
-                                                                                                aria-hidden="true"></i>
+                                                                                                                                                      aria-hidden="true"></i></a>
                                                     <a href="{{ route('admin.admits.create').'?for='.$item->id }}" class="btn bg-dark text-white"><i class="fa fa-bed"
-                                                                                                 aria-hidden="true"></i>
+                                                                                                                                                     aria-hidden="true"></i></a>
 
                                                     <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
                                                        class="badge bg-info"><i class="fas fa-pencil"></i></a>
@@ -99,6 +99,17 @@
                         <div class="modal-body">
                             <fieldset class="row">
                                 <div class="col-md-4">
+                                    <div class="form-group position-relative"> <!-- important: relative -->
+                                        <label for="phone">Phone <strong class="text-danger">*</strong></label>
+                                        <input id="phone-new" class="form-control @error('phone') is-invalid @enderror" name="phone" type="text" value="{{ old('phone') }}">
+                                        <div id="suggestionAction" class="list-group position-absolute w-100" style="z-index: 1055;"></div>
+                                        @error('phone')
+                                        <strong class="text-danger">{{ $errors->first('phone') }}</strong>
+                                        @enderror
+                                    </div>
+
+                                </div>
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="name">Name <strong class="text-danger">*</strong></label>
                                         <input id="name" class="form-control @error('name') is-invalid @enderror" name="name" type="text" value="{{ old('name') }}">
@@ -107,15 +118,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="phone">Phone <strong class="text-danger">*</strong></label>
-                                        <input id="phone" class="form-control @error('phone') is-invalid @enderror" name="phone" type="text" value="{{ old('phone') }}">
-                                        @error('phone')
-                                        <strong class="text-danger">{{ $errors->first('phone') }}</strong>
-                                        @enderror
-                                    </div>
-                                </div>
+
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="age">Age <strong class="text-danger">*</strong></label>
@@ -232,24 +235,21 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 }
             });
 
-            const message = localStorage.getItem('invoiceMessage');
-            if (message) {
-                $('.success-message').prepend(`<div>${message}</div>`);
-                localStorage.removeItem('invoiceMessage'); // Clear the message after displaying it
-            }
+            // Function to configure autocomplete
             function configureAutocomplete(fieldId, sourceUrl, onSelectCallback) {
-                let enterEnabled = false;
+                const $field = $("#" + fieldId);
 
-                $(`#${fieldId}`).autocomplete({
+                $field.autocomplete({
+                    minLength: 4, // Start autocomplete after 4 digits
                     source: function (request, response) {
-                        if (!request.term.trim()) return response([]);
+                        if (request.term.trim().length < 4) return response([]);
                         $.ajax({
                             url: sourceUrl,
                             type: "GET",
@@ -264,82 +264,115 @@
                             },
                             error: function () {
                                 console.log("Error fetching data");
+                                response([]);
                             }
                         });
                     },
-                    minLength: 1,
                     select: function (event, ui) {
-                        $(`#${fieldId}`).val(ui.item.phone);
-                        enterEnabled = true;
-                        if (typeof onSelectCallback === "function") onSelectCallback(ui.item);
-                        return false;
-                    },
-                    close: function() {
-                        enterEnabled = true;
-                    }
-                });
+                        // Set the phone field value
+                        $field.val(ui.item.phone);
 
-                // Enter key
-                $(`#${fieldId}`).on('keydown', function(e) {
-                    if (e.key === "Enter" && enterEnabled) {
-                        e.preventDefault();
-                        const phone = $(this).val().trim();
-                        if (phone) {
-                            searchByPhone(phone);
-                            enterEnabled = false;
+                        // Run callback to set other fields (like name)
+                        if (typeof onSelectCallback === "function") {
+                            onSelectCallback(ui.item);
                         }
+
+                        return false; // Prevent default value replacement
                     }
                 });
-            }
 
-            function searchByPhone(phone) {
-                console.log("Searching for:", phone);
-                // Example AJAX
-                /*
-                $.get('/admin/search-phone-info', { phone }, function(data) {
-                    // handle result
+                // Remove "Go To Task" button when typing again
+                $field.on("input", function () {
+                    $("#gotoTaskBtn").remove();
                 });
-                */
             }
 
+            // Configure autocomplete for modal phone field
+            $('#phone-new').autocomplete({
+                appendTo: "#suggestionAction", // attach suggestion list to your div
+                minLength: 4,
+                source: function(request, response) {
+                    if(request.term.length < 4) return response([]);
+                    $.ajax({
+                        url: "/admin/search-phone",
+                        type: "GET",
+                        data: { query: request.term },
+                        success: function(data) {
+                            response(data.map(item => ({
+                                label: `${item.name} (${item.phone})`,
+                                value: item.phone,
+                                userId: item.userId,
+                                name: item.name,
+                            })));
+                        }
+                    });
+                },
+                select: function(event, ui) {
+                    $('#phone-new').val(ui.item.phone);
+                    $('#name').val(ui.item.name);
+
+                    const userId = ui.item.userId;
+
+                    // Remove old buttons if exist
+                    $('#gotoTaskBtn, #invoiceBtn, #admitBtn').remove();
+
+                    // Append buttons below input
+                    $('#phone-new').closest('.form-group').append(`
+            <div class="mt-2" id="actionButtons">
+                <a href="/admin/invoices/create?for=${userId}" class="btn bg-success text-white">
+                    <i class="fa fa-flask" aria-hidden="true"></i>
+                </a>
+                <a href="/admin/admits/create?for=${userId}" class="btn bg-dark text-white">
+                    <i class="fa fa-bed" aria-hidden="true"></i>
+                </a>
+            </div>
+        `);
+
+                    return false;
+                }
+            });
+
+            // Configure autocomplete for main search (if needed)
             configureAutocomplete("search", "/admin/search-phone", function(item) {
                 $("#phone").val(item.phone);
                 $("#user_id").val(item.id);
             });
 
+            // Open modal
             $(document).on('click', '.opencreateUser', function() {
                 let target = $(this).attr('data-target-input');
                 $('#createUsermodal').data('target-input', target).modal('show');
             });
+
+            // Submit modal form via AJAX
             $('#createUser').on('submit', function(e) {
                 e.preventDefault();
 
-                let formData = $(this).serialize()
+                let formData = $(this).serialize();
                 $.ajax({
                     url: "{{ route('admin.users.store.api') }}",
                     type: "POST",
                     data: formData,
                     success: function(response) {
-
                         if(response.id){
                             const id = response.id;
                             const customer_name = response.name;
                             localStorage.removeItem('invoiceMessage');
-                            localStorage.setItem('invoiceMessage', `<p class="alert alert-success text-center">"${customer_name}" new custer is added: ${id}</p>`);
+                            localStorage.setItem('invoiceMessage', `<p class="alert alert-success text-center">"${customer_name}" new customer added: ${id}</p>`);
+                            location.reload();
+                        } else {
+                            localStorage.setItem('invoiceMessage', `<p class="alert alert-danger text-center">Something went wrong. Try again!</p>`);
                             location.reload();
                         }
-                        else{
-                            location.reload();
-                            localStorage.setItem('invoiceMessage', `<p class="alert alert-danger text-center">Something Went wrong try again</p>`);
-
-                        }
+                    },
+                    error: function() {
+                        localStorage.setItem('invoiceMessage', `<p class="alert alert-danger text-center">Something went wrong. Try again!</p>`);
+                        location.reload();
                     }
                 });
             });
-
         });
 
-
-
     </script>
+
 @endpush
