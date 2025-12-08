@@ -43,6 +43,13 @@
                     <span class="nav-text"> Setting </span>
                 </a>
             </li>
+            <li class="nav-item {{ Route::is('admin.change') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('admin.change') }}">
+                                   <span class="nav-icon">
+                <i class="fas fa-user-edit"></i> </span>
+                    <span class="nav-text"> Update Password </span>
+                </a>
+            </li>
 
             <li class="menu-title">Components</li>
             {{--   Branch's   --}}
@@ -164,8 +171,8 @@
             @if ($userGuard->can('admits.index') || $userGuard->can('admits.create') || $userGuard->can('admits.edit') || $userGuard->can('admits.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.admits.create') || Route::is('admin.admits.index') ? 'active' : 'collapsed' }}"
-                    href="#sidebarAdmit" data-bs-toggle="collapse" role="button"
-                    aria-expanded="false" aria-controls="sidebarAdmit">
+                       href="#sidebarAdmit" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarAdmit">
                         <span class="nav-icon">
                             <i class="fas fa-procedures"></i>
                         </span>
@@ -230,8 +237,8 @@
             @if ( $userGuard->can('service_categories.index') || $userGuard->can('service_categories.create') || $userGuard->can('service_categories.edit') || $userGuard->can('service_categories.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.service_categories.create') || Route::is('admin.service_categories.index') ? 'active' : 'collapsed' }}"
-                    href="#sidebarServiceCategory" data-bs-toggle="collapse" role="button"
-                    aria-expanded="false" aria-controls="sidebarServiceCategory">
+                       href="#sidebarServiceCategory" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarServiceCategory">
                         <span class="nav-icon">
                                 <i class="fas fa-briefcase-medical"></i>
                         </span>
@@ -244,13 +251,13 @@
                             @if ($userGuard->can('service_categories.create'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.service_categories.create') }}">{{ __('language.create') }}</a>
+                                       href="{{ route('admin.service_categories.create') }}">{{ __('language.create') }}</a>
                                 </li>
                             @endif
                             @if ($userGuard->can('service_categories.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.service_categories.index') }}">{{ __('language.list') }}</a>
+                                       href="{{ route('admin.service_categories.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>
@@ -263,8 +270,8 @@
             @if ( $userGuard->can('services.index') || $userGuard->can('services.create') || $userGuard->can('services.edit') || $userGuard->can('services.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.services.create') || Route::is('admin.services.index') ? 'active' : 'collapsed' }}"
-                    href="#sidebarService" data-bs-toggle="collapse" role="button"
-                    aria-expanded="false" aria-controls="sidebarService">
+                       href="#sidebarService" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarService">
                         <span class="nav-icon">
                                 <i class="fas fa-briefcase-medical"></i>
                         </span>
@@ -277,13 +284,13 @@
                             @if ($userGuard->can('services.create'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.services.create') }}">{{ __('language.create') }}</a>
+                                       href="{{ route('admin.services.create') }}">{{ __('language.create') }}</a>
                                 </li>
                             @endif
                             @if ($userGuard->can('services.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.services.index') }}">{{ __('language.list') }}</a>
+                                       href="{{ route('admin.services.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>
@@ -295,26 +302,27 @@
             @if ($userGuard->can('recepts.index') || $userGuard->can('recepts.create') || $userGuard->can('recepts.edit') || $userGuard->can('recepts.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.recepts.create') || Route::is('admin.recepts.index') ? 'active' : 'collapsed' }}"
-                    href="#sidebarRecept" data-bs-toggle="collapse" role="button"
-                    aria-expanded="false" aria-controls="sidebarRecept">
+                       href="#sidebarRecept" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarRecept">
                         <span class="nav-icon">
                             <i class="fas fa-receipt"></i>
                         </span>
                         <span class="nav-text">{{ __('Recept') }}</span>
                     </a>
-                    <div class="{{ Route::is('admin.recepts.create') || Route::is('admin.recepts.index') ? 'active' : 'collapse' }}"
+                    <div
+                        class="{{ Route::is('admin.recepts.create') || Route::is('admin.recepts.index') ? 'active' : 'collapse' }}"
                         id="sidebarRecept">
                         <ul class="nav sub-navbar-nav">
                             @if ($userGuard->can('recepts.create'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.recepts.create') }}">{{ __('language.create') }}</a>
+                                       href="{{ route('admin.recepts.create') }}">{{ __('language.create') }}</a>
                                 </li>
                             @endif
                             @if ($userGuard->can('recepts.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
-                                    href="{{ route('admin.recepts.index') }}">{{ __('language.list') }}</a>
+                                       href="{{ route('admin.recepts.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>
@@ -326,24 +334,27 @@
             @if ($userGuard->can('receptlists.index') || $userGuard->can('receptlists.create') || $userGuard->can('receptlists.edit') || $userGuard->can('receptlists.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.receptlists.create') || Route::is('admin.receptlists.index') ? 'active' : 'collapsed' }}"
-                    href="#sidebarReceptList" data-bs-toggle="collapse" role="button"
-                    aria-expanded="false" aria-controls="sidebarReceptList">
+                       href="#sidebarReceptList" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarReceptList">
                         <span class="nav-icon">
                             <i class="fas fa-list-alt"></i>
                         </span>
                         <span class="nav-text">{{ __('Recept List') }}</span>
                     </a>
-                    <div class="{{ Route::is('admin.receptlists.create') || Route::is('admin.receptlists.index') ? 'active' : 'collapse' }}"
+                    <div
+                        class="{{ Route::is('admin.receptlists.create') || Route::is('admin.receptlists.index') ? 'active' : 'collapse' }}"
                         id="sidebarReceptList">
                         <ul class="nav sub-navbar-nav">
                             @if ($userGuard->can('receptlists.create'))
                                 <li class="sub-nav-item">
-                                    <a class="sub-nav-link" href="{{ route('admin.receptlists.create') }}">{{ __('language.create') }}</a>
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.receptlists.create') }}">{{ __('language.create') }}</a>
                                 </li>
                             @endif
                             @if ($userGuard->can('receptlists.index'))
                                 <li class="sub-nav-item">
-                                    <a class="sub-nav-link" href="{{ route('admin.receptlists.index') }}">{{ __('language.list') }}</a>
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.receptlists.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>
@@ -445,7 +456,7 @@
                                        href="{{ route('admin.reefers.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
-                                @if ($userGuard->can('reefers.index'))
+                            @if ($userGuard->can('reefers.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reefers.custom-sms') }}">Sms alert</a>
@@ -734,11 +745,11 @@
                                     </a>
                                 </li>
                             @endif
-                             {{-- Prescriptions List --}}
+                            {{-- Prescriptions List --}}
                             @if ($userGuard->can('prescriptions.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link" href="{{ route('admin.reports.references.doctor') }}">
-                                       My Earning
+                                        My Earning
                                     </a>
                                 </li>
                             @endif
@@ -764,33 +775,41 @@
                         class="{{ Route::is('admin.reports.collections') || Route::is('admin.reports.categories') ? 'active' : 'collapse' }}"
                         id="sidebarReport">
                         <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('reports.index'))
+                            @if ($userGuard->can('reports.payment'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.balance') }}">Balance</a>
                                 </li>
+                            @endif
+                            @if ($userGuard->can('reports.show'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.collections') }}">Collections</a>
                                 </li>
+
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.recept-collections') }}">Hospital Collections</a>
                                 </li>
-
+                            @endif
+                            @if ($userGuard->can('reports.payment'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.categories') }}">Test Report Categories</a>
                                 </li>
 
+
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.references.payment') }}">Reference Payment</a>
                                 </li>
+                            @endif
+                            @if ($userGuard->can('reports.show'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.references') }}">Reference</a>
                                 </li>
+
 
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
@@ -977,8 +996,6 @@
                     </div>
                 </li>
             @endif
-
-
 
 
         </ul>

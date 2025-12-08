@@ -90,6 +90,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin'], function () {
     Route::post('/login/submit', [AuthenticatedSessionController::class, 'store'])->name('login.submit');
     Route::get('/logout/submit', [AuthenticatedSessionController::class, 'destroy'])->name('logout.submit');
 
+    Route::get('/password/change', [AuthenticatedSessionController::class, 'change'])->name('change');
+    Route::post('/password/change/pw', [AuthenticatedSessionController::class, 'changePw'])->name('change-pw');
     Route::get('/password/reset', [PasswordResetLinkController::class, 'create'])->name('password');
     Route::post('/password/reset/submit', [PasswordResetLinkController::class, 'destroy'])->name('password.submit');
 });

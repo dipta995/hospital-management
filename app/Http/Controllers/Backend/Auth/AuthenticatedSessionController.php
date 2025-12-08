@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Backend\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Admin;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AuthenticatedSessionController extends Controller
@@ -74,4 +76,44 @@ return $e;
 
         return redirect('/admin/login');
     }
+
+    public function change(Request $request)
+    {
+       return view('backend.auth.change');
+    }
+    public function changePw(Request $request)
+    {
+        $id = Auth::guard('admin')->id();
+        $request->validate([
+            'old_password' => 'required',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',       // at least 1 uppercase
+                'regex:/[a-z]/',       // at least 1 lowercase
+                'regex:/[0-9]/',       // at least 1 number
+                'regex:/[@$!%*#?&]/',  // at least 1 special char
+            ],
+        ], [
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.regex' => 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            'old_password.required' => 'Old password is required.'
+        ]);
+        $admin = Admin::findOrFail($id);
+
+        // Check Old Password
+        if (!Hash::check($request->old_password, $admin->password)) {
+            return back()->with('error', 'Old password does not match');
+        }
+
+        // Update Password
+        $admin->password = Hash::make($request->password);
+        $admin->save();
+
+        return redirect()->route('admin.home')->with('success', 'Password changed successfully!');
+    }
+
 }
