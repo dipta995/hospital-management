@@ -775,7 +775,7 @@
                         class="{{ Route::is('admin.reports.collections') || Route::is('admin.reports.categories') ? 'active' : 'collapse' }}"
                         id="sidebarReport">
                         <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('reports.payment'))
+                            @if ($userGuard->can('reports.show'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.balance') }}">Balance</a>

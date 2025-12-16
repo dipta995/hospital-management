@@ -278,6 +278,7 @@ class ReportController extends Controller
         $data['totalPaidAmount'] = $allInvoices->sum(function ($invoice) {
             return $invoice->costs->sum('amount');
         });
+       $data['toatalCollection'] = $allInvoices->sum('total_amount');
         $data['totalAmount'] = (clone $query)->sum('refer_fee_total');
         $data['totalDueAmount'] = $data['totalAmount']-$data['totalPaidAmount'];
 

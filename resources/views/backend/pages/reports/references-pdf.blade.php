@@ -31,6 +31,7 @@
             's Report</h4>
         <h5 style="float: right;">{{ $startDate }} to {{ $endDate }}</h5>
         <p>
+            <strong>Total Collection :{{ $toatalCollection }}</strong> ||
             <strong>Total:{{ $totalAmount }}</strong> ||
             <strong>Paid:{{ $totalPaidAmount }}</strong> ||
             <strong>Due:{{ $totalDueAmount }}</strong>
@@ -46,7 +47,7 @@
                     <th>Amount</th>
                     <th>Paid</th>
                     <th>Unpaid</th>
-                    <th>Status</th>
+                    <th>Status||By</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -72,6 +73,16 @@
                             @else
                                 <strong class="badge bg-info">Paid</strong>
                             @endif
+                                @php
+                                    $editors = $item->costs
+                                        ->pluck('admin.name')
+                                        ->filter()
+                                        ->unique()
+                                        ->implode(', ');
+                                @endphp
+
+                                {{ $editors ? 'By-' . $editors : '' }}
+
                         </td>
                     </tr>
                 @endforeach

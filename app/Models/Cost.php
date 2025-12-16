@@ -15,6 +15,7 @@ class Cost extends Model
         'invoice_id',
         'cost_category_id',
         'refer_id',
+        'admin_id',
         'employee_id',
         'reason',
         'amount',
@@ -27,6 +28,9 @@ class Cost extends Model
     public function category()
     {
         return $this->belongsTo(CostCategory::class, 'cost_category_id', 'id');
+    } public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id', 'id');
     }     public function costCategory()
     {
         return $this->belongsTo(CostCategory::class, 'cost_category_id', 'id');

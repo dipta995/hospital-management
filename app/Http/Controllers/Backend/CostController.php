@@ -120,6 +120,7 @@ class CostController extends Controller
         try {
             $row = new Cost();
             $row->branch_id = auth()->user()->branch_id;
+            $row->admin_id = auth()->id();
             $row->cost_category_id = $request->cost_category_id;
             if ($request->account_no) {
                 $row->reason = $request->reason . "(account-" . $request->account_no . ")";
@@ -172,6 +173,7 @@ class CostController extends Controller
             foreach ($request->invoices as $item) {
                 $row = new Cost();
                 $row->branch_id = auth()->user()->branch_id;
+                $row->admin_id = auth()->id();
 //            $row->cost_category_id = $item->cost_category_id;
 //            if ($item->account_no) {
 //                $row->reason = "(Refer Paymen account-" . $item->account_no . ")";
@@ -307,20 +309,20 @@ class CostController extends Controller
         if (!$deleteData) {
             return response()->json(['status' => 404, 'message' => 'Cost not found']);
         }
-        
+
         if (!empty($deleteData->salary_id)) {
             $salary = \App\Models\EmployeeSalary::where('id', $deleteData->salary_id)->first();
             if ($salary) {
                 $salary->delete();
             }
         }
-        
+
         if ($deleteData->employee) {
             $employee = $deleteData->employee;
             $employee->total_costs = max(0, $employee->total_costs - $deleteData->amount);
             $employee->save();
         }
-        
+
         if ($deleteData->payment_id) {
             $payment = \App\Models\Payment::find($deleteData->payment_id);
             if ($payment) {

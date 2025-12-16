@@ -35,6 +35,7 @@ use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\AdmitController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\FingerprintController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
 use Illuminate\Support\Facades\Route;
@@ -209,6 +210,12 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
 
 });
+Route::get('/checkDevice', [SerialController::class, 'checkDevice']);
 
+
+//Fingerprint
+Route::post('/fingerprint-send', [FingerprintController::class, 'send']);
+Route::get('/fingerprint-show', [FingerprintController::class, 'show']);
+Route::get('/fingerprint-check', [FingerprintController::class, 'check']);
 
 require __DIR__ . '/auth.php';

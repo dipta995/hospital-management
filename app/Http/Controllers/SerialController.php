@@ -7,6 +7,8 @@ use App\Models\DoctorSerial;
 use App\Models\Reefer;
 use App\Models\SerialTrigger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Rats\Zkteco\Lib\ZKTeco;
 
 class SerialController extends Controller
 {
@@ -86,6 +88,15 @@ class SerialController extends Controller
 }
 
 
+
+    public function checkDevice()
+    {
+
+        $zk = new ZKTeco('192.168.1.112');
+        $zk->connect();
+        $logs = $zk->getAttendance();
+        dd($logs);
+    }
 
 
 
