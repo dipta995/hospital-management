@@ -263,6 +263,7 @@ class EmployeeController extends Controller
                 $cost->invoice_id =  null;
                 $cost->refer_id =  null;
                 $cost->account_details =  null;
+                $cost->salary_id =  $row->id;
                 $cost->account_type = null;
                 $cost->payment_type = $request->payment_type;
                 $cost->creation_date = $request->date ?? Carbon::now('Asia/Dhaka')->format('Y-m-d');
@@ -289,8 +290,7 @@ class EmployeeController extends Controller
             $salary = EmployeeSalary::findOrFail($id);
             $salary->delete();
 
-            Cost::where('cost_category_id', Setting::get('salary_category'))->delete();
-
+            Cost::where('salary_id',$id)->delete();
         });
             return RedirectHelper::back('<strong>Congratulations!!!</strong> Salary <Deleted></Deleted> Successfully');
     }
@@ -304,13 +304,13 @@ class EmployeeController extends Controller
 
     public function getTotalCosts()
     {
-        
+
         $employees = Employee::where('branch_id', auth()->user()->branch_id)
             ->select('id', 'name')
-            ->withSum('costs', 'amount') 
+            ->withSum('costs', 'amount')
             ->get();
 
-       
+
         return response()->json([
             'status' => 200,
             'data' => $employees->map(function ($employee) {
