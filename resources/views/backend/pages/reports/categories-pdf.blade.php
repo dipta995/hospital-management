@@ -33,9 +33,11 @@
                 <tr>
                     <th>Category</th>
                     <th>Product Name</th>
-                    <th>Amount</th>
+                    <th>Invoice(Id)</th>
+                    <th>Doctor</th>
                     <th>Discount Amount</th>
                     <th>Creation Date</th>
+                    <th>Amount</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -48,15 +50,17 @@
                     @foreach ($categoryData['invoices'] as $invoiceList)                        <tr>
                             <td></td> <!-- Empty cell for alignment -->
                             <td>{{ $invoiceList->product->name }}</td>
-                            <td>{{ $invoiceList->price }}</td>
+                        <td>{{ $invoiceList->invoice->invoice_number }}({{ $invoiceList->invoice->patient_no }})</td>
+                        <td>{{ $invoiceList->invoice->reeferDr->name }}</td>
                         <td>{{ $invoiceList->price - $invoiceList->discount_price }}</td>
                         <td>{{ \Carbon\Carbon::parse($invoiceList->created_at)->format('d F Y') }}
                             </td>
+                        <td>{{ $invoiceList->price }} TK.</td>
                         </tr>
                     @endforeach
                     <tr>
-                        <td colspan="2" style="text-align: right; font-weight: bold;">Total for {{ $categoryName }}:</td>
-                        <td style="font-weight: bold;">{{ $categoryData['total_price']- $categoryData['discount_price'] }}</td>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Total for {{ $categoryName }}:</td>
+                        <td style="font-weight: bold;">{{ $categoryData['total_price']- $categoryData['discount_price'] }} TK.</td>
                         <td></td>
                     </tr>
                 @endforeach
