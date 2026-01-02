@@ -110,6 +110,7 @@ class EmployeeController extends Controller
             'name' => 'required|max:200',
             'phone' => 'required',
             'salary' => 'required',
+            'rfid' => 'required|unique:employees,rfid',
         ];
         $request->validate($rules);
         try {
@@ -180,6 +181,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'required|max:200',
+            'rfid' => 'required|unique:employees,rfid,' . $id,
         ]);
         try {
             if ($row = Employee::find($id)) {
@@ -335,5 +337,19 @@ class EmployeeController extends Controller
         ]);
     }
 
-
+    // AJAX endpoint to check if RFID is unique
+    public function checkRfidUnique(Request $request)
+    {
+        $rfid = $request->query('rfid');
+        $ignoreId = $request->query('ignore_id');
+        if (!$rfid) {
+            return response()->json(['exists' => false]);
+        }
+        $query = Employee::where('rfid', $rfid);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+        $exists = $query->exists();
+        return response()->json(['exists' => $exists]);
+    }
 }

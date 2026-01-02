@@ -64,11 +64,12 @@ class FingerprintController extends Controller
         $content = file_get_contents($filePath);
         $data = json_decode($content, true);
         if (empty($data) || !is_array($data)) {
-            // Fallback default object
+            // Fallback default object with status
             $data = [
                 'text' => 'No fingerprint yet.',
                 'finger_id' => null,
                 'confidence' => null,
+                'status' => 'none',
                 'date' => null,
                 'time' => null
             ];

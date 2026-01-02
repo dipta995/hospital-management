@@ -216,11 +216,12 @@ Route::get('/checkDevice', [SerialController::class, 'checkDevice']);
 
 
 // Fingerprint
-Route::post('/fingerprint-send', [FingerprintController::class, 'send']);
-Route::get('/fingerprint-show', [FingerprintController::class, 'show']);
-Route::get('/fingerprint-check', [FingerprintController::class, 'check']);
+Route::post('/fingerprint-send', [FingerprintController::class, 'send'])->name('fingerprint.send');
+Route::get('/fingerprint-show', [FingerprintController::class, 'show'])->name('fingerprint.show');
+Route::get('/fingerprint-check', [FingerprintController::class, 'check'])->name('fingerprint.check');
 
 // Attendance (mark in/out)
 Route::post('/attendance/mark', [\App\Http\Controllers\AttendanceController::class, 'mark']);
+// AJAX route for RFID uniqueness check
 
 require __DIR__ . '/auth.php';

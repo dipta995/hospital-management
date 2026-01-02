@@ -52,13 +52,16 @@
                                         @enderror
                                     </div>
                                     <div class="form-group">
-                                        <label for="rfid">RFID</label>
-                                        <input id="rfid"
-                                               class="form-control"
-                                               name="rfid" type="number" value="{{ old('rfid') }}">
-                                        @error('rfid')
-                                        <strong class="text-danger">{{ $errors->first('rfid') }}</strong>
-                                        @enderror
+                                            <label for="rfid">RFID</label>
+                                            <div class="input-group">
+                                                <input id="rfid"
+                                                       class="form-control"
+                                                       name="rfid" type="text" value="{{ old('rfid') }}">
+                                                <button type="button" class="btn btn-info" id="fetch-fingerprint">Get Fingerprint</button>
+                                            </div>
+                                             @error('rfid')
+                                             <strong class="text-danger">{{ $errors->first('rfid') }}</strong>
+                                             @enderror
                                     </div>
 
                                     <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
@@ -75,5 +78,25 @@
 @endsection
 
 @push('scripts')
-
+<script>
+    document.getElementById('fetch-fingerprint').addEventListener('click', function() {
+        fetch("{{ route('fingerprint.show') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.status && data.data) {
+                    if (data.data.text) {
+                        alert(data.data.text);
+                    } else {
+                        alert('Fingerprint data received');
+                    }
+                    if (data.data.finger_id) {
+                        document.getElementById('rfid').value = data.data.finger_id;
+                    }
+                } else {
+                    alert('No fingerprint data found');
+                }
+            })
+            .catch(() => alert('Error fetching fingerprint data'));
+    });
+</script>
 @endpush
