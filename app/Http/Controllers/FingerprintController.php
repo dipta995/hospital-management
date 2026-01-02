@@ -12,24 +12,38 @@ class FingerprintController extends Controller
      * Store fingerprint data in cache
      * Route: POST /fingerprint-send
      */
-    public function send(Request $request)
-    {
-        $data = $request->validate([
-            'finger_id'  => 'required|integer',
-            'confidence' => 'required|integer',
-        ]);
+  public function send(Request $request)
+{
+    $data = $request->validate([
+        'finger_id'  => 'required|integer',
+        'confidence' => 'required|integer',
+        'status'     => 'required|string|in:new,old,scan',
+    ]);
 
-        // Store in cache for 5 minutes
-        Cache::put('fingerprint_temp_'.$data['finger_id'], [
-            'finger_id'  => $data['finger_id'],
-            'confidence' => $data['confidence'],
-            'time'       => now(),
-        ], now()->addMinutes(5));
+    // Decide text based on status
+    $text = 'New fingerprint received';
+    if ($data['status'] === 'old') {
+        $text = 'Existing fingerprint detected';
+    } elseif ($data['status'] === 'scan') {
+        $text = 'Fingerprint scanned';
+    }
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'Fingerprint received and stored in cache',
-            'data'    => $data
+    $record = [
+        'text'       => $text,
+        'finger_id'  => $data['finger_id'],
+        'confidence' => $data['confidence'],
+        'status'     => $data['status'],
+        'date'       => now()->toDateString(),
+        'time'       => now()->toTimeString(),
+    ];
+
+    $filePath = base_path('fingure.txt');
+    file_put_contents($filePath, json_encode($record));
+
+    return response()->json([
+        'status' => true,
+            'message' => 'Fingerprint received and stored in file',
+            'data'    => $record
         ]);
     }
 
@@ -39,23 +53,29 @@ class FingerprintController extends Controller
      */
     public function show()
     {
-        $fingerprints = [];
-        for ($i=1; $i<=127; $i++) { // Maximum 127 fingerprints
-            if (Cache::has('fingerprint_temp_'.$i)) {
-                $fingerprints[$i] = Cache::get('fingerprint_temp_'.$i);
-            }
-        }
-
-        if(empty($fingerprints)){
+        $filePath = base_path('fingure.txt');
+        if (!file_exists($filePath)) {
             return response()->json([
                 'status' => false,
-                'message' => 'No fingerprint data found in cache'
+                'message' => 'No fingerprint data found in file'
             ], 404);
         }
 
+        $content = file_get_contents($filePath);
+        $data = json_decode($content, true);
+        if (empty($data) || !is_array($data)) {
+            // Fallback default object
+            $data = [
+                'text' => 'No fingerprint yet.',
+                'finger_id' => null,
+                'confidence' => null,
+                'date' => null,
+                'time' => null
+            ];
+        }
         return response()->json([
             'status' => true,
-            'data'   => $fingerprints
+            'data'   => $data
         ]);
     }
 
@@ -65,6 +85,14 @@ class FingerprintController extends Controller
      */
     public function check(Request $request)
     {
+        // Explicitly check for finger_id in request
+        if (!$request->has('finger_id') || empty($request->finger_id)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'finger_id not provided'
+            ], 404);
+        }
+
         $request->validate([
             'finger_id' => 'required|integer',
         ]);
@@ -73,7 +101,6 @@ class FingerprintController extends Controller
         $employee = Employee::where('rfid', $fingerID)->first();
 
         if ($employee) {
-            // Attendance logic
             $today = now()->toDateString();
             $now = now();
 
@@ -81,8 +108,13 @@ class FingerprintController extends Controller
                 ->where('date', $today)
                 ->first();
 
-            if (!$attendance) {
-                // First IN of the day
+            if ($attendance) {
+                // Update only out_time
+                $attendance->out_time = $now;
+                $attendance->save();
+                $message = 'Attendance OUT updated.';
+            } else {
+                // Create new attendance with in_time
                 $attendance = \App\Models\Attendance::create([
                     'employee_id' => $employee->id,
                     'fingerprint_data' => $fingerID,
@@ -91,11 +123,6 @@ class FingerprintController extends Controller
                     'out_time' => null,
                 ]);
                 $message = 'Attendance IN marked.';
-            } else {
-                // Update OUT time
-                $attendance->out_time = $now;
-                $attendance->save();
-                $message = 'Attendance OUT updated.';
             }
 
             return response()->json([
@@ -107,7 +134,7 @@ class FingerprintController extends Controller
 
         return response()->json([
             'status'  => false,
-            'message' => 'Fingerprint not found '
+            'message' => 'Fingerprint not found'
         ], 404);
     }
 }

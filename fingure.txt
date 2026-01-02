@@ -1,0 +1,7 @@
+{
+  "text": "No fingerprint yet.",
+  "finger_id": null,
+  "confidence": null,
+  "date": null,
+  "time": null
+}
