@@ -14,7 +14,9 @@
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
+                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List
+                                <a href="{{ route('admin.attendance.index') }}" class="btn btn-primary btn-sm float-end">Attendance</a>
+                            </h4>
                             <p class="card-description">
                             @include('backend.layouts.partials.message')
                             </p>
@@ -88,7 +90,7 @@
                                                     <strong>After Costs:</strong>
                                                 <span class="text-danger net-salary" id="employee-{{ $item->id }}">
                                                     {{ number_format($item->net_salary, 2) }}
-                                                    
+
                                                 </span>
 
 
@@ -112,7 +114,7 @@
 
 
 
-                                           
+
 
 
 
@@ -120,7 +122,7 @@
                                             {{-- <td>{{ number_format($item->total_costs, 2) }}</td> --}}
 
                                             {{-- <td id="employee-total-{{ $item->id }}">{{ number_format($item->total_costs, 2) }}</td> --}}
-                                            
+
                                             <td>
                                                 @foreach($item->employeeSalaries as $salary)
                                                     {{ $salary->salary }} TK <br>
@@ -132,14 +134,15 @@
                                             <td>{{ $item->created_at->format('Y-m-d') }}</td>
 
 
-                                            <td>
-                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                   class="badge bg-success"><i class="fas fa-pencil"></i></a>
-                                                <a href="{{ route('admin.employees.show',$item->id) }}"
-                                                   class="badge bg-info"><i class="fas fa-eye"></i></a>
-                                                <a class="badge bg-danger" href="javascript:void(0)"
-                                                   onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
-                                            </td>
+                                                          <td>
+                                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
+                                                                    class="badge bg-success"><i class="fas fa-pencil"></i></a>
+                                                                <a href="{{ route('admin.employees.show',$item->id) }}"
+                                                                    class="badge bg-info"><i class="fas fa-eye"></i></a>
+                                                                <a href="{{ route('admin.attendance.index', ['employee_id' => $item->id]) }}" class="badge bg-warning" title="Attendance Record"><i class="fas fa-calendar-check"></i></a>
+                                                                <a class="badge bg-danger" href="javascript:void(0)"
+                                                                    onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
+                                                          </td>
                                         </tr>
                                     @empty
                                         <tr>

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
-use App\Models\Attendence;
+use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Product;
 use App\Models\Reefer;
@@ -77,17 +77,26 @@ class ApiController extends Controller
 
         if ($employee) {
             // Create a new Attendance record
-            $att = new Attendence();
-            $att->employee_id = $employee->id;
-            $att->branch_id = $branch_id;
+            $now = \Carbon\Carbon::now('Asia/Dhaka');
+            $date = $now->toDateString();
+            $in_time = $now;
 
-            // Set date and time in Asia/Dhaka timezone
-            $now = Carbon::now('Asia/Dhaka');
-            $att->date = $now->toDateString(); // Format: YYYY-MM-DD
-            $att->time = $now->format('h:i A'); // Format: HH:MM AM/PM
+            // Check if already marked today
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->where('date', $date)
+                ->first();
 
-            // Save attendance record
-            $att->save();
+            if (!$attendance) {
+                $attendance = Attendance::create([
+                    'employee_id' => $employee->id,
+                    'date' => $date,
+                    'in_time' => $in_time,
+                    'out_time' => null,
+                ]);
+            } else {
+                $attendance->out_time = $now;
+                $attendance->save();
+            }
 
             // Return a success response (1) to ESP
             return response('1', 200)->header('Content-Type', 'text/plain');

@@ -70,12 +70,38 @@ class FingerprintController extends Controller
         ]);
 
         $fingerID = $request->finger_id;
+        $employee = Employee::where('rfid', $fingerID)->first();
 
-        if(Employee::where('rfid',$fingerID)->first()){
+        if ($employee) {
+            // Attendance logic
+            $today = now()->toDateString();
+            $now = now();
+
+            $attendance = \App\Models\Attendance::where('employee_id', $employee->id)
+                ->where('date', $today)
+                ->first();
+
+            if (!$attendance) {
+                // First IN of the day
+                $attendance = \App\Models\Attendance::create([
+                    'employee_id' => $employee->id,
+                    'fingerprint_data' => $fingerID,
+                    'date' => $today,
+                    'in_time' => $now,
+                    'out_time' => null,
+                ]);
+                $message = 'Attendance IN marked.';
+            } else {
+                // Update OUT time
+                $attendance->out_time = $now;
+                $attendance->save();
+                $message = 'Attendance OUT updated.';
+            }
 
             return response()->json([
                 'status'  => true,
-                'message' => 'Fingerprint found',
+                'message' => 'Fingerprint found. ' . $message,
+                'attendance' => $attendance
             ], 200);
         }
 

@@ -208,14 +208,19 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/search-phone', [ApiController::class, 'searchUserPhone']);
     Route::post('/create-user-api', [ApiController::class, 'storeUser'])->name('users.store.api');
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
+    Route::get('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index'])->name('attendance.index');
 
 });
 Route::get('/checkDevice', [SerialController::class, 'checkDevice']);
 
 
-//Fingerprint
+
+// Fingerprint
 Route::post('/fingerprint-send', [FingerprintController::class, 'send']);
 Route::get('/fingerprint-show', [FingerprintController::class, 'show']);
 Route::get('/fingerprint-check', [FingerprintController::class, 'check']);
+
+// Attendance (mark in/out)
+Route::post('/attendance/mark', [\App\Http\Controllers\AttendanceController::class, 'mark']);
 
 require __DIR__ . '/auth.php';
