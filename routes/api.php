@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+
+use App\Http\Controllers\Api\FingerprintController;
+
+Route::post('/fingerprint-store', [FingerprintController::class, 'store']);
+Route::get('/fingerprint-list', [FingerprintController::class, 'list']);

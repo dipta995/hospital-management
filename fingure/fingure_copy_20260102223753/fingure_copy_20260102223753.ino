@@ -11,8 +11,14 @@
 // ===== WiFi & API =====
 const char* ssid = "Dark";
 const char* password = "password2025";
-const char* SEND_API  = "https://alsunnah.dreammake-soft.com/fingerprint-send";
-const char* CHECK_API = "https://alsunnah.dreammake-soft.com/fingerprint-check";
+// Main cloud "SD card" endpoint: saves each fingerprint event to a file
+const char* SEND_API           = "https://alsunnah.dreammake-soft.com/fingerprint-send";
+// Check API used when scanning in normal mode
+const char* CHECK_API          = "https://alsunnah.dreammake-soft.com/fingerprint-check";
+// Store template info in DB table fingerprint_templates
+const char* TEMPLATE_STORE_API = "https://alsunnah.dreammake-soft.com/api/fingerprint-store";
+// List all templates from DB on boot
+const char* TEMPLATE_LIST_API  = "https://alsunnah.dreammake-soft.com/api/fingerprint-list";
 
 // ===== Fingerprint =====
 HardwareSerial mySerial(2);
@@ -36,12 +42,12 @@ void setup() {
   finger.begin(57600);
 
   if (!finger.verifyPassword()) {
-    Serial.println("❌ Fingerprint sensor not found");
+    Serial.println("ERROR: Fingerprint sensor not found");
     multiBeep(3000);
     while (1);
   }
 
-  Serial.println("✅ Fingerprint sensor detected");
+  Serial.println("OK: Fingerprint sensor detected");
   finger.getTemplateCount();
   Serial.print("Stored templates: ");
   Serial.println(finger.templateCount);
@@ -52,7 +58,10 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\n✅ WiFi Connected");
+  Serial.println("\nOK: WiFi Connected");
+
+  // Try to restore data/state from API (use API like SD card)
+  restoreFromApi();
 
   Serial.println("Press button to enroll fingerprints");
 }
@@ -67,7 +76,7 @@ void loop() {
       enrollID++;
       if (enrollID > maxFingers) {
         enrollMode = false;
-        Serial.println("✅ Enrollment completed");
+        Serial.println("OK: Enrollment completed");
         longBeep(1000);
       }
     } else {
@@ -82,14 +91,14 @@ void loop() {
 
   p = finger.image2Tz();
   if (p != FINGERPRINT_OK) {
-    Serial.println("❌ Image to template failed");
+    Serial.println("ERROR: Image to template failed");
     multiBeep(1500);
     return;
   }
 
   p = finger.fingerFastSearch();
   if (p != FINGERPRINT_OK) {
-    Serial.println("❌ No match found");
+    Serial.println("ERROR: No match found");
     multiBeep(1500);
     return;
   }
@@ -102,7 +111,7 @@ void loop() {
   Serial.print("Confidence: "); Serial.println(confidence);
 
   if (confidence < CONFIDENCE_THRESHOLD) {
-    Serial.println("❌ Low confidence");
+    Serial.println("ERROR: Low confidence");
     multiBeep(1500);
     return;
   }
@@ -135,7 +144,7 @@ void enrollFinger(uint8_t id) {
   // Check duplicate before proceeding
   if (finger.fingerFastSearch() == FINGERPRINT_OK) {
     int existingID = finger.fingerID;
-    Serial.println("❌ Finger already exists with ID: " + String(existingID));
+    Serial.println("ERROR: Finger already exists with ID: " + String(existingID));
     multiBeep(2000);
 
     // Send as OLD to API
@@ -156,7 +165,7 @@ void enrollFinger(uint8_t id) {
 
   p = finger.image2Tz(2);
   if (p != FINGERPRINT_OK) {
-    Serial.println("❌ Failed 2nd template");
+    Serial.println("ERROR: Failed 2nd template");
     multiBeep(2000);
     return;
   }
@@ -164,7 +173,7 @@ void enrollFinger(uint8_t id) {
   // Create model
   p = finger.createModel();
   if (p != FINGERPRINT_OK) {
-    Serial.println("❌ Model creation failed");
+    Serial.println("ERROR: Model creation failed");
     multiBeep(2000);
     return;
   }
@@ -172,7 +181,7 @@ void enrollFinger(uint8_t id) {
   // Store model
   p = finger.storeModel(id);
   if (p == FINGERPRINT_OK) {
-    Serial.println("✅ Finger enrolled successfully with ID: " + String(id));
+    Serial.println("OK: Finger enrolled successfully with ID: " + String(id));
     longBeep(800);
     finger.getTemplateCount();
     Serial.print("Updated templates: ");
@@ -180,8 +189,11 @@ void enrollFinger(uint8_t id) {
 
     // Send enrolled ID to server as NEW
     sendFingerprint(id, 100, "new");
+
+    // Also save template record in cloud DB table fingerprint_templates
+    saveTemplateToCloud(id);
   } else {
-    Serial.println("❌ Store failed");
+    Serial.println("ERROR: Store failed");
     multiBeep(2000);
   }
 }
@@ -192,7 +204,7 @@ void sendFingerprint(int id, int conf, String status) {
     WiFi.reconnect();
     delay(2000);
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("❌ WiFi not connected");
+      Serial.println("ERROR: WiFi not connected");
       return;
     }
   }
@@ -207,10 +219,74 @@ void sendFingerprint(int id, int conf, String status) {
   Serial.print("SEND HTTP Code: ");
   Serial.println(code);
   String response = http.getString();
-  Serial.println("Response: " + response);
+  Serial.println("SEND Response: " + response);
 
   if (code == 200) longBeep(1000);
   else multiBeep(2000);
+
+  http.end();
+}
+
+// ================= TEMPLATE SAVE (TEMPLATE_STORE_API) =================
+void saveTemplateToCloud(int id) {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+    delay(2000);
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("ERROR: WiFi not connected (template save)");
+      return;
+    }
+  }
+
+  HTTPClient http;
+  http.begin(TEMPLATE_STORE_API);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  // NOTE: Laravel API expects: finger_id (int), template (string)
+  // We don't have raw template bytes here, so we send a marker string.
+  String postData = "finger_id=" + String(id) + "&template=stored_in_sensor";
+  int code = http.POST(postData);
+
+  Serial.print("TEMPLATE SAVE HTTP Code: ");
+  Serial.println(code);
+  String response = http.getString();
+  Serial.println("TEMPLATE SAVE Response: " + response);
+
+  http.end();
+}
+
+// ================= RESTORE (TEMPLATE_LIST_API) =================
+void restoreFromApi() {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+    delay(2000);
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("ERROR: WiFi not connected (restore)");
+      return;
+    }
+  }
+
+  HTTPClient http;
+  http.begin(TEMPLATE_LIST_API);
+
+  int code = http.GET();
+  Serial.print("RESTORE HTTP Code: ");
+  Serial.println(code);
+  String response = http.getString();
+  Serial.println("RESTORE Response: " + response);
+
+  if (code == 200) {
+    // If server returns a non-empty list (not just "[]"),
+    // assume backup exists and signal with a long beep.
+    if (response.length() > 2) {
+      longBeep(3000); // backup found on server
+    } else {
+      // No backup data yet – short info beep instead of error
+      shortBeep(300);
+    }
+  } else {
+    multiBeep(2000);
+  }
 
   http.end();
 }
@@ -221,7 +297,7 @@ void checkFingerprint(int id) {
     WiFi.reconnect();
     delay(2000);
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("❌ WiFi not connected");
+      Serial.println("ERROR: WiFi not connected");
       return;
     }
   }
@@ -234,7 +310,7 @@ void checkFingerprint(int id) {
   Serial.print("CHECK HTTP Code: ");
   Serial.println(code);
   String response = http.getString();
-  Serial.println("Response: " + response);
+  Serial.println("CHECK Response: " + response);
 
   if (code == 200) shortBeep(1500);
   else multiBeep(2000);
