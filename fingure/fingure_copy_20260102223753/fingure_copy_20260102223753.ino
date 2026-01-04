@@ -13,8 +13,7 @@ const char* ssid     = "Dark";
 const char* password = "password2025";
 
 // ================= API =================
-const char* SEND_API  = "https://alsunnah.dreammake-soft.com/fingerprint-send";
-const char* CHECK_API = "https://alsunnah.dreammake-soft.com/fingerprint-check";
+const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
 
 // ================= FINGERPRINT =================
 HardwareSerial mySerial(2);
@@ -22,9 +21,24 @@ Adafruit_Fingerprint finger(&mySerial);
 
 // ================= STATE =================
 uint8_t enrollID = 1;
-bool enrollMode = true;
-const uint8_t MAX_FINGER = 127;
+bool enrollRequested = false;
 const int CONFIDENCE_THRESHOLD = 50;
+
+// ================= BUZZER =================
+void beep(int onMs) {
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(onMs);
+  digitalWrite(BUZZER_PIN, LOW);
+}
+
+void errorBeeps() {
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(80);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(80);
+  }
+}
 
 // ================= SETUP =================
 void setup() {
@@ -33,74 +47,97 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(BUZZER_PIN, OUTPUT);
 
+  Serial.println("Booting device...");
+
   mySerial.begin(57600, SERIAL_8N1, RXD2, TXD2);
   finger.begin(57600);
 
   if (!finger.verifyPassword()) {
-    Serial.println("❌ Fingerprint sensor not found");
+    Serial.println("❌ Fingerprint sensor not detected");
     while (1);
   }
 
   Serial.println("✅ Fingerprint sensor ready");
 
   // ---- WIFI ----
+  Serial.print("Connecting to WiFi");
   WiFi.begin(ssid, password);
-  Serial.print("Connecting WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
   Serial.println("\n✅ WiFi Connected");
 
-  // ---- IMPORTANT PART ----
+  // ---- LOAD NEXT ENROLL ID ----
   finger.getTemplateCount();
   enrollID = finger.templateCount + 1;
 
-  Serial.print("Stored Fingers: ");
+  Serial.print("Stored fingerprints: ");
   Serial.println(finger.templateCount);
-
   Serial.print("Next Enroll ID: ");
   Serial.println(enrollID);
 
-  Serial.println("Press BUTTON to enroll new finger");
+  // ---- READY BEEP ----
+  Serial.println("System Ready. Attendance mode active.");
+  beep(3000);   // 3 second ready beep
 }
 
 // ================= LOOP =================
 void loop() {
 
-  // ---- ENROLL BUTTON ----
+  // ---- BUTTON CHECK ----
   if (digitalRead(BUTTON_PIN) == LOW) {
     delay(300);
-    if (enrollID <= MAX_FINGER) {
-      enrollFinger(enrollID);
-      enrollID++;
-    }
+    enrollRequested = true;
+    Serial.println("Enroll mode requested");
+    beep(200);
   }
 
-  // ---- SCAN MODE ----
-  if (finger.getImage() != FINGERPRINT_OK) return;
-  if (finger.image2Tz() != FINGERPRINT_OK) return;
+  // ---- ENROLL MODE ----
+  if (enrollRequested) {
+    enrollRequested = false;
+    enrollFinger(enrollID);
+    enrollID++;
+    return;
+  }
+
+  // ---- ATTENDANCE MODE ----
+  uint8_t p = finger.getImage();
+  if (p != FINGERPRINT_OK) return;
+
+  Serial.println("Finger detected");
+
+  if (finger.image2Tz() != FINGERPRINT_OK) {
+    Serial.println("Image conversion failed");
+    errorBeeps();
+    return;
+  }
+
   if (finger.fingerFastSearch() != FINGERPRINT_OK) {
-    errorBeep();
+    Serial.println("No matching fingerprint");
+    errorBeeps();
     return;
   }
 
   if (finger.confidence < CONFIDENCE_THRESHOLD) {
-    errorBeep();
+    Serial.println("Low confidence match");
+    errorBeeps();
     return;
   }
 
-  Serial.print("Finger ID: ");
-  Serial.println(finger.fingerID);
+  Serial.print("Match Found | ID: ");
+  Serial.print(finger.fingerID);
+  Serial.print(" | Confidence: ");
+  Serial.println(finger.confidence);
 
   sendToServer(finger.fingerID, finger.confidence, "scan");
-  successBeep();
+  beep(2000); // success beep
   delay(1500);
 }
 
 // ================= ENROLL =================
 void enrollFinger(uint8_t id) {
-  Serial.print("Enrolling ID: ");
+  Serial.print("Starting enrollment for ID ");
   Serial.println(id);
 
   int p = -1;
@@ -113,8 +150,8 @@ void enrollFinger(uint8_t id) {
   finger.image2Tz(1);
 
   if (finger.fingerFastSearch() == FINGERPRINT_OK) {
-    Serial.println("❌ Finger already exists");
-    errorBeep();
+    Serial.println("Finger already exists. Enrollment cancelled.");
+    errorBeeps();
     return;
   }
 
@@ -131,20 +168,22 @@ void enrollFinger(uint8_t id) {
   finger.image2Tz(2);
 
   if (finger.createModel() != FINGERPRINT_OK) {
-    errorBeep();
+    Serial.println("Failed to create model");
+    errorBeeps();
     return;
   }
 
   if (finger.storeModel(id) == FINGERPRINT_OK) {
-    Serial.println("✅ Enroll success");
+    Serial.println("Enrollment successful");
     sendToServer(id, 100, "new");
-    successBeep();
+    beep(2000);
   } else {
-    errorBeep();
+    Serial.println("Failed to store fingerprint");
+    errorBeeps();
   }
 }
 
-// ================= API SEND =================
+// ================= API =================
 void sendToServer(int id, int conf, String status) {
   if (WiFi.status() != WL_CONNECTED) return;
 
@@ -158,20 +197,6 @@ void sendToServer(int id, int conf, String status) {
 
   http.POST(data);
   http.end();
-}
 
-// ================= BUZZER =================
-void successBeep() {
-  digitalWrite(BUZZER_PIN, HIGH);
-  delay(200);
-  digitalWrite(BUZZER_PIN, LOW);
-}
-
-void errorBeep() {
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER_PIN, HIGH);
-    delay(200);
-    digitalWrite(BUZZER_PIN, LOW);
-    delay(200);
-  }
+  Serial.println("Data sent to server");
 }
