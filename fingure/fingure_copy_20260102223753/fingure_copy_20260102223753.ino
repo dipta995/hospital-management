@@ -2,36 +2,31 @@
 #include <HTTPClient.h>
 #include <Adafruit_Fingerprint.h>
 
-// ===== PINS =====
+// ================= PINS =================
 #define RXD2 16
 #define TXD2 17
 #define BUTTON_PIN 26
 #define BUZZER_PIN 25
 
-// ===== WiFi & API =====
-const char* ssid = "Dark";
+// ================= WIFI =================
+const char* ssid     = "Dark";
 const char* password = "password2025";
-// Main cloud "SD card" endpoint: saves each fingerprint event to a file
-const char* SEND_API           = "https://alsunnah.dreammake-soft.com/fingerprint-send";
-// Check API used when scanning in normal mode
-const char* CHECK_API          = "https://alsunnah.dreammake-soft.com/fingerprint-check";
-// Store template info in DB table fingerprint_templates
-const char* TEMPLATE_STORE_API = "https://alsunnah.dreammake-soft.com/api/fingerprint-store";
-// List all templates from DB on boot
-const char* TEMPLATE_LIST_API  = "https://alsunnah.dreammake-soft.com/api/fingerprint-list";
 
-// ===== Fingerprint =====
+// ================= API =================
+const char* SEND_API  = "https://alsunnah.dreammake-soft.com/fingerprint-send";
+const char* CHECK_API = "https://alsunnah.dreammake-soft.com/fingerprint-check";
+
+// ================= FINGERPRINT =================
 HardwareSerial mySerial(2);
 Adafruit_Fingerprint finger(&mySerial);
 
-// ===== STATE =====
-bool sendMode = false;
-bool enrollMode = true;
+// ================= STATE =================
 uint8_t enrollID = 1;
-const uint8_t maxFingers = 4;
+bool enrollMode = true;
+const uint8_t MAX_FINGER = 127;
 const int CONFIDENCE_THRESHOLD = 50;
 
-// ===== SETUP =====
+// ================= SETUP =================
 void setup() {
   Serial.begin(115200);
 
@@ -42,302 +37,141 @@ void setup() {
   finger.begin(57600);
 
   if (!finger.verifyPassword()) {
-    Serial.println("ERROR: Fingerprint sensor not found");
-    multiBeep(3000);
+    Serial.println("❌ Fingerprint sensor not found");
     while (1);
   }
 
-  Serial.println("OK: Fingerprint sensor detected");
-  finger.getTemplateCount();
-  Serial.print("Stored templates: ");
-  Serial.println(finger.templateCount);
+  Serial.println("✅ Fingerprint sensor ready");
 
+  // ---- WIFI ----
   WiFi.begin(ssid, password);
   Serial.print("Connecting WiFi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nOK: WiFi Connected");
+  Serial.println("\n✅ WiFi Connected");
 
-  // Try to restore data/state from API (use API like SD card)
-  restoreFromApi();
+  // ---- IMPORTANT PART ----
+  finger.getTemplateCount();
+  enrollID = finger.templateCount + 1;
 
-  Serial.println("Press button to enroll fingerprints");
+  Serial.print("Stored Fingers: ");
+  Serial.println(finger.templateCount);
+
+  Serial.print("Next Enroll ID: ");
+  Serial.println(enrollID);
+
+  Serial.println("Press BUTTON to enroll new finger");
 }
 
 // ================= LOOP =================
 void loop() {
+
+  // ---- ENROLL BUTTON ----
   if (digitalRead(BUTTON_PIN) == LOW) {
     delay(300);
-
-    if (enrollMode && enrollID <= maxFingers) {
+    if (enrollID <= MAX_FINGER) {
       enrollFinger(enrollID);
       enrollID++;
-      if (enrollID > maxFingers) {
-        enrollMode = false;
-        Serial.println("OK: Enrollment completed");
-        longBeep(1000);
-      }
-    } else {
-      sendMode = true;
-      shortBeep(200);
     }
   }
 
-  // ===== Scan finger =====
-  uint8_t p = finger.getImage();
-  if (p != FINGERPRINT_OK) return;
-
-  p = finger.image2Tz();
-  if (p != FINGERPRINT_OK) {
-    Serial.println("ERROR: Image to template failed");
-    multiBeep(1500);
+  // ---- SCAN MODE ----
+  if (finger.getImage() != FINGERPRINT_OK) return;
+  if (finger.image2Tz() != FINGERPRINT_OK) return;
+  if (finger.fingerFastSearch() != FINGERPRINT_OK) {
+    errorBeep();
     return;
   }
 
-  p = finger.fingerFastSearch();
-  if (p != FINGERPRINT_OK) {
-    Serial.println("ERROR: No match found");
-    multiBeep(1500);
+  if (finger.confidence < CONFIDENCE_THRESHOLD) {
+    errorBeep();
     return;
   }
 
-  int fingerID = finger.fingerID;
-  int confidence = finger.confidence;
+  Serial.print("Finger ID: ");
+  Serial.println(finger.fingerID);
 
-  Serial.println("=== Finger Detected ===");
-  Serial.print("Finger ID: "); Serial.println(fingerID);
-  Serial.print("Confidence: "); Serial.println(confidence);
-
-  if (confidence < CONFIDENCE_THRESHOLD) {
-    Serial.println("ERROR: Low confidence");
-    multiBeep(1500);
-    return;
-  }
-
-  if (sendMode) {
-    sendFingerprint(fingerID, confidence, "scan");
-    sendMode = false;
-  } else {
-    checkFingerprint(fingerID);
-  }
-
+  sendToServer(finger.fingerID, finger.confidence, "scan");
+  successBeep();
   delay(1500);
 }
 
 // ================= ENROLL =================
 void enrollFinger(uint8_t id) {
+  Serial.print("Enrolling ID: ");
+  Serial.println(id);
+
   int p = -1;
-
-  Serial.print("Enroll ID "); Serial.println(id);
-
-  // First scan
   while (p != FINGERPRINT_OK) {
-    Serial.println("Place finger (1st scan)");
+    Serial.println("Place finger");
     p = finger.getImage();
     delay(500);
   }
 
   finger.image2Tz(1);
 
-  // Check duplicate before proceeding
   if (finger.fingerFastSearch() == FINGERPRINT_OK) {
-    int existingID = finger.fingerID;
-    Serial.println("ERROR: Finger already exists with ID: " + String(existingID));
-    multiBeep(2000);
-
-    // Send as OLD to API
-    sendFingerprint(existingID, finger.confidence, "old");
+    Serial.println("❌ Finger already exists");
+    errorBeep();
     return;
   }
 
   Serial.println("Remove finger");
   delay(2000);
 
-  // Second scan
   p = -1;
   while (p != FINGERPRINT_OK) {
-    Serial.println("Place same finger (2nd scan)");
+    Serial.println("Place same finger again");
     p = finger.getImage();
     delay(500);
   }
 
-  p = finger.image2Tz(2);
-  if (p != FINGERPRINT_OK) {
-    Serial.println("ERROR: Failed 2nd template");
-    multiBeep(2000);
+  finger.image2Tz(2);
+
+  if (finger.createModel() != FINGERPRINT_OK) {
+    errorBeep();
     return;
   }
 
-  // Create model
-  p = finger.createModel();
-  if (p != FINGERPRINT_OK) {
-    Serial.println("ERROR: Model creation failed");
-    multiBeep(2000);
-    return;
-  }
-
-  // Store model
-  p = finger.storeModel(id);
-  if (p == FINGERPRINT_OK) {
-    Serial.println("OK: Finger enrolled successfully with ID: " + String(id));
-    longBeep(800);
-    finger.getTemplateCount();
-    Serial.print("Updated templates: ");
-    Serial.println(finger.templateCount);
-
-    // Send enrolled ID to server as NEW
-    sendFingerprint(id, 100, "new");
-
-    // Also save template record in cloud DB table fingerprint_templates
-    saveTemplateToCloud(id);
+  if (finger.storeModel(id) == FINGERPRINT_OK) {
+    Serial.println("✅ Enroll success");
+    sendToServer(id, 100, "new");
+    successBeep();
   } else {
-    Serial.println("ERROR: Store failed");
-    multiBeep(2000);
+    errorBeep();
   }
 }
 
-// ================= SEND =================
-void sendFingerprint(int id, int conf, String status) {
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("ERROR: WiFi not connected");
-      return;
-    }
-  }
+// ================= API SEND =================
+void sendToServer(int id, int conf, String status) {
+  if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
   http.begin(SEND_API);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-  String postData = "finger_id=" + String(id) + "&confidence=" + String(conf) + "&status=" + status;
-  int code = http.POST(postData);
+  String data = "finger_id=" + String(id) +
+                "&confidence=" + String(conf) +
+                "&status=" + status;
 
-  Serial.print("SEND HTTP Code: ");
-  Serial.println(code);
-  String response = http.getString();
-  Serial.println("SEND Response: " + response);
-
-  if (code == 200) longBeep(1000);
-  else multiBeep(2000);
-
-  http.end();
-}
-
-// ================= TEMPLATE SAVE (TEMPLATE_STORE_API) =================
-void saveTemplateToCloud(int id) {
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("ERROR: WiFi not connected (template save)");
-      return;
-    }
-  }
-
-  HTTPClient http;
-  http.begin(TEMPLATE_STORE_API);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  // NOTE: Laravel API expects: finger_id (int), template (string)
-  // We don't have raw template bytes here, so we send a marker string.
-  String postData = "finger_id=" + String(id) + "&template=stored_in_sensor";
-  int code = http.POST(postData);
-
-  Serial.print("TEMPLATE SAVE HTTP Code: ");
-  Serial.println(code);
-  String response = http.getString();
-  Serial.println("TEMPLATE SAVE Response: " + response);
-
-  http.end();
-}
-
-// ================= RESTORE (TEMPLATE_LIST_API) =================
-void restoreFromApi() {
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("ERROR: WiFi not connected (restore)");
-      return;
-    }
-  }
-
-  HTTPClient http;
-  http.begin(TEMPLATE_LIST_API);
-
-  int code = http.GET();
-  Serial.print("RESTORE HTTP Code: ");
-  Serial.println(code);
-  String response = http.getString();
-  Serial.println("RESTORE Response: " + response);
-
-  if (code == 200) {
-    // If server returns a non-empty list (not just "[]"),
-    // assume backup exists and signal with a long beep.
-    if (response.length() > 2) {
-      longBeep(3000); // backup found on server
-    } else {
-      // No backup data yet – short info beep instead of error
-      shortBeep(300);
-    }
-  } else {
-    multiBeep(2000);
-  }
-
-  http.end();
-}
-
-// ================= CHECK =================
-void checkFingerprint(int id) {
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
-    delay(2000);
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("ERROR: WiFi not connected");
-      return;
-    }
-  }
-
-  HTTPClient http;
-  String url = String(CHECK_API) + "?finger_id=" + String(id);
-  http.begin(url);
-
-  int code = http.GET();
-  Serial.print("CHECK HTTP Code: ");
-  Serial.println(code);
-  String response = http.getString();
-  Serial.println("CHECK Response: " + response);
-
-  if (code == 200) shortBeep(1500);
-  else multiBeep(2000);
-
+  http.POST(data);
   http.end();
 }
 
 // ================= BUZZER =================
-void shortBeep(int ms) {
+void successBeep() {
   digitalWrite(BUZZER_PIN, HIGH);
-  delay(ms);
+  delay(200);
   digitalWrite(BUZZER_PIN, LOW);
 }
 
-void longBeep(int ms) {
-  digitalWrite(BUZZER_PIN, HIGH);
-  delay(ms);
-  digitalWrite(BUZZER_PIN, LOW);
-}
-
-void multiBeep(int ms) {
-  int t = 0;
-  while (t < ms) {
+void errorBeep() {
+  for (int i = 0; i < 3; i++) {
     digitalWrite(BUZZER_PIN, HIGH);
-    delay(300);
+    delay(200);
     digitalWrite(BUZZER_PIN, LOW);
-    delay(300);
-    t += 600;
+    delay(200);
   }
 }
