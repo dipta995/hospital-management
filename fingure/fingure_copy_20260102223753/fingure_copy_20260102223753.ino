@@ -14,6 +14,7 @@ const char* password = "ESyhRuPc";
 
 // ================= API =================
 const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
+const char* CHECK_API = "https://alsunnah.dreammake-soft.com/fingerprint-check";
 
 // ================= FINGERPRINT =================
 HardwareSerial mySerial(2);
@@ -170,7 +171,30 @@ void loop() {
   Serial.println(finger.confidence);
 
   sendToServer(finger.fingerID, finger.confidence, "scan");
-  beep(2000);   // success beep
+
+  // Now check with server for confirmation and beep only if matched
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String url = String(CHECK_API) + "?finger_id=" + String(finger.fingerID);
+    http.begin(url);
+    int httpCode = http.GET();
+    if (httpCode > 0) {
+      String payload = http.getString();
+      // Look for '"status":true' in response
+      if (payload.indexOf("\"status\":true") != -1) {
+        beep(2000); // confirmation beep only if matched with employee
+      } else {
+        errorBeeps(); // server did not confirm match
+      }
+    } else {
+      Serial.println("Server check failed");
+      errorBeeps();
+    }
+    http.end();
+  } else {
+    Serial.println("WiFi not connected for check");
+    errorBeeps();
+  }
   delay(1500);
 }
 
