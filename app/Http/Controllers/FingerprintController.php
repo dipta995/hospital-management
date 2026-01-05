@@ -102,8 +102,8 @@ class FingerprintController extends Controller
         $employee = Employee::where('rfid', $fingerID)->first();
 
         if ($employee) {
-            $today = now()->toDateString();
-            $now = now();
+            $today = now()->setTimezone('Asia/Dhaka')->toDateString();
+            $dhakaNow = now()->setTimezone('Asia/Dhaka')->format('H:i:s');
 
             $attendance = \App\Models\Attendance::where('employee_id', $employee->id)
                 ->where('date', $today)
@@ -111,7 +111,7 @@ class FingerprintController extends Controller
 
             if ($attendance) {
                 // Update only out_time
-                $attendance->out_time = $now;
+                $attendance->out_time = $dhakaNow;
                 $attendance->save();
                 $message = 'Attendance OUT updated.';
             } else {
@@ -120,7 +120,7 @@ class FingerprintController extends Controller
                     'employee_id' => $employee->id,
                     'fingerprint_data' => $fingerID,
                     'date' => $today,
-                    'in_time' => $now,
+                    'in_time' => $dhakaNow,
                     'out_time' => null,
                 ]);
                 $message = 'Attendance IN marked.';
