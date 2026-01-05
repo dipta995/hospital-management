@@ -9,8 +9,8 @@
 #define BUZZER_PIN 25
 
 // ================= WIFI =================
-const char* ssid     = "Dark";
-const char* password = "password2025";
+const char* ssid     = "ZTE_2.4G_2bRXdx";
+const char* password = "ESyhRuPc";
 
 // ================= API =================
 const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
@@ -23,6 +23,10 @@ Adafruit_Fingerprint finger(&mySerial);
 uint8_t enrollID = 1;
 bool enrollRequested = false;
 const int CONFIDENCE_THRESHOLD = 50;
+
+// Button long-press
+unsigned long buttonPressTime = 0;
+bool buttonHolding = false;
 
 // ================= BUZZER =================
 void beep(int onMs) {
@@ -40,6 +44,15 @@ void errorBeeps() {
   }
 }
 
+void warningBeeps() {
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(700);
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(300);
+  }
+}
+
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
@@ -49,6 +62,7 @@ void setup() {
 
   Serial.println("Booting device...");
 
+  // ---- Fingerprint ----
   mySerial.begin(57600, SERIAL_8N1, RXD2, TXD2);
   finger.begin(57600);
 
@@ -56,7 +70,6 @@ void setup() {
     Serial.println("❌ Fingerprint sensor not detected");
     while (1);
   }
-
   Serial.println("✅ Fingerprint sensor ready");
 
   // ---- WIFI ----
@@ -68,7 +81,7 @@ void setup() {
   }
   Serial.println("\n✅ WiFi Connected");
 
-  // ---- LOAD NEXT ENROLL ID ----
+  // ---- LOAD ENROLL ID ----
   finger.getTemplateCount();
   enrollID = finger.templateCount + 1;
 
@@ -77,23 +90,49 @@ void setup() {
   Serial.print("Next Enroll ID: ");
   Serial.println(enrollID);
 
-  // ---- READY BEEP ----
+  // ---- READY ----
   Serial.println("System Ready. Attendance mode active.");
-  beep(3000);   // 3 second ready beep
+  beep(3000); // 3 sec ready beep
 }
 
 // ================= LOOP =================
 void loop() {
 
-  // ---- BUTTON CHECK ----
+  // -------- BUTTON HANDLING --------
   if (digitalRead(BUTTON_PIN) == LOW) {
-    delay(300);
-    enrollRequested = true;
-    Serial.println("Enroll mode requested");
-    beep(200);
+    if (!buttonHolding) {
+      buttonHolding = true;
+      buttonPressTime = millis();
+    }
+
+    // ---- LONG PRESS (10 sec) ----
+    if (buttonHolding && millis() - buttonPressTime >= 10000) {
+      Serial.println("⚠️ LONG PRESS (10s) DETECTED");
+      Serial.println("⚠️ FORMATTING ALL FINGERPRINT DATA");
+
+      warningBeeps();
+      formatAllFingerprints();
+
+      buttonHolding = false;
+      delay(2000);
+      return;
+    }
+  } else {
+    // ---- BUTTON RELEASE ----
+    if (buttonHolding) {
+      unsigned long pressDuration = millis() - buttonPressTime;
+
+      // ---- SHORT PRESS ----
+      if (pressDuration < 10000) {
+        Serial.println("Enroll mode requested");
+        enrollRequested = true;
+        beep(200);
+      }
+    }
+    buttonHolding = false;
   }
 
-  // ---- ENROLL MODE ----
+  // -------- ENROLL MODE --------
   if (enrollRequested) {
     enrollRequested = false;
     enrollFinger(enrollID);
@@ -101,7 +140,7 @@ void loop() {
     return;
   }
 
-  // ---- ATTENDANCE MODE ----
+  // -------- ATTENDANCE MODE --------
   uint8_t p = finger.getImage();
   if (p != FINGERPRINT_OK) return;
 
@@ -120,7 +159,7 @@ void loop() {
   }
 
   if (finger.confidence < CONFIDENCE_THRESHOLD) {
-    Serial.println("Low confidence match");
+    Serial.println("Low confidence");
     errorBeeps();
     return;
   }
@@ -131,7 +170,7 @@ void loop() {
   Serial.println(finger.confidence);
 
   sendToServer(finger.fingerID, finger.confidence, "scan");
-  beep(2000); // success beep
+  beep(2000);   // success beep
   delay(1500);
 }
 
@@ -168,7 +207,7 @@ void enrollFinger(uint8_t id) {
   finger.image2Tz(2);
 
   if (finger.createModel() != FINGERPRINT_OK) {
-    Serial.println("Failed to create model");
+    Serial.println("Model creation failed");
     errorBeeps();
     return;
   }
@@ -179,6 +218,21 @@ void enrollFinger(uint8_t id) {
     beep(2000);
   } else {
     Serial.println("Failed to store fingerprint");
+    errorBeeps();
+  }
+}
+
+// ================= FORMAT =================
+void formatAllFingerprints() {
+  Serial.println("Deleting all fingerprint templates...");
+
+  if (finger.emptyDatabase() == FINGERPRINT_OK) {
+    Serial.println("✅ All fingerprint data erased");
+
+    enrollID = 1;   // reset ID
+    beep(4000);     // long confirmation beep
+  } else {
+    Serial.println("❌ Failed to erase database");
     errorBeeps();
   }
 }
