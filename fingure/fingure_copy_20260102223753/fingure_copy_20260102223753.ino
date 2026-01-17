@@ -50,12 +50,27 @@ void drawCenteredText(const String &text, int16_t y, uint8_t size) {
   display.print(text);
 }
 
+void drawWifiStatusIcon() {
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
+  if (WiFi.status() == WL_CONNECTED) {
+    display.print("Wi");   // Wi-Fi connected indicator
+  } else {
+    display.print("X");    // Disconnected indicator (cross)
+  }
+}
+
 void showStatusScreen(const String &title, const String &subtitle = "", const String &icon = "") {
   display.clearDisplay();
 
-  // Icon/top line (small)
+  // Always show WiFi status at top-left
+  drawWifiStatusIcon();
+
+  // Optional main icon (small), slightly lower to avoid WiFi icon
   if (icon.length() > 0) {
-    drawCenteredText(icon, 0, 1);
+    drawCenteredText(icon, 10, 1);
   }
 
   // Main title (big)
@@ -235,7 +250,7 @@ void loop() {
     if (buttonHolding && millis() - buttonPressTime >= 10000) {
       Serial.println("⚠️ LONG PRESS (10s) DETECTED");
       Serial.println("⚠️ FORMATTING ALL FINGERPRINT DATA");
-
+      showStatusScreen("ERASE", "Erasing...", "!");
       warningBeeps();
       formatAllFingerprints();
 
@@ -248,7 +263,7 @@ void loop() {
     if (buttonHolding) {
       unsigned long pressDuration = millis() - buttonPressTime;
 
-      // ---- SHORT PRESS ----
+      // ---- SHORT PRESS (enroll) ----
       if (pressDuration < 10000) {
         Serial.println("Enroll mode requested");
         enrollRequested = true;
@@ -307,15 +322,27 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     String url = String(CHECK_API) + "?finger_id=" + String(finger.fingerID);
+    Serial.print("CHECK_API URL: ");
+    Serial.println(url);
     http.begin(url);
     int httpCode = http.GET();
+    Serial.print("CHECK_API HTTP code: ");
+    Serial.println(httpCode);
+
     if (httpCode > 0) {
       String payload = http.getString();
+      Serial.print("CHECK_API payload: ");
+      Serial.println(payload);
+
       // Look for '"status":true' in response
       if (payload.indexOf("\"status\":true") != -1) {
+        Serial.println("CHECK_API: status=true (match)");
         beep(2000); // confirmation beep only if matched with employee
         showAttendanceOK();
       } else {
+        Serial.println("CHECK_API: status!=true (NOT MATCH from server)");
+        Serial.print("CHECK_API: Local finger ID: ");
+        Serial.println(finger.fingerID);
         errorBeeps(); // server did not confirm match
         showAttendanceRejected();
       }
@@ -396,15 +423,20 @@ void formatAllFingerprints() {
 
     enrollID = 1;   // reset ID
     beep(4000);     // long confirmation beep
+    showStatusScreen("ERASE", "Done", "✔");
   } else {
     Serial.println("❌ Failed to erase database");
     errorBeeps();
+    showStatusScreen("ERASE", "Failed", "!");
   }
 }
 
 // ================= API =================
 void sendToServer(int id, int conf, String status) {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("SEND_API: WiFi not connected, skipping POST");
+    return;
+  }
 
   HTTPClient http;
   http.begin(SEND_API);
@@ -413,8 +445,22 @@ void sendToServer(int id, int conf, String status) {
   String data = "finger_id=" + String(id) +
                 "&confidence=" + String(conf) +
                 "&status=" + status;
+  Serial.print("SEND_API URL: ");
+  Serial.println(SEND_API);
+  Serial.print("SEND_API POST data: ");
+  Serial.println(data);
 
-  http.POST(data);
+  int httpCode = http.POST(data);
+  Serial.print("SEND_API HTTP code: ");
+  Serial.println(httpCode);
+
+  if (httpCode > 0) {
+    String resp = http.getString();
+    Serial.print("SEND_API response: ");
+    Serial.println(resp);
+  } else {
+    Serial.println("SEND_API: request failed");
+  }
   http.end();
 
   Serial.println("Data sent to server");
