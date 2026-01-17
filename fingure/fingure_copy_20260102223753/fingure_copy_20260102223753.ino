@@ -1,6 +1,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Adafruit_Fingerprint.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // ================= PINS =================
 #define RXD2 16
@@ -8,9 +11,15 @@
 #define BUTTON_PIN 26
 #define BUZZER_PIN 25
 
+// ================= OLED (SSD1306) =================
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET   -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 // ================= WIFI =================
-const char* ssid     = "ZTE_2.4G_2bRXdx";
-const char* password = "ESyhRuPc";
+const char* ssid     = "Dark";
+const char* password = "password2025";
 
 // ================= API =================
 const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
@@ -28,6 +37,109 @@ const int CONFIDENCE_THRESHOLD = 50;
 // Button long-press
 unsigned long buttonPressTime = 0;
 bool buttonHolding = false;
+
+// ================= OLED HELPERS =================
+void drawCenteredText(const String &text, int16_t y, uint8_t size) {
+  int16_t x1, y1;
+  uint16_t w, h;
+  display.setTextSize(size);
+  display.setTextColor(SSD1306_WHITE);
+  display.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+  int16_t x = (SCREEN_WIDTH - w) / 2;
+  display.setCursor(x, y);
+  display.print(text);
+}
+
+void showStatusScreen(const String &title, const String &subtitle = "", const String &icon = "") {
+  display.clearDisplay();
+
+  // Icon/top line (small)
+  if (icon.length() > 0) {
+    drawCenteredText(icon, 0, 1);
+  }
+
+  // Main title (big)
+  drawCenteredText(title, 20, 2);
+
+  // Subtitle (medium)
+  if (subtitle.length() > 0) {
+    drawCenteredText(subtitle, 44, 2);
+  }
+
+  display.display();
+}
+
+void showBootScreen() {
+  showStatusScreen("BOOTING", "Fingerprint System", "");
+}
+
+void showWifiConnecting() {
+  showStatusScreen("WIFI", "Connecting...", "~");
+}
+
+void showWifiConnected(const String &ip) {
+  showStatusScreen("WIFI OK", ip, "");
+}
+
+void showWifiError(const String &msg) {
+  showStatusScreen("WIFI ERR", msg, "!");
+}
+
+void showReady() {
+  showStatusScreen("READY", "Place finger", "");
+}
+
+void showEnrollRequested(uint8_t id) {
+  showStatusScreen("ENROLL", "ID: " + String(id), "+");
+}
+
+void showEnrollStep(const char *stepMsg) {
+  showStatusScreen("ENROLL", stepMsg, "+");
+}
+
+void showEnrollSuccess(uint8_t id) {
+  showStatusScreen("ENROLLED", "ID: " + String(id), "✔");
+}
+
+void showEnrollError(const char *msg) {
+  showStatusScreen("ENROLL ERR", msg, "!");
+}
+
+void showScanWaiting() {
+  showStatusScreen("SCAN", "Place finger", "");
+}
+
+void showScanProcessing() {
+  showStatusScreen("SCAN", "Processing...", "");
+}
+
+void showScanNoMatch() {
+  showStatusScreen("NO MATCH", "Not registered", "x");
+}
+
+void showScanLowConfidence() {
+  showStatusScreen("TRY AGAIN", "Low confidence", "!");
+}
+
+void showScanMatch(int id) {
+  showStatusScreen("MATCH", "ID: " + String(id), "✔");
+}
+
+void showAttendanceOK() {
+  showStatusScreen("ATTEND", "Success", "✔");
+}
+
+void showAttendanceRejected() {
+  showStatusScreen("ATTEND", "Rejected", "x");
+}
+
+void showAttendanceServerError() {
+  showStatusScreen("SERVER", "Error", "!");
+}
+
+void showSensorError() {
+  showStatusScreen("SENSOR", "Not found", "!");
+}
 
 // ================= BUZZER =================
 void beep(int onMs) {
@@ -63,15 +175,26 @@ void setup() {
 
   Serial.println("Booting device...");
 
+  // ---- OLED INIT ----
+  Wire.begin(21, 22); // SDA=21, SCL=22
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("SSD1306 allocation failed");
+  } else {
+    display.clearDisplay();
+    showBootScreen();
+  }
+
   // ---- Fingerprint ----
   mySerial.begin(57600, SERIAL_8N1, RXD2, TXD2);
   finger.begin(57600);
 
   if (!finger.verifyPassword()) {
     Serial.println("❌ Fingerprint sensor not detected");
+    showSensorError();
     while (1);
   }
   Serial.println("✅ Fingerprint sensor ready");
+  showWifiConnecting();
 
   // ---- WIFI ----
   Serial.print("Connecting to WiFi");
@@ -81,6 +204,7 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\n✅ WiFi Connected");
+  showWifiConnected(WiFi.localIP().toString());
 
   // ---- LOAD ENROLL ID ----
   finger.getTemplateCount();
@@ -94,6 +218,7 @@ void setup() {
   // ---- READY ----
   Serial.println("System Ready. Attendance mode active.");
   beep(3000); // 3 sec ready beep
+  showReady();
 }
 
 // ================= LOOP =================
@@ -128,6 +253,7 @@ void loop() {
         Serial.println("Enroll mode requested");
         enrollRequested = true;
         beep(200);
+        showEnrollRequested(enrollID);
       }
     }
     buttonHolding = false;
@@ -146,21 +272,25 @@ void loop() {
   if (p != FINGERPRINT_OK) return;
 
   Serial.println("Finger detected");
+  showScanProcessing();
 
   if (finger.image2Tz() != FINGERPRINT_OK) {
     Serial.println("Image conversion failed");
+    showScanLowConfidence();
     errorBeeps();
     return;
   }
 
   if (finger.fingerFastSearch() != FINGERPRINT_OK) {
     Serial.println("No matching fingerprint");
+    showScanNoMatch();
     errorBeeps();
     return;
   }
 
   if (finger.confidence < CONFIDENCE_THRESHOLD) {
     Serial.println("Low confidence");
+    showScanLowConfidence();
     errorBeeps();
     return;
   }
@@ -169,6 +299,7 @@ void loop() {
   Serial.print(finger.fingerID);
   Serial.print(" | Confidence: ");
   Serial.println(finger.confidence);
+  showScanMatch(finger.fingerID);
 
   sendToServer(finger.fingerID, finger.confidence, "scan");
 
@@ -183,17 +314,21 @@ void loop() {
       // Look for '"status":true' in response
       if (payload.indexOf("\"status\":true") != -1) {
         beep(2000); // confirmation beep only if matched with employee
+        showAttendanceOK();
       } else {
         errorBeeps(); // server did not confirm match
+        showAttendanceRejected();
       }
     } else {
       Serial.println("Server check failed");
       errorBeeps();
+      showAttendanceServerError();
     }
     http.end();
   } else {
     Serial.println("WiFi not connected for check");
     errorBeeps();
+    showWifiError("No connection");
   }
   delay(1500);
 }
@@ -202,6 +337,8 @@ void loop() {
 void enrollFinger(uint8_t id) {
   Serial.print("Starting enrollment for ID ");
   Serial.println(id);
+
+  showEnrollStep("Place finger");
 
   int p = -1;
   while (p != FINGERPRINT_OK) {
@@ -215,6 +352,7 @@ void enrollFinger(uint8_t id) {
   if (finger.fingerFastSearch() == FINGERPRINT_OK) {
     Serial.println("Finger already exists. Enrollment cancelled.");
     errorBeeps();
+    showEnrollError("Already exists");
     return;
   }
 
@@ -233,6 +371,7 @@ void enrollFinger(uint8_t id) {
   if (finger.createModel() != FINGERPRINT_OK) {
     Serial.println("Model creation failed");
     errorBeeps();
+    showEnrollError("Model failed");
     return;
   }
 
@@ -240,9 +379,11 @@ void enrollFinger(uint8_t id) {
     Serial.println("Enrollment successful");
     sendToServer(id, 100, "new");
     beep(2000);
+    showEnrollSuccess(id);
   } else {
     Serial.println("Failed to store fingerprint");
     errorBeeps();
+    showEnrollError("Store failed");
   }
 }
 

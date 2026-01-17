@@ -98,7 +98,7 @@ class FingerprintController extends Controller
             'finger_id' => 'required|integer',
         ]);
 
-        $fingerID = $request->finger_id;
+        $fingerID = trim((string) $request->finger_id);
         $employee = Employee::where('rfid', $fingerID)->first();
 
         if ($employee) {
