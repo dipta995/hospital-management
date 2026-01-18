@@ -413,7 +413,23 @@
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 success: function () {
                     alert('Sale completed successfully');
-                    window.location.href = "{{ route('admin.pharmacy_sales.index') }}";
+
+                    // Reset form for creating another sale (stay on this page)
+                    selectedItems = [];
+                    renderTable();
+
+                    $('#customer_id').val('');
+                    $('#customer_name').val('');
+                    $('#dr_refer_id').val('');
+                    $('#dr_refer_name').val('');
+
+                    $('#sale_date').val("{{ date('Y-m-d') }}");
+                    $('#discount_amount').val(0);
+                    $('#paid_amount').val(0);
+                    $('#payment_method').val('');
+                    $('#note').val('');
+
+                    recalcTotals();
                 },
                 error: function (xhr) {
                     console.log(xhr.responseText);

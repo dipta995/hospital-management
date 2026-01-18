@@ -41,15 +41,15 @@ class RolePermissionSeeder extends Seeder
                 ]
             ],
                     // users Permissions
-//            [
-//                'group_name' => 'users',
-//                'permissions' => [
-//                    'users.create',
-//                    'users.index',
-//                    'users.edit',
-//                    'users.delete',
-//                ]
-//            ],
+           [
+               'group_name' => 'users',
+               'permissions' => [
+                   'users.create',
+                   'users.index',
+                   'users.edit',
+                   'users.delete',
+               ]
+           ],
 
                     // roles Permissions
             [
@@ -126,7 +126,17 @@ class RolePermissionSeeder extends Seeder
                     'categories.delete',
                 ]
             ],
-                        // Services
+                        // service_categories
+            [
+                'group_name' => 'service_categories',
+                'permissions' => [
+                    'service_categories.index',
+                    'service_categories.create',
+                    'service_categories.edit',
+                    'service_categories.delete',
+                ]
+            ],
+                        // services
             [
                 'group_name' => 'services',
                 'permissions' => [
@@ -134,6 +144,16 @@ class RolePermissionSeeder extends Seeder
                     'services.create',
                     'services.edit',
                     'services.delete',
+                ]
+            ],
+                        // admits
+            [
+                'group_name' => 'admits',
+                'permissions' => [
+                    'admits.index',
+                    'admits.create',
+                    'admits.edit',
+                    'admits.delete',
                 ]
             ],
             // Recepts

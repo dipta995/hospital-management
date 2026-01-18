@@ -39,14 +39,14 @@
             <li class="nav-item {{ Route::is('admin.settings.edit',auth()->id()) ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('admin.settings.edit',auth()->id()) }}">
                                    <span class="nav-icon">
-                <i class="fas fa-user-edit"></i> </span>
+                <i class="fas fa-cog"></i> </span>
                     <span class="nav-text"> Setting </span>
                 </a>
             </li>
             <li class="nav-item {{ Route::is('admin.change') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('admin.change') }}">
                                    <span class="nav-icon">
-                <i class="fas fa-user-edit"></i> </span>
+                <i class="fas fa-key"></i> </span>
                     <span class="nav-text"> Update Password </span>
                 </a>
             </li>
@@ -58,9 +58,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.branches.create') || Route::is('admin.branches.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarBranch" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarBranch">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-code-branch"></i>
+                                </span>
                         <span class="nav-text"> Branch's </span>
                     </a>
                     <div
@@ -86,9 +86,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.roles.create') || Route::is('admin.roles.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarRole" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarRole">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-user-shield"></i>
+                                </span>
                         <span class="nav-text"> Role's </span>
                     </a>
                     <div
@@ -115,9 +115,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.admins.create') || Route::is('admin.admins.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarAdmin" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarAdmin">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-users-cog"></i>
+                                </span>
                         <span class="nav-text"> Admin's </span>
                     </a>
                     <div
@@ -146,9 +146,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.users.create') || Route::is('admin.users.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarUser" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarUser">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-user-injured"></i>
+                                </span>
                         <span class="nav-text"> Patients's </span>
                     </a>
                     <div
@@ -207,9 +207,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.categories.create') || Route::is('admin.categories.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarCategory" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarCategory">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </span>
                         <span class="nav-text"> {{ __('language.category') }} </span>
                     </a>
                     <div
@@ -226,6 +226,108 @@
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.categories.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Product's (Test)   --}}
+            @if ( $userGuard->can('products.index') || $userGuard->can('products.create') || $userGuard->can('products.edit') || $userGuard->can('products.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.products.create') || Route::is('admin.products.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarProduct" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarProduct">
+                                <span class="nav-icon">
+                                    <i class="fas fa-file-invoice"></i>
+                                </span>
+                        <span class="nav-text"> {{ __('language.test') }} </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.products.create') || Route::is('admin.products.index') ? 'active' : 'collapse' }}"
+                        id="sidebarProduct">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('products.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.products.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('products.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.products.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Reefer's (Refer)   --}}
+            @if ( $userGuard->can('reefers.index') || $userGuard->can('reefers.create') || $userGuard->can('reefers.edit') || $userGuard->can('reefers.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.reefers.create') || Route::is('admin.reefers.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarReefer" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarReefer">
+                                <span class="nav-icon">
+                                    <i class="fas fa-user-tie"></i>
+                                </span>
+                        <span class="nav-text"> {{ __('language.dr_refer') }} </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.reefers.create') || Route::is('admin.reefers.index') ? 'active' : 'collapse' }}"
+                        id="sidebarReefer">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('reefers.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reefers.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('reefers.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reefers.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('reefers.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reefers.custom-sms') }}">Sms alert</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Invoice's   --}}
+            @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.invoices.create') || Route::is('admin.invoices.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarInvoice" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarInvoice">
+                                <span class="nav-icon">
+                                    <i class="fas fa-user-md"></i>
+                                </span>
+                        <span class="nav-text"> {{ __('language.invoice') }} </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.invoices.create') || Route::is('admin.invoices.index') ? 'active' : 'collapse' }}"
+                        id="sidebarInvoice">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('invoices.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.invoices.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('invoices.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.invoices.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>
@@ -275,7 +377,7 @@
                         <span class="nav-icon">
                                 <i class="fas fa-briefcase-medical"></i>
                         </span>
-                        <span class="nav-text"> {{ __('Service') }} </span>
+                        <span class="nav-text"> Service's</span>
                     </a>
                     <div
                         class="{{ Route::is('admin.services.create') || Route::is('admin.services.index') ? 'active' : 'collapse' }}"
@@ -361,41 +463,6 @@
                     </div>
                 </li>
             @endif --}}
-
-
-
-            {{--   Product's   --}}
-
-            @if ( $userGuard->can('products.index') || $userGuard->can('products.create') || $userGuard->can('products.edit') || $userGuard->can('products.delete'))
-                <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.products.create') || Route::is('admin.products.index') ? 'active' : 'collapsed' }}"
-                       href="#sidebarProduct" data-bs-toggle="collapse" role="button"
-                       aria-expanded="false" aria-controls="sidebarProduct">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
-                        <span class="nav-text"> {{ __('language.test') }} </span>
-                    </a>
-                    <div
-                        class="{{ Route::is('admin.products.create') || Route::is('admin.products.index') ? 'active' : 'collapse' }}"
-                        id="sidebarProduct">
-                        <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('products.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.products.create') }}">{{ __('language.create') }}</a>
-                                </li>
-                            @endif
-                            @if ($userGuard->can('products.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.products.index') }}">{{ __('language.list') }}</a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
 
             {{--   Pharmacy Category's   --}}
             @if ( $userGuard->can('pharmacy_categories.index') || $userGuard->can('pharmacy_categories.create') || $userGuard->can('pharmacy_categories.edit') || $userGuard->can('pharmacy_categories.delete'))
@@ -525,6 +592,38 @@
                 </li>
             @endif
 
+            {{--   Pharmacy Product's   --}}
+            @if ( $userGuard->can('pharmacy_products.index') || $userGuard->can('pharmacy_products.create') || $userGuard->can('pharmacy_products.edit') || $userGuard->can('pharmacy_products.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyProduct" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyProduct">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-prescription-bottle"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Products </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyProduct">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_products.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_products.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_products.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_products.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
             {{--   Pharmacy Sale's   --}}
             @if ( $userGuard->can('pharmacy_sales.index') || $userGuard->can('pharmacy_sales.create') || $userGuard->can('pharmacy_sales.edit') || $userGuard->can('pharmacy_sales.delete'))
                 <li class="nav-item">
@@ -589,108 +688,6 @@
                 </li>
             @endif
 
-            {{--   Pharmacy Product's   --}}
-            @if ( $userGuard->can('pharmacy_products.index') || $userGuard->can('pharmacy_products.create') || $userGuard->can('pharmacy_products.edit') || $userGuard->can('pharmacy_products.delete'))
-                <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapsed' }}"
-                       href="#sidebarPharmacyProduct" data-bs-toggle="collapse" role="button"
-                       aria-expanded="false" aria-controls="sidebarPharmacyProduct">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-prescription-bottle"></i>
-                                   </span>
-                        <span class="nav-text"> Pharmacy Products </span>
-                    </a>
-                    <div
-                        class="{{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapse' }}"
-                        id="sidebarPharmacyProduct">
-                        <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('pharmacy_products.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.pharmacy_products.create') }}">{{ __('language.create') }}</a>
-                                </li>
-                            @endif
-                            @if ($userGuard->can('pharmacy_products.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.pharmacy_products.index') }}">{{ __('language.list') }}</a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
-            {{--   Invoice's   --}}
-            @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.invoices.create') || Route::is('admin.invoices.index') ? 'active' : 'collapsed' }}"
-                       href="#sidebarInvoice" data-bs-toggle="collapse" role="button"
-                       aria-expanded="false" aria-controls="sidebarInvoice">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
-                        <span class="nav-text"> {{ __('language.invoice') }} </span>
-                    </a>
-                    <div
-                        class="{{ Route::is('admin.invoices.create') || Route::is('admin.invoices.index') ? 'active' : 'collapse' }}"
-                        id="sidebarInvoice">
-                        <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('invoices.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.invoices.create') }}">{{ __('language.create') }}</a>
-                                </li>
-                            @endif
-                            @if ($userGuard->can('invoices.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.invoices.index') }}">{{ __('language.list') }}</a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
-            {{--   Reefer's   --}}
-            @if ( $userGuard->can('reefers.index') || $userGuard->can('reefers.create') || $userGuard->can('reefers.edit') || $userGuard->can('reefers.delete'))
-                <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.reefers.create') || Route::is('admin.reefers.index') ? 'active' : 'collapsed' }}"
-                       href="#sidebarReefer" data-bs-toggle="collapse" role="button"
-                       aria-expanded="false" aria-controls="sidebarReefer">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
-                        <span class="nav-text"> {{ __('language.dr_refer') }} </span>
-                    </a>
-                    <div
-                        class="{{ Route::is('admin.reefers.create') || Route::is('admin.reefers.index') ? 'active' : 'collapse' }}"
-                        id="sidebarReefer">
-                        <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('reefers.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.reefers.create') }}">{{ __('language.create') }}</a>
-                                </li>
-                            @endif
-                            @if ($userGuard->can('reefers.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.reefers.index') }}">{{ __('language.list') }}</a>
-                                </li>
-                            @endif
-                            @if ($userGuard->can('reefers.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.reefers.custom-sms') }}">Sms alert</a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
             {{--   Employee's   --}}
             @if ( $userGuard->can('employees.index') || $userGuard->can('employees.create') || $userGuard->can('employees.edit') || $userGuard->can('employees.delete'))
                 <li class="nav-item">
@@ -728,9 +725,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.earns.create') || Route::is('admin.earns.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarEarn" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarEarn">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
                         <span class="nav-text">Earn</span>
                     </a>
                     <div
@@ -761,9 +758,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.cost_categories.create') || Route::is('admin.cost_categories.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarCostCategory" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarCostCategory">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </span>
                         <span class="nav-text"> {{ __('language.cost') }} {{ __('language.category') }} </span>
                     </a>
                     <div
@@ -794,9 +791,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.costs.create') || Route::is('admin.costs.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarCost" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarCost">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </span>
                         <span class="nav-text"> {{ __('language.cost') }} </span>
                     </a>
                     <div
@@ -827,9 +824,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.test_report_demos.create') || Route::is('admin.test_report_demos.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarTestReportDemo" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarTestReportDemo">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-file-medical"></i>
+                                </span>
                         <span class="nav-text"> Test Report Demo's </span>
                     </a>
                     <div
@@ -855,9 +852,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.labs.create') || Route::is('admin.labs.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarLab" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarLab">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-flask"></i>
+                                </span>
                         <span class="nav-text"> {{ __('language.lab') }} </span>
                     </a>
                     <div
@@ -881,9 +878,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.doctor_serials.create') || Route::is('admin.doctor_serials.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarDoctorSerial" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarDoctorSerial">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </span>
                         <span class="nav-text"> Doctor Serial's </span>
                     </a>
                     <div
@@ -912,9 +909,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.doctor_rooms.create') || Route::is('admin.doctor_rooms.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarDoctorRoom" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarDoctorRoom">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-door-open"></i>
+                                </span>
                         <span class="nav-text"> Doctor Room's </span>
                     </a>
                     <div
@@ -990,9 +987,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.reports.collections') || Route::is('admin.reports.references') ? 'active' : 'collapsed' }}"
                        href="#sidebarReport" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarReport">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-chart-pie"></i>
+                                </span>
                         <span class="nav-text"> {{ __('language.reports') }} </span>
                     </a>
                     <div
@@ -1053,9 +1050,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.suppliers.create') || Route::is('admin.suppliers.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarSupplier" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarSupplier">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-truck"></i>
+                                </span>
                         <span class="nav-text">Supplier</span>
                     </a>
                     <div
@@ -1087,9 +1084,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.items.create') || Route::is('admin.items.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarItem" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarItem">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-box"></i>
+                                </span>
                         <span class="nav-text">Item</span>
                     </a>
                     <div
@@ -1120,9 +1117,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.purchases.create') || Route::is('admin.purchases.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarPurchase" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarPurchase">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </span>
                         <span class="nav-text">Purchase</span>
                     </a>
                     <div
@@ -1160,9 +1157,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.number_categories.create') || Route::is('admin.number_categories.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarNumberCategory" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarNumberCategory">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-list-ol"></i>
+                                </span>
                         <span class="nav-text">NumberCategory</span>
                     </a>
                     <div
@@ -1195,9 +1192,9 @@
                     <a class="nav-link menu-arrow {{ Route::is('admin.phone_numbers.create') || Route::is('admin.pone_numbers.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarPhoneNumber" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarPhoneNumber">
-                                   <span class="nav-icon">
-                                        <i class="fas fa-user-secret"></i>
-                                   </span>
+                                <span class="nav-icon">
+                                    <i class="fas fa-phone-alt"></i>
+                                </span>
                         <span class="nav-text">PhoneNumber</span>
                     </a>
                     <div

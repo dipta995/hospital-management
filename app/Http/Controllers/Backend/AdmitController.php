@@ -87,15 +87,13 @@ class AdmitController extends Controller
             $row->father_or_spouse = $request->father_or_spouse;
             $row->received_by = $request->received_by;
             $row->clinical_diagnosis = $request->clinical_diagnosis;
-            $row->refer_id = $request->refer_id;
-            $row->dr_refer_id = $request->dr_refer_id;
-
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, 'Admit created successfully.');
             } else {
                 return RedirectHelper::backWithInput();
             }
         } catch (QueryException $e) {
+            return $e;
             return RedirectHelper::backWithInputFromException($e);
         }
     }
