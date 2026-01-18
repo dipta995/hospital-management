@@ -131,6 +131,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::resource('pharmacy-purchases', PharmacyPurchaseController::class, ['names' => 'pharmacy_purchases']);
     Route::resource('pharmacy-products', PharmacyProductController::class, ['names' => 'pharmacy_products']);
     Route::resource('pharmacy-sales', PharmacySaleController::class, ['names' => 'pharmacy_sales']);
+    Route::get('/pharmacy-sales/pdf-preview/{id}', [PharmacySaleController::class, 'pdfPreview'])->name('pharmacy_sales.pdf-preview');
     Route::resource('admits', AdmitController::class, ['names' => 'admits']);
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
 
@@ -149,6 +150,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
 
     Route::resource('invoice_lists', InvoiceListController::class, ['names' => 'invoice_lists']);
     Route::resource('reefers', ReeferController::class, ['names' => 'reefers']);
+    Route::post('reefers/store-api', [ReeferController::class, 'storeApi'])->name('reefers.store.api');
     Route::get('reefers/custom/sms',[ReeferController::class,'customSms'])->name('reefers.custom-sms');
     Route::get('reefers/custom/sms/send',[ReeferController::class,'customSmsSend'])->name('reefers.custom-sms-send');
     Route::resource('employees', EmployeeController::class, ['names' => 'employees']);

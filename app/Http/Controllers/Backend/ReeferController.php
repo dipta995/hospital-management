@@ -80,7 +80,6 @@ class ReeferController extends Controller
      */
     public function store(Request $request)
     {
-//        return $request;
         $this->checkOwnPermission('reefers.create');
         $rules = [
             'name' => 'required|max:200',
@@ -120,6 +119,44 @@ class ReeferController extends Controller
             return RedirectHelper::backWithInputFromException();
         }
 
+    }
+
+    /**
+     * Store a newly created resource via AJAX and return JSON.
+     */
+    public function storeApi(Request $request)
+    {
+        $this->checkOwnPermission('reefers.create');
+
+        $rules = [
+            'name' => 'required|max:200',
+            'percent' => 'required',
+        ];
+        $request->validate($rules);
+
+        try {
+            DB::beginTransaction();
+
+            $row = new Reefer();
+            $row->branch_id = auth()->user()->branch_id;
+            $row->name = $request->name;
+            $row->phone = $request->phone;
+            $row->designation = $request->designation;
+            $row->percent = $request->percent;
+            $row->type = $request->type;
+            $row->office_time = $request->office_time;
+            $row->save();
+
+            DB::commit();
+
+            return response()->json([
+                'id' => $row->id,
+                'name' => $row->name,
+            ]);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Something went wrong'], 500);
+        }
     }
 
     /**

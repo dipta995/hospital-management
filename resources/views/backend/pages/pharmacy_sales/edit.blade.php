@@ -12,7 +12,10 @@
             <div class="col-lg-12">
                 <div class="card">
                     <div class="card-body">
-                        <h4 class="card-title">Edit {{ $pageHeader['title'] }}</h4>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h4 class="card-title mb-0">Edit {{ $pageHeader['title'] }}</h4>
+                            <a href="{{ route('admin.pharmacy_sales.pdf-preview', $sale->id) }}" target="_blank" class="btn btn-sm btn-primary">Invoice</a>
+                        </div>
                         @include('backend.layouts.partials.message')
 
                         <h4 class="card-title bg-info p-1 mt-3 mb-3">Customer</h4>
@@ -117,7 +120,10 @@
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-success float-end" id="update-sale">Update Sale</button>
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{{ route('admin.pharmacy_sales.pdf-preview', $sale->id) }}" target="_blank" class="btn btn-sm btn-primary">Invoice</a>
+                            <button type="button" class="btn btn-success" id="update-sale">Update Sale</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,6 +174,94 @@
                 <button type="button" class="btn btn-primary" id="saveCustomer">Save</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Doctor Add Modal -->
+<div class="modal fade" id="doctorAddModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="doctorAddForm">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Doctor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Doctor Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parent(%)</label>
+                        <input type="number" class="form-control" name="percent" value="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Designation</label>
+                        <input type="text" class="form-control" name="designation" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" name="type" required>
+                            <option value="{{ \App\Models\Reefer::$typeArray[0] }}">{{ \App\Models\Reefer::$typeArray[0] }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save Doctor</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Other (PC) Add Modal -->
+<div class="modal fade" id="otherAddModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="otherAddForm">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New PC</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">PC Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" class="form-control" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parent(%)</label>
+                        <input type="number" class="form-control" name="percent" value="0" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" name="type" required>
+                            <option value="{{ \App\Models\Reefer::$typeArray[1] }}">{{ \App\Models\Reefer::$typeArray[1] }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save PC</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 @endsection
@@ -334,6 +428,7 @@
         $('#discount_amount, #paid_amount').on('input', function () {
             recalcTotals();
         });
+
         // Customer search
         $('#customer_search').on('keyup', function () {
             let q = $(this).val();
@@ -387,6 +482,59 @@
                 },
                 error: function () {
                     alert('Failed to create customer');
+                }
+            });
+        });
+
+        // Doctor / Refer modals
+        $(document).on('click', '.openDoctorModal', function () {
+            let target = $(this).attr('data-target-input');
+            $('#doctorAddModal').data('target-input', target).modal('show');
+        });
+
+        $(document).on('click', '.openOtherModal', function () {
+            let target = $(this).attr('data-target-input');
+            $('#otherAddModal').data('target-input', target).modal('show');
+        });
+
+        $('#doctorAddForm').on('submit', function (e) {
+            e.preventDefault();
+
+            let formData = $(this).serialize();
+
+            $.ajax({
+                url: "{{ route('admin.reefers.store.api') }}",
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    let targetInput = $('#doctorAddModal').data('target-input');
+
+                    $('#' + targetInput).val(response.name);
+                    $('#' + targetInput.replace('_name', '_id')).val(response.id);
+
+                    $('#doctorAddModal').modal('hide');
+                    $('#doctorAddForm')[0].reset();
+                }
+            });
+        });
+
+        $('#otherAddForm').on('submit', function (e) {
+            e.preventDefault();
+
+            let formData = $(this).serialize();
+
+            $.ajax({
+                url: "{{ route('admin.reefers.store.api') }}",
+                type: 'POST',
+                data: formData,
+                success: function (response) {
+                    let targetInput = $('#otherAddModal').data('target-input');
+
+                    $('#' + targetInput).val(response.name);
+                    $('#' + targetInput.replace('_name', '_id')).val(response.id);
+
+                    $('#otherAddModal').modal('hide');
+                    $('#otherAddForm')[0].reset();
                 }
             });
         });

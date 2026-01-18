@@ -112,7 +112,11 @@ class PharmacySaleController extends Controller
 
             \DB::commit();
 
-            return response()->json(['message' => 'Pharmacy sale created successfully']);
+            return response()->json([
+                'message' => 'Pharmacy sale created successfully',
+                'sale_id' => $sale->id,
+                'customer_name' => optional($sale->customer)->name,
+            ]);
         } catch (QueryException $e) {
             \DB::rollBack();
             return response()->json(['message' => 'Something went wrong'], 500);
@@ -206,5 +210,16 @@ class PharmacySaleController extends Controller
         }
 
         return response()->json(['status' => 422]);
+    }
+
+    public function pdfPreview($id)
+    {
+        $this->checkOwnPermission('pharmacy_sales.index');
+
+        $sale = PharmacySale::with(['customer', 'doctor', 'items.product'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        return view('backend.pages.pharmacy_sales.invoice-regular', compact('sale'));
     }
 }
