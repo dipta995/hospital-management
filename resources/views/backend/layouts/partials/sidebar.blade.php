@@ -331,7 +331,7 @@
             @endif
 
             {{--   ReceptList's   --}}
-            @if ($userGuard->can('receptlists.index') || $userGuard->can('receptlists.create') || $userGuard->can('receptlists.edit') || $userGuard->can('receptlists.delete'))
+            {{-- @if ($userGuard->can('receptlists.index') || $userGuard->can('receptlists.create') || $userGuard->can('receptlists.edit') || $userGuard->can('receptlists.delete'))
                 <li class="nav-item">
                     <a class="nav-link menu-arrow {{ Route::is('admin.receptlists.create') || Route::is('admin.receptlists.index') ? 'active' : 'collapsed' }}"
                        href="#sidebarReceptList" data-bs-toggle="collapse" role="button"
@@ -360,7 +360,7 @@
                         </ul>
                     </div>
                 </li>
-            @endif
+            @endif --}}
 
 
 
@@ -390,6 +390,230 @@
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.products.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Category's   --}}
+            @if ( $userGuard->can('pharmacy_categories.index') || $userGuard->can('pharmacy_categories.create') || $userGuard->can('pharmacy_categories.edit') || $userGuard->can('pharmacy_categories.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_categories.create') || Route::is('admin.pharmacy_categories.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyCategory" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyCategory">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-pills"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Categories </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_categories.create') || Route::is('admin.pharmacy_categories.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyCategory">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_categories.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_categories.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_categories.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_categories.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Brand's   --}}
+            @if ( $userGuard->can('pharmacy_brands.index') || $userGuard->can('pharmacy_brands.create') || $userGuard->can('pharmacy_brands.edit') || $userGuard->can('pharmacy_brands.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_brands.create') || Route::is('admin.pharmacy_brands.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyBrand" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyBrand">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-capsules"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Brands </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_brands.create') || Route::is('admin.pharmacy_brands.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyBrand">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_brands.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_brands.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_brands.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_brands.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Type's   --}}
+            @if ( $userGuard->can('pharmacy_types.index') || $userGuard->can('pharmacy_types.create') || $userGuard->can('pharmacy_types.edit') || $userGuard->can('pharmacy_types.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_types.create') || Route::is('admin.pharmacy_types.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyType" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyType">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-syringe"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Types </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_types.create') || Route::is('admin.pharmacy_types.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyType">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_types.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_types.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_types.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_types.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Unit's   --}}
+            @if ( $userGuard->can('pharmacy_units.index') || $userGuard->can('pharmacy_units.create') || $userGuard->can('pharmacy_units.edit') || $userGuard->can('pharmacy_units.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_units.create') || Route::is('admin.pharmacy_units.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyUnit" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyUnit">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-ruler-horizontal"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Units </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_units.create') || Route::is('admin.pharmacy_units.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyUnit">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_units.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_units.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_units.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_units.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Sale's   --}}
+            @if ( $userGuard->can('pharmacy_sales.index') || $userGuard->can('pharmacy_sales.create') || $userGuard->can('pharmacy_sales.edit') || $userGuard->can('pharmacy_sales.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_sales.create') || Route::is('admin.pharmacy_sales.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacySale" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacySale">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-cash-register"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Sales </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_sales.create') || Route::is('admin.pharmacy_sales.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacySale">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_sales.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_sales.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_sales.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_sales.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Purchase's   --}}
+            @if ( $userGuard->can('pharmacy_purchases.index') || $userGuard->can('pharmacy_purchases.create') || $userGuard->can('pharmacy_purchases.edit') || $userGuard->can('pharmacy_purchases.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_purchases.create') || Route::is('admin.pharmacy_purchases.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyPurchase" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyPurchase">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-shopping-cart"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Purchases </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_purchases.create') || Route::is('admin.pharmacy_purchases.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyPurchase">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_purchases.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_purchases.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_purchases.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_purchases.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Pharmacy Product's   --}}
+            @if ( $userGuard->can('pharmacy_products.index') || $userGuard->can('pharmacy_products.create') || $userGuard->can('pharmacy_products.edit') || $userGuard->can('pharmacy_products.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarPharmacyProduct" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarPharmacyProduct">
+                                   <span class="nav-icon">
+                                        <i class="fas fa-prescription-bottle"></i>
+                                   </span>
+                        <span class="nav-text"> Pharmacy Products </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.pharmacy_products.create') || Route::is('admin.pharmacy_products.index') ? 'active' : 'collapse' }}"
+                        id="sidebarPharmacyProduct">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('pharmacy_products.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_products.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('pharmacy_products.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.pharmacy_products.index') }}">{{ __('language.list') }}</a>
                                 </li>
                             @endif
                         </ul>

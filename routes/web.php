@@ -19,6 +19,13 @@ use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\InvoiceListController;
 use App\Http\Controllers\Backend\ItemController;
 use App\Http\Controllers\Backend\LabController;
+use App\Http\Controllers\Backend\PharmacyCategoryController;
+use App\Http\Controllers\Backend\PharmacyTypeController;
+use App\Http\Controllers\Backend\PharmacyBrandController;
+use App\Http\Controllers\Backend\PharmacyUnitController;
+use App\Http\Controllers\Backend\PharmacyProductController;
+use App\Http\Controllers\Backend\PharmacyPurchaseController;
+use App\Http\Controllers\Backend\PharmacySaleController;
 use App\Http\Controllers\Backend\NumberCategoryController;
 use App\Http\Controllers\Backend\PaymentController;
 use App\Http\Controllers\Backend\PhoneNumberController;
@@ -117,6 +124,13 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     //    Accounts
     Route::resource('branches', BranchController::class, ['names' => 'branches']);
     Route::resource('categories', CategoryController::class, ['names' => 'categories']);
+    Route::resource('pharmacy-categories', PharmacyCategoryController::class, ['names' => 'pharmacy_categories']);
+    Route::resource('pharmacy-types', PharmacyTypeController::class, ['names' => 'pharmacy_types']);
+    Route::resource('pharmacy-brands', PharmacyBrandController::class, ['names' => 'pharmacy_brands']);
+    Route::resource('pharmacy-units', PharmacyUnitController::class, ['names' => 'pharmacy_units']);
+    Route::resource('pharmacy-purchases', PharmacyPurchaseController::class, ['names' => 'pharmacy_purchases']);
+    Route::resource('pharmacy-products', PharmacyProductController::class, ['names' => 'pharmacy_products']);
+    Route::resource('pharmacy-sales', PharmacySaleController::class, ['names' => 'pharmacy_sales']);
     Route::resource('admits', AdmitController::class, ['names' => 'admits']);
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
 
@@ -202,6 +216,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
 //    API FOR AJAX
 
     Route::get('/get-products', [ApiController::class, 'getProducts']);
+    Route::get('/get-pharmacy-products', [ApiController::class, 'getPharmacyProducts']);
     Route::get('/get-services', [ApiController::class, 'getServices']);
     Route::get('/get-doctors', [ApiController::class, 'getDoctors']);
     Route::get('/get-referrals', [ApiController::class, 'getReefs']);

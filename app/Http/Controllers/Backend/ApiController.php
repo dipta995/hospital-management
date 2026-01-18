@@ -6,6 +6,7 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\PharmacyProduct;
 use App\Models\Product;
 use App\Models\Reefer;
 use App\Models\Service;
@@ -26,6 +27,28 @@ class ApiController extends Controller
                 ->orWhere('code', 'LIKE', '%' . $query . '%');
         })
             ->get(['name', 'price', 'reefer_fee', 'id as productID']);
+
+        return response()->json($products);
+    }
+
+    public function getPharmacyProducts(Request $request)
+    {
+        $query = $request->get('query');
+
+        $products = PharmacyProduct::where('status', true)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'LIKE', '%' . $query . '%')
+                    ->orWhere('generic_name', 'LIKE', '%' . $query . '%')
+                    ->orWhere('barcode', 'LIKE', '%' . $query . '%');
+            })
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'generic_name',
+                'strength',
+                'sell_price',
+            ]);
 
         return response()->json($products);
     }
@@ -64,8 +87,19 @@ class ApiController extends Controller
     public function searchUserPhone(Request $request)
     {
         $query = $request->get('query');
-        $products = User::where('phone', 'LIKE', '%' . $query . '%')->get(['name', 'id as userId', 'phone',
-            'email','age', 'gender','blood_group','address']);
+        $products = User::where(function ($q) use ($query) {
+            $q->where('phone', 'LIKE', '%' . $query . '%')
+                ->orWhere('name', 'LIKE', '%' . $query . '%');
+        })->get([
+            'name',
+            'id as userId',
+            'phone',
+            'email',
+            'age',
+            'gender',
+            'blood_group',
+            'address',
+        ]);
         return response()->json($products);
     }
 

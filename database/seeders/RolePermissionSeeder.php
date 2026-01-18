@@ -193,6 +193,18 @@ class RolePermissionSeeder extends Seeder
             ],
 
 
+            //            pharmacy_categories
+            [
+                'group_name' => 'pharmacy_categories',
+                'permissions' => [
+                    'pharmacy_categories.index',
+                    'pharmacy_categories.create',
+                    'pharmacy_categories.edit',
+                    'pharmacy_categories.delete',
+                ]
+            ],
+
+
             //            cost_categories
             [
                 'group_name' => 'cost_categories',
@@ -361,6 +373,72 @@ class RolePermissionSeeder extends Seeder
                     'phone_numbers.create',
                     'phone_numbers.edit',
                     'phone_numbers.delete',
+                ]
+            ],
+
+            //            pharmacy_units
+            [
+                'group_name' => 'pharmacy_units',
+                'permissions' => [
+                    'pharmacy_units.index',
+                    'pharmacy_units.create',
+                    'pharmacy_units.edit',
+                    'pharmacy_units.delete',
+                ]
+            ],
+
+            //            pharmacy_types
+            [
+                'group_name' => 'pharmacy_types',
+                'permissions' => [
+                    'pharmacy_types.index',
+                    'pharmacy_types.create',
+                    'pharmacy_types.edit',
+                    'pharmacy_types.delete',
+                ]
+            ],
+
+            //            pharmacy_brands
+            [
+                'group_name' => 'pharmacy_brands',
+                'permissions' => [
+                    'pharmacy_brands.index',
+                    'pharmacy_brands.create',
+                    'pharmacy_brands.edit',
+                    'pharmacy_brands.delete',
+                ]
+            ],
+
+            //            pharmacy_purchases
+            [
+                'group_name' => 'pharmacy_purchases',
+                'permissions' => [
+                    'pharmacy_purchases.index',
+                    'pharmacy_purchases.create',
+                    'pharmacy_purchases.edit',
+                    'pharmacy_purchases.delete',
+                ]
+            ],
+
+            //            pharmacy_products
+            [
+                'group_name' => 'pharmacy_products',
+                'permissions' => [
+                    'pharmacy_products.index',
+                    'pharmacy_products.create',
+                    'pharmacy_products.edit',
+                    'pharmacy_products.delete',
+                ]
+            ],
+
+            //            pharmacy_sales
+            [
+                'group_name' => 'pharmacy_sales',
+                'permissions' => [
+                    'pharmacy_sales.index',
+                    'pharmacy_sales.create',
+                    'pharmacy_sales.edit',
+                    'pharmacy_sales.delete',
                 ]
             ],
 
