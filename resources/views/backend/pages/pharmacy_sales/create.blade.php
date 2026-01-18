@@ -55,7 +55,9 @@
                                 <input type="hidden" id="pharmacy_product_id">
                             </div>
                             <div class="col-md-2">
-                                <label for="product_qty">Qty</label>
+                                <label for="product_qty">Qty
+                                    <small class="text-muted d-block">Current stock: <span id="current_stock">-</span></small>
+                                </label>
                                 <input type="number" id="product_qty" class="form-control" value="1" min="1">
                             </div>
                             <div class="col-md-2">
@@ -271,6 +273,7 @@
 <script>
     $(document).ready(function () {
         let selectedItems = [];
+        let currentProductStock = null;
 
         function configureAutocomplete(fieldId, sourceUrl, onSelectCallback) {
             $('#' + fieldId).autocomplete({
@@ -350,6 +353,13 @@
             if (!$('#product_qty').val()) {
                 $('#product_qty').val(1);
             }
+
+            currentProductStock = typeof item.current_stock !== 'undefined' ? item.current_stock : null;
+            if (currentProductStock === null) {
+                $('#current_stock').text('-');
+            } else {
+                $('#current_stock').text(currentProductStock);
+            }
         });
 
         configureAutocomplete('dr_refer_name', "{{ url('admin/get-doctors') }}", function (item) {
@@ -368,6 +378,11 @@
                 return;
             }
 
+            if (currentProductStock !== null && qty > currentProductStock) {
+                alert('You cannot sell more than current stock (' + currentProductStock + ').');
+                return;
+            }
+
             let dup = selectedItems.find(function (it) { return it.pharmacy_product_id == pid; });
             if (dup) {
                 alert('This product is already added, please adjust quantity in the list.');
@@ -380,6 +395,7 @@
                 name: name,
                 quantity: qty,
                 unit_price: price,
+                max_stock: currentProductStock,
                 discount_amount: 0,
                 total_amount: total
             });
@@ -388,6 +404,8 @@
             $('#product_name').val('');
             $('#product_qty').val(1);
             $('#product_price').val('');
+            currentProductStock = null;
+            $('#current_stock').text('-');
 
             renderTable();
         });
@@ -395,7 +413,15 @@
         $(document).on('input', '.row-qty, .row-price, .row-discount', function () {
             let tr = $(this).closest('tr');
             let idx = tr.data('index');
-            selectedItems[idx].quantity = parseFloat(tr.find('.row-qty').val()) || 0;
+            let newQty = parseFloat(tr.find('.row-qty').val()) || 0;
+
+            if (selectedItems[idx].max_stock !== null && newQty > selectedItems[idx].max_stock) {
+                alert('You cannot sell more than current stock (' + selectedItems[idx].max_stock + ').');
+                tr.find('.row-qty').val(selectedItems[idx].quantity);
+                return;
+            }
+
+            selectedItems[idx].quantity = newQty;
             selectedItems[idx].unit_price = parseFloat(tr.find('.row-price').val()) || 0;
             selectedItems[idx].discount_amount = parseFloat(tr.find('.row-discount').val()) || 0;
             recalcItem(idx);

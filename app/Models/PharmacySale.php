@@ -37,4 +37,9 @@ class PharmacySale extends Model
     {
         return $this->belongsTo(Reefer::class, 'dr_refer_id');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(PharmacySalePayment::class, 'pharmacy_sale_id');
+    }
 }

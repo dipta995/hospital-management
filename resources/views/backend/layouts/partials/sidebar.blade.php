@@ -1036,6 +1036,10 @@
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.costs') }}">Cost</a>
                                 </li>
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reports.pharmacy-stock') }}">Pharmacy Stock</a>
+                                </li>
                             @endif
 
                         </ul>

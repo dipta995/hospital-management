@@ -372,6 +372,8 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'reports.index',
                     'reports.amounts',
+                    'reports.show',
+                    'reports.payment',
                 ]
             ],
 

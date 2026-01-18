@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\PharmacyProduct;
+use App\Models\PharmacyPurchaseItem;
+use App\Models\PharmacySaleItem;
 use App\Models\Product;
 use App\Models\Reefer;
 use App\Models\Service;
@@ -34,6 +36,7 @@ class ApiController extends Controller
     public function getPharmacyProducts(Request $request)
     {
         $query = $request->get('query');
+        $branchId = auth()->user()->branch_id;
 
         $products = PharmacyProduct::where('status', true)
             ->where(function ($q) use ($query) {
@@ -48,7 +51,20 @@ class ApiController extends Controller
                 'generic_name',
                 'strength',
                 'sell_price',
-            ]);
+            ])
+            ->map(function ($product) use ($branchId) {
+                $purchased = PharmacyPurchaseItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $product->id)
+                    ->sum('quantity');
+
+                $sold = PharmacySaleItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $product->id)
+                    ->sum('quantity');
+
+                $product->current_stock = max($purchased - $sold, 0);
+
+                return $product;
+            });
 
         return response()->json($products);
     }

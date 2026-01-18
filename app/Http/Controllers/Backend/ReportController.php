@@ -12,6 +12,9 @@ use App\Models\InvoicePayment;
 use App\Models\Recept;
 use App\Models\ReceptPayment;
 use App\Models\Reefer;
+use App\Models\PharmacyProduct;
+use App\Models\PharmacyPurchaseItem;
+use App\Models\PharmacySaleItem;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -649,6 +652,55 @@ class ReportController extends Controller
 
 
         return view('backend.pages.reports.cost-category-pdf-id', $data);
+    }
+
+    public function pharmacyStock(Request $request)
+    {
+        $this->checkOwnPermission('reports.index');
+
+        $data['pageHeader'] = [
+            'title' => "Pharmacy Stock",
+            'sub_title' => "",
+            'plural_name' => "pharmacy-stocks",
+            'singular_name' => "Pharmacy Stock",
+            'base_url' => url('admin/reports/pharmacy-stock'),
+
+        ];
+
+        $branchId = auth()->user()->branch_id;
+
+        // Aggregate purchased quantities per product for this branch
+        $purchased = PharmacyPurchaseItem::where('branch_id', $branchId)
+            ->selectRaw('pharmacy_product_id, SUM(quantity) as total_purchased')
+            ->groupBy('pharmacy_product_id')
+            ->pluck('total_purchased', 'pharmacy_product_id');
+
+        // Aggregate sold quantities per product for this branch
+        $sold = PharmacySaleItem::where('branch_id', $branchId)
+            ->selectRaw('pharmacy_product_id, SUM(quantity) as total_sold')
+            ->groupBy('pharmacy_product_id')
+            ->pluck('total_sold', 'pharmacy_product_id');
+
+        $products = PharmacyProduct::with(['category', 'brand', 'quantityType'])
+            ->orderBy('name')
+            ->get();
+
+        // Attach stock figures to each product model instance
+        $products->transform(function ($product) use ($purchased, $sold) {
+            $totalPurchased = (float) ($purchased[$product->id] ?? 0);
+            $totalSold = (float) ($sold[$product->id] ?? 0);
+            $currentStock = $totalPurchased - $totalSold;
+
+            $product->total_purchased = $totalPurchased;
+            $product->total_sold = $totalSold;
+            $product->current_stock = $currentStock;
+
+            return $product;
+        });
+
+        $data['datas'] = $products;
+
+        return view('backend.pages.reports.pharmacy-stock', $data);
     }
 
 }

@@ -132,6 +132,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::resource('pharmacy-products', PharmacyProductController::class, ['names' => 'pharmacy_products']);
     Route::resource('pharmacy-sales', PharmacySaleController::class, ['names' => 'pharmacy_sales']);
     Route::get('/pharmacy-sales/pdf-preview/{id}', [PharmacySaleController::class, 'pdfPreview'])->name('pharmacy_sales.pdf-preview');
+    Route::post('/pharmacy-sales/due-pay/{id}', [PharmacySaleController::class, 'payDue'])->name('pharmacy_sales.due-pay');
     Route::resource('admits', AdmitController::class, ['names' => 'admits']);
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
 
@@ -211,6 +212,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/reports/costs/pdf', [ReportController::class, 'costPdf'])->name('costs.report-pdf');
     Route::get('/reports/costs/category/pdf', [ReportController::class, 'costCategoryPdf'])->name('costs.report-category-pdf');
     Route::get('/reports/costs/category/specific/pdf', [ReportController::class, 'costCategoryIdPdf'])->name('costs.report-category-pdf-id');
+    Route::get('/reports/pharmacy-stock', [ReportController::class, 'pharmacyStock'])->name('reports.pharmacy-stock');
 
 //
 

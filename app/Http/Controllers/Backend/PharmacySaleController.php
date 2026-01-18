@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PharmacyProduct;
 use App\Models\PharmacySale;
 use App\Models\PharmacySaleItem;
+use App\Models\PharmacySalePayment;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -39,14 +40,38 @@ class PharmacySaleController extends Controller
         ];
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->checkOwnPermission('pharmacy_sales.index');
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = PharmacySale::with(['customer','doctor'])
-            ->where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'DESC')
-            ->paginate(20);
+
+        $query = PharmacySale::with(['customer', 'doctor'])
+            ->where('branch_id', auth()->user()->branch_id);
+
+        // Default: show only today's sales if no filter is applied
+        if (!$request->filled('start_date') && !$request->filled('end_date') && !$request->filled('sale_id') && !$request->filled('phone')) {
+            $query->whereDate('sale_date', now()->toDateString());
+        } else {
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('sale_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->where('sale_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->where('sale_date', '<=', $request->end_date);
+            }
+
+            if ($request->filled('sale_id')) {
+                $query->where('id', $request->sale_id);
+            }
+
+            if ($request->filled('phone')) {
+                $query->whereHas('customer', function ($q) use ($request) {
+                    $q->where('phone', 'like', '%' . $request->phone . '%');
+                });
+            }
+        }
+
+        $data['datas'] = $query->orderBy('id', 'DESC')->paginate(20);
 
         return view('backend.pages.pharmacy_sales.index', $data);
     }
@@ -80,6 +105,41 @@ class PharmacySaleController extends Controller
 
         try {
             \DB::beginTransaction();
+
+            // Stock validation per product
+            $errors = [];
+            foreach ($request->items as $item) {
+                if (empty($item['pharmacy_product_id']) || empty($item['quantity'])) {
+                    continue;
+                }
+
+                $productId = $item['pharmacy_product_id'];
+                $qty = (float) $item['quantity'];
+
+                $purchased = \App\Models\PharmacyPurchaseItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $productId)
+                    ->sum('quantity');
+
+                $sold = PharmacySaleItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $productId)
+                    ->sum('quantity');
+
+                $available = $purchased - $sold;
+
+                if ($qty > $available) {
+                    $product = PharmacyProduct::find($productId);
+                    $name = $product ? $product->name : 'Product ID '.$productId;
+                    $errors[] = $name.' has only '.$available.' in stock.';
+                }
+            }
+
+            if (!empty($errors)) {
+                \DB::rollBack();
+                return response()->json([
+                    'message' => 'Insufficient stock for one or more products.',
+                    'errors' => $errors,
+                ], 422);
+            }
 
             $sale = PharmacySale::create([
                 'branch_id' => $branchId,
@@ -156,6 +216,42 @@ class PharmacySaleController extends Controller
             \DB::beginTransaction();
 
             $sale = PharmacySale::where('branch_id', $branchId)->findOrFail($id);
+
+            // Stock validation per product for update (exclude this sale's current quantities)
+            $errors = [];
+            foreach ($request->items as $item) {
+                if (empty($item['pharmacy_product_id']) || empty($item['quantity'])) {
+                    continue;
+                }
+
+                $productId = $item['pharmacy_product_id'];
+                $qty = (float) $item['quantity'];
+
+                $purchased = \App\Models\PharmacyPurchaseItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $productId)
+                    ->sum('quantity');
+
+                $soldOther = PharmacySaleItem::where('branch_id', $branchId)
+                    ->where('pharmacy_product_id', $productId)
+                    ->where('pharmacy_sale_id', '!=', $sale->id)
+                    ->sum('quantity');
+
+                $available = $purchased - $soldOther;
+
+                if ($qty > $available) {
+                    $product = PharmacyProduct::find($productId);
+                    $name = $product ? $product->name : 'Product ID '.$productId;
+                    $errors[] = $name.' has only '.$available.' in stock.';
+                }
+            }
+
+            if (!empty($errors)) {
+                \DB::rollBack();
+                return response()->json([
+                    'message' => 'Insufficient stock for one or more products.',
+                    'errors' => $errors,
+                ], 422);
+            }
             $sale->update([
                 'customer_id' => $request->customer_id,
                 'dr_refer_id' => $request->dr_refer_id,
@@ -221,5 +317,36 @@ class PharmacySaleController extends Controller
             ->findOrFail($id);
 
         return view('backend.pages.pharmacy_sales.invoice-regular', compact('sale'));
+    }
+
+    public function payDue(Request $request, $id)
+    {
+        $this->checkOwnPermission('pharmacy_sales.edit');
+
+        $sale = PharmacySale::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+        $request->validate([
+            'paid_amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $amount = (float) $request->paid_amount;
+
+        if ($amount > $sale->due_amount) {
+            return back()->with('error', 'Paid amount cannot be greater than due amount.');
+        }
+
+        PharmacySalePayment::create([
+            'pharmacy_sale_id' => $sale->id,
+            'branch_id' => $sale->branch_id,
+            'admin_id' => auth()->id(),
+            'paid_amount' => $amount,
+            'creation_date' => now()->toDateString(),
+        ]);
+
+        $sale->paid_amount += $amount;
+        $sale->due_amount -= $amount;
+        $sale->save();
+
+        return back()->with('success', 'Payment recorded successfully.');
     }
 }
