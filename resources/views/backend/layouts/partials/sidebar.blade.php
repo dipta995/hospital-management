@@ -167,39 +167,6 @@
                     </div>
                 </li>
             @endif
-            {{--   Admit's   --}}
-            @if ($userGuard->can('admits.index') || $userGuard->can('admits.create') || $userGuard->can('admits.edit') || $userGuard->can('admits.delete'))
-                <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.admits.create') || Route::is('admin.admits.index') ? 'active' : 'collapsed' }}"
-                       href="#sidebarAdmit" data-bs-toggle="collapse" role="button"
-                       aria-expanded="false" aria-controls="sidebarAdmit">
-                        <span class="nav-icon">
-                            <i class="fas fa-procedures"></i>
-                        </span>
-                        <span class="nav-text"> {{ __('Admit') }} </span>
-                    </a>
-                    <div
-                        class="{{ Route::is('admin.admits.create') || Route::is('admin.admits.index') ? 'active' : 'collapse' }}"
-                        id="sidebarAdmit">
-                        <ul class="nav sub-navbar-nav">
-                            {{-- @if ($userGuard->can('admits.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link" href="{{ route('admin.admits.create') }}">
-                                        {{ __('language.create') }}
-                                    </a>
-                                </li>
-                            @endif --}}
-                            @if ($userGuard->can('admits.index'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link" href="{{ route('admin.admits.index') }}">
-                                        {{ __('language.list') }}
-                                    </a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
 
             {{--   Category's   --}}
             @if ( $userGuard->can('categories.index') || $userGuard->can('categories.create') || $userGuard->can('categories.edit') || $userGuard->can('categories.delete'))
@@ -328,6 +295,40 @@
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.invoices.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
+            {{--   Admit's   --}}
+            @if ($userGuard->can('admits.index') || $userGuard->can('admits.create') || $userGuard->can('admits.edit') || $userGuard->can('admits.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.admits.create') || Route::is('admin.admits.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarAdmit" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarAdmit">
+                        <span class="nav-icon">
+                            <i class="fas fa-procedures"></i>
+                        </span>
+                        <span class="nav-text"> {{ __('Admit') }} </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.admits.create') || Route::is('admin.admits.index') ? 'active' : 'collapse' }}"
+                        id="sidebarAdmit">
+                        <ul class="nav sub-navbar-nav">
+                            {{-- @if ($userGuard->can('admits.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.admits.create') }}">
+                                        {{ __('language.create') }}
+                                    </a>
+                                </li>
+                            @endif --}}
+                            @if ($userGuard->can('admits.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.admits.index') }}">
+                                        {{ __('language.list') }}
+                                    </a>
                                 </li>
                             @endif
                         </ul>

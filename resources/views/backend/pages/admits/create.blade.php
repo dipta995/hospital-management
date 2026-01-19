@@ -25,66 +25,82 @@
                                     @csrf
                                     <input type="hidden" name="user_id" value="{{ $user->id }}">
 
-                                    <div class="form-group mb-3">
-                                        <label for="admit_at" class="form-label">Admit Date</label>
-                                        <input type="datetime-local" class="form-control" name="admit_at" id="admit_at"
-                                               required>
-                                    </div>
-                                    <div class="form-group mb-3">
-                                        <x-default.label  for="dr_refer_name">Dr Name                                                     <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
-                                        </x-default.label>
-                                        <x-default.input name="dr_refer_name" class="form-control"
-                                                         id="dr_refer_name" type="text"></x-default.input>
-                                        <x-default.input-error name="dr_refer_name"></x-default.input-error>
-                                        <input type="hidden" name="dr_refer_id" id="dr_refer_id">
-                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="admit_at" class="form-label">Admit Date</label>
+                                                <input type="datetime-local" class="form-control" name="admit_at" id="admit_at" required>
+                                            </div>
+                                        </div>
 
-                                    {{-- <div class="form-group mb-3">
-                                        <label for="release_at" class="form-label">Release Date</label>
-                                        <input type="datetime-local" class="form-control" name="release_at" id="release_at">
-                                    </div> --}}
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label for="dr_refer_name">
+                                                    Dr Name
+                                                    <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
+                                                </x-default.label>
+                                                <x-default.input name="dr_refer_name" class="form-control" id="dr_refer_name" type="text"></x-default.input>
+                                                <x-default.input-error name="dr_refer_name"></x-default.input-error>
+                                                <input type="hidden" name="dr_refer_id" id="dr_refer_id">
+                                            </div>
+                                        </div>
 
-                                    <div class="form-group mb-3">
-                                        <label for="bed_or_cabin" class="form-label">Bed/Cabin</label>
-                                        <input type="text" class="form-control" name="bed_or_cabin" id="bed_or_cabin"
-                                               placeholder="Enter bed or cabin number">
-                                    </div>
-
-                                    <div class="form-group mb-3">
-                                        <label for="father_or_spouse" class="form-label">Father/Spouse</label>
-                                        <input type="text" class="form-control" name="father_or_spouse" id="father_or_spouse"
-                                               placeholder="Enter father's or spouse's name">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="bed_or_cabin" class="form-label">Bed/Cabin</label>
+                                                <input type="text" class="form-control" name="bed_or_cabin" id="bed_or_cabin" placeholder="Enter bed or cabin number">
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="form-group mb-3">
-                                        <label for="received_by" class="form-label">Received By</label>
-                                        <input type="text" class="form-control" name="received_by" id="received_by"
-                                               placeholder="Received by (staff name)">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="father_or_spouse" class="form-label">Father/Spouse</label>
+                                                <input type="text" class="form-control" name="father_or_spouse" id="father_or_spouse" placeholder="Enter father's or spouse's name">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="received_by" class="form-label">Received By</label>
+                                                <input type="text" class="form-control" name="received_by" id="received_by" placeholder="Received by (staff name)">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="nid" class="form-label">NID</label>
+                                                <input type="text" class="form-control" name="nid" id="nid" placeholder="Enter NID">
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="form-group mb-3">
-                                        <label for="clinical_diagnosis" class="form-label">Clinical Diagnosis</label>
-                                        <textarea name="clinical_diagnosis" id="clinical_diagnosis" class="form-control" rows="2"
-                                                  placeholder="Enter diagnosis details"></textarea>
-                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="refer_id" class="form-label">Refer ID(PC)
+                                                    <button type="button" class="badge bg-info openOtherModal" data-target-input="refer_name">Add PC</button>
+                                                </label>
+                                                <x-default.input name="refer_name" required class="form-control" id="refer_name" type="text"></x-default.input>
+                                                <x-default.input-error name="refer_name"></x-default.input-error>
+                                                <input type="hidden" name="refer_id" id="refer_id">
+                                            </div>
+                                        </div>
 
-                                    <div class="form-group mb-3">
-                                        <label for="refer_id" class="form-label">Refer ID(PC)<button type="button" class="badge bg-info openOtherModal" data-target-input="refer_name">Add PC</button></label>
-                                        <x-default.input name="refer_name" required class="form-control" id="refer_name" type="text" ></x-default.input>
-                                        <x-default.input-error name="refer_name"></x-default.input-error>
-                                        <input type="hidden" name="refer_id" id="refer_id">
-                                    </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="clinical_diagnosis" class="form-label">Clinical Diagnosis</label>
+                                                <textarea name="clinical_diagnosis" id="clinical_diagnosis" class="form-control" rows="2" placeholder="Enter diagnosis details"></textarea>
+                                            </div>
+                                        </div>
 
-
-                                    <div class="form-group mb-3">
-                                        <label for="nid" class="form-label">NID</label>
-                                        <input type="text" class="form-control" name="nid" id="nid"
-                                               placeholder="Enter NID">
-                                    </div>
-
-                                    <div class="form-group mb-3">
-                                        <label for="note" class="form-label">Note</label>
-                                        <textarea name="note" id="note" class="form-control" rows="3"></textarea>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <label for="note" class="form-label">Note</label>
+                                                <textarea name="note" id="note" class="form-control" rows="2" placeholder="Additional note"></textarea>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <button type="submit" class="btn btn-success float-end mt-2">

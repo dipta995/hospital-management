@@ -16,13 +16,7 @@
 
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
-                        <div class="card-head">
-                            <div class="col-md-12">
-                                <a href="{{ route('admin.users.index') }}" class="mr-10 float-end btn btn-danger">USER List</a>
-                                <a href="{{ route('admin.users.create') }}" class="ml-5 float-end btn btn-dark">USER Create</a>
-                            </div>
-                            <br>
-                        </div>
+                       
                         <div class="card-body">
                             <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
 
