@@ -1,11 +1,18 @@
 <?php
 
 return [
-    'subdomain' => [
-        'bho' => [
-            'database' => 'dreammak_bho',
-            'username' => 'dreammak_bho',
-            'password' => 'dreammak_bho',
+    'subdomain' =>
+    [
+            'alsunnah' => [
+            'database' => 'dreammak_alsunnah',
+            'username' => 'dreammak_alsunnah',
+            'password' => 'dreammak_alsunnah',
+            'host' => '127.0.0.1',
+        ],
+        'rebeka' => [
+            'database' => 'dreammak_rebeka',
+            'username' => 'dreammak_rebeka',
+            'password' => 'dreammak_rebeka',
             'host' => '127.0.0.1',
         ],
 
