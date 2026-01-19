@@ -11,6 +11,11 @@
                     <div class="card-body">
                         <h4 class="card-title">{{ $pageHeader['title'] }} List</h4>
                         @include('backend.layouts.partials.message')
+                        <div class="mb-3 text-end">
+                            <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-users"></i> Go to Patient List
+                            </a>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>

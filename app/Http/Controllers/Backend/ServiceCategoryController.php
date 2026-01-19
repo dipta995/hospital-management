@@ -23,7 +23,7 @@ class ServiceCategoryController extends Controller
         $this->checkGuard();
         Paginator::useBootstrapFive();
         $this->pageHeader = [
-            'title' => "Cost Categories",
+            'title' => "Service Categories",
             'sub_title' => "",
             'plural_name' => "service_categories",
             'singular_name' => "ServiceCategory",

@@ -416,12 +416,6 @@
                         class="{{ Route::is('admin.recepts.create') || Route::is('admin.recepts.index') ? 'active' : 'collapse' }}"
                         id="sidebarRecept">
                         <ul class="nav sub-navbar-nav">
-                            @if ($userGuard->can('recepts.create'))
-                                <li class="sub-nav-item">
-                                    <a class="sub-nav-link"
-                                       href="{{ route('admin.recepts.create') }}">{{ __('language.create') }}</a>
-                                </li>
-                            @endif
                             @if ($userGuard->can('recepts.index'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
