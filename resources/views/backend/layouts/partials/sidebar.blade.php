@@ -433,6 +433,36 @@
                 </li>
             @endif
 
+            {{--   Bed/Cabin's   --}}
+            @if ($userGuard->can('bed_cabins.index') || $userGuard->can('bed_cabins.create') || $userGuard->can('bed_cabins.edit') || $userGuard->can('bed_cabins.delete'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.bed_cabins.create') || Route::is('admin.bed_cabins.index') ? 'active' : 'collapsed' }}"
+                       href="#sidebarBedCabin" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarBedCabin">
+                        <span class="nav-icon">
+                            <i class="fas fa-procedures"></i>
+                        </span>
+                        <span class="nav-text"> Bed / Cabin </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.bed_cabins.create') || Route::is('admin.bed_cabins.index') ? 'active' : 'collapse' }}"
+                        id="sidebarBedCabin">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('bed_cabins.create'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.bed_cabins.create') }}">{{ __('language.create') }}</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('bed_cabins.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.bed_cabins.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
+
             {{--   ReceptList's   --}}
             {{-- @if ($userGuard->can('receptlists.index') || $userGuard->can('receptlists.create') || $userGuard->can('receptlists.edit') || $userGuard->can('receptlists.delete'))
                 <li class="nav-item">

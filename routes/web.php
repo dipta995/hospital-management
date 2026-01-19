@@ -42,6 +42,7 @@ use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\AdmitController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\Backend\BedCabinController;
 use App\Http\Controllers\FingerprintController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
@@ -140,6 +141,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/recepts/pdf-preview/{id}', [ReceptController::class, 'receptPdfPreview'])->name('recepts.pdf-preview');
     Route::resource('service-categories', ServiceCategoryController::class, ['names' => 'service_categories']);
     Route::resource('services', ServiceController::class, ['names' => 'services']);
+
+    Route::resource('bed-cabins', BedCabinController::class, ['names' => 'bed_cabins']);
 
     Route::resource('products', ProductController::class, ['names' => 'products']);
     Route::resource('invoices', InvoiceController::class, ['names' => 'invoices']);

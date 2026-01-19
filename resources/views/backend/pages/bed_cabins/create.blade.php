@@ -1,0 +1,77 @@
+@extends('backend.layouts.master')
+
+@section('title')
+    Create New {{ $pageHeader['title'] }}
+@endsection
+
+@section('admin-content')
+<div class="main-panel">
+    <div class="content-wrapper">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Create New {{ $pageHeader['title'] }}</h4>
+                        @include('backend.layouts.partials.message')
+                        <form method="POST" action="{{ route($pageHeader['store_route']) }}">
+                            @csrf
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        <x-default.label required="true" for="name">Bed/Cabin Name or Number</x-default.label>
+                                        <x-default.input name="name" class="form-control" id="name" type="text"/>
+                                        <x-default.input-error name="name"/>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        <x-default.label required="true" for="type">Type</x-default.label>
+                                        <select name="type" id="type" class="form-control">
+                                            <option value="bed">Bed</option>
+                                            <option value="cabin">Cabin</option>
+                                        </select>
+                                        <x-default.input-error name="type"/>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        <x-default.label required="true" for="status">Status</x-default.label>
+                                        <select name="status" id="status" class="form-control">
+                                            <option value="available">Available</option>
+                                            <option value="occupied">Occupied</option>
+                                            <option value="maintenance">Maintenance</option>
+                                        </select>
+                                        <x-default.input-error name="status"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="form-group">
+                                        <x-default.label for="price">Price (Per Day)</x-default.label>
+                                        <x-default.input name="price" class="form-control" id="price" type="number" step="0.01"/>
+                                        <x-default.input-error name="price"/>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8 mb-3">
+                                    <div class="form-group">
+                                        <x-default.label for="note">Note</x-default.label>
+                                        <textarea name="note" id="note" class="form-control" rows="2"></textarea>
+                                        <x-default.input-error name="note"/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

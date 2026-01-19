@@ -6,6 +6,7 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Admit;
 use App\Models\User;
+use App\Models\BedCabin;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -59,6 +60,19 @@ class AdmitController extends Controller
             return RedirectHelper::routeError($this->index_route, 'User not found.');
         }
 
+        // Beds/cabins that are not currently assigned to an active admit (release_at is null)
+        $occupiedBedIds = Admit::where('branch_id', auth()->user()->branch_id)
+            ->whereNull('release_at')
+            ->whereNotNull('bed_cabin_id')
+            ->pluck('bed_cabin_id');
+
+        $data['beds'] = BedCabin::where('branch_id', auth()->user()->branch_id)
+            ->when($occupiedBedIds->isNotEmpty(), function ($q) use ($occupiedBedIds) {
+                $q->whereNotIn('id', $occupiedBedIds);
+            })
+            ->orderBy('name')
+            ->get();
+
         return view('backend.pages.admits.create', $data);
     }
 
@@ -70,6 +84,7 @@ class AdmitController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'admit_at' => 'required|string',
+            'bed_cabin_id' => 'nullable|exists:bed_cabins,id',
         ]);
 
         try {
@@ -83,7 +98,17 @@ class AdmitController extends Controller
             $row->nid = $request->nid;
             $row->note = $request->note;
 
-            $row->bed_or_cabin = $request->bed_or_cabin;
+            // Link to selected bed/cabin and store its name for reference
+            if ($request->bed_cabin_id) {
+                $bed = BedCabin::where('branch_id', auth()->user()->branch_id)
+                    ->find($request->bed_cabin_id);
+                if ($bed) {
+                    $row->bed_cabin_id = $bed->id;
+                    $row->bed_or_cabin = $bed->name;
+                }
+            } else {
+                $row->bed_or_cabin = $request->bed_or_cabin;
+            }
             $row->father_or_spouse = $request->father_or_spouse;
             $row->received_by = $request->received_by;
             $row->clinical_diagnosis = $request->clinical_diagnosis;

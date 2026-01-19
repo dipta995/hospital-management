@@ -23,4 +23,9 @@ class Admit extends Model
     return $this->belongsTo(Reefer::class,'dr_refer_id','id');
 }
 
+    public function bedCabin()
+    {
+        return $this->belongsTo(BedCabin::class, 'bed_cabin_id');
+    }
+
 }

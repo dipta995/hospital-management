@@ -146,6 +146,16 @@ class RolePermissionSeeder extends Seeder
                     'services.delete',
                 ]
             ],
+            // bed_cabins
+            [
+                'group_name' => 'bed_cabins',
+                'permissions' => [
+                    'bed_cabins.index',
+                    'bed_cabins.create',
+                    'bed_cabins.edit',
+                    'bed_cabins.delete',
+                ]
+            ],
                         // admits
             [
                 'group_name' => 'admits',

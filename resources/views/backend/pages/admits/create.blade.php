@@ -47,8 +47,16 @@
 
                                         <div class="col-md-4 mb-3">
                                             <div class="form-group">
-                                                <label for="bed_or_cabin" class="form-label">Bed/Cabin</label>
-                                                <input type="text" class="form-control" name="bed_or_cabin" id="bed_or_cabin" placeholder="Enter bed or cabin number">
+                                                <label for="bed_cabin_id" class="form-label">Bed/Cabin</label>
+                                                <select name="bed_cabin_id" id="bed_cabin_id" class="form-control">
+                                                    <option value="">-- Select Bed/Cabin --</option>
+                                                    @forelse($beds as $bed)
+                                                        <option value="{{ $bed->id }}">{{ $bed->name }} ({{ ucfirst($bed->type) }})</option>
+                                                    @empty
+                                                        <option value="" disabled>No beds/cabins available</option>
+                                                    @endforelse
+                                                </select>
+                                                <x-default.input-error name="bed_cabin_id"></x-default.input-error>
                                             </div>
                                         </div>
                                     </div>
