@@ -55,7 +55,7 @@ class PharmacyPurchaseController extends Controller
     {
         $this->checkOwnPermission('pharmacy_purchases.create');
         $data['pageHeader'] = $this->pageHeader;
-        $data['products'] = PharmacyProduct::where('status', true)->orderBy('name')->get();
+        $data['products'] = PharmacyProduct::orderBy('name')->get();
         $data['suppliers'] = Supplier::where('branch_id', auth()->user()->branch_id)->get();
 
         return view('backend.pages.pharmacy_purchases.create', $data);
@@ -121,7 +121,7 @@ class PharmacyPurchaseController extends Controller
         $this->checkOwnPermission('pharmacy_purchases.edit');
         $data['pageHeader'] = $this->pageHeader;
         $data['purchase'] = PharmacyPurchase::with('items')->where('branch_id', auth()->user()->branch_id)->findOrFail($id);
-        $data['products'] = PharmacyProduct::where('status', true)->orderBy('name')->get();
+        $data['products'] = PharmacyProduct::orderBy('name')->get();
         $data['suppliers'] = Supplier::where('branch_id', auth()->user()->branch_id)->get();
 
         return view('backend.pages.pharmacy_purchases.edit', $data);

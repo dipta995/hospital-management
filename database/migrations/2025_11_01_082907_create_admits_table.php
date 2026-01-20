@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('branch_id');
             $table->unsignedBigInteger('dr_refer_id')->nullable();
-            $table->unsignedBigInteger('reffer_id')->nullable();
+            $table->unsignedBigInteger('refer_id')->nullable();
             $table->string('admit_at')->nullable();
             $table->string('release_at')->nullable();
             $table->string('nid')->nullable();

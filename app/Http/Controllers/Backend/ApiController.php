@@ -38,8 +38,7 @@ class ApiController extends Controller
         $query = $request->get('query');
         $branchId = auth()->user()->branch_id;
 
-        $products = PharmacyProduct::where('status', true)
-            ->where(function ($q) use ($query) {
+        $products = PharmacyProduct::where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', '%' . $query . '%')
                     ->orWhere('generic_name', 'LIKE', '%' . $query . '%')
                     ->orWhere('barcode', 'LIKE', '%' . $query . '%');

@@ -146,7 +146,6 @@ class AdmitController extends Controller
 
         try {
             if ($row = Admit::where('branch_id', auth()->user()->branch_id)->find($id)) {
-                $row->reffer_id = $request->dr_refer_id;
                 $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
                 $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
                 $row->nid = $request->nid;

@@ -31,7 +31,7 @@
                                 <x-default.input name="dr_refer_name" class="form-control" value="{{ $edited->reefer->name ?? '' }}"
                                                  id="dr_refer_name" type="text"></x-default.input>
                                 <x-default.input-error name="dr_refer_name"></x-default.input-error>
-                                <input type="hidden" name="dr_refer_id" value="{{ $edited->reffer_id ?? '' }}" id="dr_refer_id">
+                                <input type="hidden" name="dr_refer_id" value="{{ $edited->refer_id ?? '' }}" id="dr_refer_id">
                             </div>
 
 

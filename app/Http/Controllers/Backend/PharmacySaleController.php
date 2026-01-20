@@ -80,7 +80,7 @@ class PharmacySaleController extends Controller
     {
         $this->checkOwnPermission('pharmacy_sales.create');
         $data['pageHeader'] = $this->pageHeader;
-        $data['products'] = PharmacyProduct::where('status', true)->orderBy('name')->get();
+        $data['products'] = PharmacyProduct::orderBy('name')->get();
 
         return view('backend.pages.pharmacy_sales.create', $data);
     }
@@ -189,7 +189,7 @@ class PharmacySaleController extends Controller
         $data['pageHeader'] = $this->pageHeader;
         $data['sale'] = PharmacySale::with('items')->where('branch_id', auth()->user()->branch_id)->findOrFail($id);
         $data['customer'] = User::find($data['sale']->customer_id);
-        $data['products'] = PharmacyProduct::where('status', true)->orderBy('name')->get();
+        $data['products'] = PharmacyProduct::orderBy('name')->get();
 
         return view('backend.pages.pharmacy_sales.edit', $data);
     }
