@@ -43,6 +43,7 @@ use App\Http\Controllers\Backend\AdmitController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\BedCabinController;
+use App\Http\Controllers\Backend\CustomerBalanceController;
 use App\Http\Controllers\FingerprintController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
@@ -138,11 +139,14 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
 
     Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);
+    Route::post('recepts/{id}/pay', [ReceptController::class, 'pay'])->name('recepts.pay');
     Route::get('/recepts/pdf-preview/{id}', [ReceptController::class, 'receptPdfPreview'])->name('recepts.pdf-preview');
     Route::resource('service-categories', ServiceCategoryController::class, ['names' => 'service_categories']);
     Route::resource('services', ServiceController::class, ['names' => 'services']);
 
     Route::resource('bed-cabins', BedCabinController::class, ['names' => 'bed_cabins']);
+
+    Route::resource('customer-balances', CustomerBalanceController::class, ['names' => 'customer_balances']);
 
     Route::resource('products', ProductController::class, ['names' => 'products']);
     Route::resource('invoices', InvoiceController::class, ['names' => 'invoices']);

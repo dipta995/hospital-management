@@ -7,12 +7,10 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1;
-            width: 500px;
+            line-height: 1.2;
+            width: 950px;
             margin: 0 auto;
             position: relative;
-            /*transform: rotate(90deg);*/
-
         }
 
         .watermark {
@@ -58,8 +56,7 @@
             margin: 0;
             font-size: 11px;
             font-weight: 600;
-            text-align: left;
-            margin-left: 20px;
+            text-align: center;
         }
 
         .header-right img {
@@ -73,12 +70,13 @@
             font-size: 16px;
             font-weight: bold;
             text-decoration: underline;
+            text-transform: uppercase;
         }
 
         .details, .tests {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .details th, .details td, .tests th, .tests td {
@@ -101,18 +99,57 @@
             /*font-weight: bold;*/
         }
 
-        .financial-summary {
-            text-align: right;
+        .badge-status {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 16px;
+            border: 2px solid #000;
             font-size: 14px;
-            margin-right: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
-        .financial-summary span {
-            font-weight: bold;
+        .watermark-paid {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 140px;
+            font-weight: 900;
+            color: rgba(0, 128, 0, 0.12);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .watermark-due {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 140px;
+            font-weight: 900;
+            color: rgba(255, 0, 0, 0.15);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 0;
         }
     </style>
 </head>
 <body>
+@php
+    $total = $recept->total_amount ?? 0;
+    $discount = $recept->discount_amount ?? 0;
+    $paid = $recept->receptPayments->sum('paid_amount');
+    $net = $total - $discount;
+    $due = $net - $paid;
+@endphp
+@if($due > 0)
+    <div class="watermark-due">DUE</div>
+@else
+    <div class="watermark-paid">PAID</div>
+@endif
 <button onclick="window.print()" class="btn btn-primary no-print" style="background-color: #00a5bb; color: white;">🖨️ Print
 </button>
     <style>
@@ -184,7 +221,7 @@
     <tr>
 {{--        <th style="text-align: left; width: 60px;">Code</th>--}}
         <th>Service</th>
-        <th style="text-align: right; width: 70px;">Amount (tk)</th>
+        <th style="text-align: right; width: 70px;">Amount (Tk)</th>
     </tr>
     </thead>
     <tbody>
@@ -192,45 +229,38 @@
         <tr>
 
             <td> <strong>{{ $item->service->name }}</strong></td>
-            <td style="text-align: right; width: 70px;">{{ $item->price }}</td>
+            <td style="text-align: right; width: 70px;">{{ number_format($item->price, 2) }}</td>
         </tr>
     @endforeach
     </tbody>
-    <tfoot style="margin-top: 10px;">
-    <tr>
-        <td colspan="3" style="height: 5px; border: none;">
-        </td>
-    </tr>
-    <tr>
-        <td style="height: 5px; border: none;"></td>
-        <th style="text-align: right;">Sub Total</th>
-        <th style="text-align: right;">{{ $recept->total_amount+$recept->discount_amount }}</th>
-    </tr>
-    <tr>
-        <td style="height: 5px; border: none;">
-            <div style="width: 100px; float: right;">
-                <h1 style="text-align: center; border: 2px solid black; border-radius: 25%;">
-                    @if($recept->total_amount-$recept->receptPayments->sum('paid_amount')>0) Due @else Paid @endif
-
-                </h1>
-            </div>
-        </td>
-        <th style="text-align: right;">Less [-]</th>
-        <th style="text-align: right;">{{ $recept->discount_amount }}</th>
-    </tr>
-    <tr>
-        <td style="height: 5px; border: none;"></td>
-        <th style="text-align: right;">Received Amount</th>
-        <th style="text-align: right;">{{ $recept->receptPayments->sum('paid_amount') }}</th>
-    </tr>
-    <tr>
-        <td style="height: 5px; border: none;"></td>
-        <th style="text-align: right;">Due</th>
-        <th style="text-align: right;">{{ $recept->total_amount-$recept->receptPayments->sum('paid_amount') }}</th>
-    </tr>
-
-    </tfoot>
 </table>
+<div style="margin-top: 15px; width: 100%; overflow: hidden;">
+    <div style="width: 120px; float: left; text-align: center; padding-top: 10px;">
+        <span class="badge-status">
+            @if($due > 0) DUE @else PAID @endif
+        </span>
+    </div>
+    <div style="width: 280px; float: right;">
+        <table class="details" style="margin-bottom: 4px;">
+            <tr>
+                <th style="text-align: right; width: 50%;">Sub Total</th>
+                <td style="text-align: right; width: 50%;">{{ number_format($total, 2) }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: right;">Less [-]</th>
+                <td style="text-align: right;">{{ number_format($discount, 2) }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: right;">Received Amount</th>
+                <td style="text-align: right;">{{ number_format($paid, 2) }}</td>
+            </tr>
+            <tr>
+                <th style="text-align: right;">Due</th>
+                <td style="text-align: right;">{{ number_format($due, 2) }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
 <p style="font-size: 12px;">
     <strong style="text-align: left; float: left;">Posting By : {{ $recept->admin->name ?? 'N/A' }}</strong>
 

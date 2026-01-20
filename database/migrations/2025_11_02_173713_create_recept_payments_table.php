@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('recept_id');
             $table->unsignedBigInteger('branch_id');
             $table->unsignedBigInteger('admin_id');
-            $table->foreign('recept_id')->references('id')->on('invoices');
+            $table->foreign('recept_id')->references('id')->on('recepts');
             $table->decimal('paid_amount', 15, 2);
             $table->string('creation_date')->nullable();
             $table->timestamps();

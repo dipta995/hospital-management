@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,7 @@ class AttendanceController extends Controller
         $month = $request->get('month', now()->format('F'));
         $year = $request->get('year', now()->year);
         $employeeId = $request->get('employee_id');
+        $export = $request->get('export');
 
         $start = Carbon::parse("1 $month $year")->startOfMonth();
         $end = Carbon::parse("1 $month $year")->endOfMonth();
@@ -79,8 +81,21 @@ class AttendanceController extends Controller
         if ($employeeId) {
             $query->where('employee_id', $employeeId);
         }
-        $attendances = $query->orderBy('date', 'desc')->paginate(20);
+        $attendances = $query->orderBy('date', 'desc')->get();
+        $groupedAttendances = $attendances->groupBy('date');
 
-        return view('backend.pages.attendance.index', compact('attendances', 'month', 'year', 'employeeId'));
+        if ($export === 'pdf') {
+            $data = [
+                'groupedAttendances' => $groupedAttendances,
+                'month' => $month,
+                'year' => $year,
+                'employeeId' => $employeeId,
+            ];
+
+            return Pdf::loadView('backend.pages.attendance.sheet', $data)
+                ->stream("attendance-{$month}-{$year}.pdf");
+        }
+
+        return view('backend.pages.attendance.index', compact('groupedAttendances', 'month', 'year', 'employeeId'));
     }
 }

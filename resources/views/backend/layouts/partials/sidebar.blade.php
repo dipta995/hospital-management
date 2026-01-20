@@ -43,6 +43,15 @@
                     <span class="nav-text"> Setting </span>
                 </a>
             </li>
+            @if ( $userGuard->can('customer_balances.index') || $userGuard->can('customer_balances.create') || $userGuard->can('customer_balances.edit') || $userGuard->can('customer_balances.delete'))
+                <li class="nav-item {{ Route::is('admin.customer_balances.*') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('admin.customer_balances.index') }}">
+                                       <span class="nav-icon">
+                        <i class="fas fa-wallet"></i> </span>
+                        <span class="nav-text"> Customer Balance </span>
+                    </a>
+                </li>
+            @endif
             <li class="nav-item {{ Route::is('admin.change') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('admin.change') }}">
                                    <span class="nav-icon">

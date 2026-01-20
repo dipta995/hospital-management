@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\CustomerBalance;
 
 class User extends Authenticatable
 {
@@ -25,9 +26,9 @@ class User extends Authenticatable
         'age',
         'gender',
         'blood_group',
-        'marital_status', 
-        'occupation',     
-        'religion', 
+        'marital_status',
+        'occupation',
+        'religion',
         'address'
     ];
     protected $table = 'users';
@@ -50,4 +51,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function customerBalance()
+    {
+        return $this->hasOne(CustomerBalance::class, 'user_id', 'id');
+    }
 }

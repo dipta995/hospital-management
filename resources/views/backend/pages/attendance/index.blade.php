@@ -32,40 +32,50 @@
                                     @endfor
                                 </select>
                             </div>
+                            <div class="col-md-3">
+                                <label for="export" class="form-label">Generate PDF</label>
+                                <select class="form-select" name="export" id="export">
+                                    <option value="">No</option>
+                                    <option value="pdf" @if(request('export')=='pdf') selected @endif>Yes</option>
+                                </select>
+                            </div>
                             <div class="col-md-3 mt-4">
-                                <button type="submit" class="btn btn-info">Filter</button>
-                                <a href="?pdf=1" class="btn btn-primary">PDF</a>
-                                <a href="?print=1" class="btn btn-secondary" target="_blank">Print</a>
+                                <button type="submit" class="btn btn-info">Submit</button>
                             </div>
                         </form>
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
-                                        <th>Employee</th>
                                         <th>Date</th>
+                                        <th>Total Present</th>
+                                        <th>Employee</th>
                                         <th>In Time</th>
                                         <th>Out Time</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($attendances as $attendance)
-                                        <tr>
-                                            <td>{{ $loop->iteration }}</td>
-                                            <td>{{ optional($attendance->employee)->name ?? '-' }}</td>
-                                            <td>{{ $attendance->date }}</td>
-                                            <td>{{ $attendance->in_time ? \Carbon\Carbon::parse($attendance->in_time)->format('H:i:s') : '-' }}</td>
-                                            <td>{{ $attendance->out_time ? \Carbon\Carbon::parse($attendance->out_time)->format('H:i:s') : '-' }}</td>
+                                    @php use Carbon\Carbon; @endphp
+                                    @forelse($groupedAttendances ?? [] as $date => $items)
+                                        <tr class="table-secondary">
+                                            <td><strong>{{ Carbon::parse($date)->format('d M Y') }}</strong></td>
+                                            <td><strong>{{ $items->count() }}</strong></td>
+                                            <td colspan="3"></td>
                                         </tr>
+                                        @foreach($items as $attendance)
+                                            <tr>
+                                                <td></td>
+                                                <td></td>
+                                                <td>{{ optional($attendance->employee)->name ?? '-' }}</td>
+                                                <td>{{ $attendance->in_time ? Carbon::parse($attendance->in_time)->format('H:i:s') : '-' }}</td>
+                                                <td>{{ $attendance->out_time ? Carbon::parse($attendance->out_time)->format('H:i:s') : '-' }}</td>
+                                            </tr>
+                                        @endforeach
                                     @empty
                                         <tr><td colspan="5">No attendance found.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>
-                            <div class="d-flex justify-content-end">
-                                {!! $attendances->links() !!}
-                            </div>
                         </div>
                     </div>
                 </div>

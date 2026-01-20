@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Recept;
 use App\Models\ReceptList;
 use App\Models\ReceptPayment;
+use App\Models\CustomerBalance;
 use App\Models\ServiceCategory;
 use App\Models\User;
 use Endroid\QrCode\QrCode;
@@ -113,6 +114,17 @@ class ReceptController extends Controller
             $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
             $duePaid->save();
 
+            // Optionally record advance balance if provided (customer balance top-up)
+            $advanceBalance = $request->input('paymentDetails.advance_balance');
+            if (!empty($advanceBalance) && $advanceBalance > 0) {
+                $balance = CustomerBalance::firstOrNew([
+                    'user_id' => $row->user_id,
+                    'branch_id' => $row->branch_id,
+                ]);
+                $balance->balance = ($balance->balance ?? 0) + $advanceBalance;
+                $balance->save();
+            }
+
             // 🔹 Commit all only if every step was successful
             DB::commit();
 
@@ -171,6 +183,77 @@ class ReceptController extends Controller
         }
     }
 
+    public function pay(Request $request, $id)
+    {
+        $this->checkOwnPermission('recepts.edit');
+
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'pay_from_balance' => 'nullable|boolean',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $recept = Recept::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+            $total = $recept->total_amount ?? 0;
+            $discount = $recept->discount_amount ?? 0;
+            $paid = $recept->receptPayments->sum('paid_amount');
+            $net = $total - $discount;
+            $due = $net - $paid;
+
+            $amount = min($request->amount, $due);
+
+            if ($amount <= 0) {
+                return response()->json(['status' => 422, 'message' => 'Nothing due to pay.']);
+            }
+
+            $fromBalance = $request->boolean('pay_from_balance');
+
+            if ($fromBalance) {
+                $balance = CustomerBalance::firstOrNew([
+                    'user_id' => $recept->user_id,
+                    'branch_id' => $recept->branch_id,
+                ]);
+
+                if (($balance->balance ?? 0) < $amount) {
+                    return response()->json(['status' => 422, 'message' => 'Insufficient balance.']);
+                }
+
+                $balance->balance -= $amount;
+                $balance->save();
+            }
+
+            $payment = new ReceptPayment();
+            $payment->recept_id = $recept->id;
+            $payment->branch_id = $recept->branch_id;
+            $payment->admin_id = auth()->id();
+            $payment->paid_amount = $amount;
+            $payment->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            $payment->save();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Payment successfully recorded.',
+            ]);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 500,
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 500,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function destroy($id)
     {
         $this->checkOwnPermission('recepts.delete');
@@ -185,11 +268,19 @@ class ReceptController extends Controller
         }
     }
 
-    public function receptPdfPreview ($id)
+    public function receptPdfPreview($id)
     {
-        $data['recept'] = Recept::with('receptList')->where('branch_id', auth()->user()->branch_id)
+        $recept = Recept::with(['receptList.service', 'user', 'admin', 'receptPayments'])
+            ->where('branch_id', auth()->user()->branch_id)
             ->find($id);
-        $qrCode = new QrCode($data['recept']->id);
+
+        if (!$recept) {
+            return RedirectHelper::routeError($this->index_route, 'Recept not found.');
+        }
+
+        $data['recept'] = $recept;
+
+        $qrCode = new QrCode($recept->id);
 
         $writer = new PngWriter();
         $result = $writer->write($qrCode);
@@ -204,7 +295,7 @@ class ReceptController extends Controller
             $data['deliverytime'] = $nowDhaka->copy()->addDay()->setTime(10, 0)->format('jS F Y h a');
         }
 
-//        return Pdf::loadView('backend.pages.recepts.recept-pdf', $data)->stream($data['recept']->patient_name.'.pdf');
-        return view('backend.pages.recepts.recept-regular', $data);
+//        return Pdf::loadView('backend.pages.recepts.recept-pdf', $data)->stream($recept->user->name . '.pdf');
+    return view('backend.pages.recepts.recept-regular', $data);
     }
 }

@@ -18,38 +18,53 @@
                             <form class="cmxform" method="post" action="{{ route($pageHeader['store_route']) }}">
                                 @csrf
                                 <fieldset>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="name">Name</x-default.label>
-                                        <x-default.input name="name" class="form-control" id="name" type="text"></x-default.input>
-                                        <x-default.input-error name="name"></x-default.input-error>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label required="true" for="name">Name</x-default.label>
+                                                <x-default.input name="name" class="form-control" id="name" type="text" />
+                                                <x-default.input-error name="name" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label required="true" for="type">Type</x-default.label>
+                                                <select class="form-control" name="type" id="type">
+                                                    <option value="Loan">Loan</option>
+                                                    <option value="Deposit">Deposit</option>
+                                                    <option value="Advance From Shareholder">Advance From Shareholder</option>
+                                                    <option value="Withdrew">Withdrew</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                                <x-default.input-error name="type" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label required="true" for="amount">Amount</x-default.label>
+                                                <x-default.input name="amount" class="form-control" id="amount" type="number" />
+                                                <x-default.input-error name="amount" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <x-default.label  required="true" for="type">Type</x-default.label>
-                                        <select  class="form-control" name="type" id="">
-                                            <option value="Loan">Loan</option>
-                                            <option value="Deposit">Deposit</option>
-                                            <option value="Advance From Shareholder">Advance From Shareholder</option>
-                                            <option value="Withdrew">Withdrew</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        <x-default.input-error name="type"></x-default.input-error>
-                                    </div>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="amount">Amount</x-default.label>
-                                        <x-default.input name="amount" class="form-control" id="amount"
-                                                         type="number"></x-default.input>
-                                        <x-default.input-error name="amount"></x-default.input-error>
-                                    </div>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="date">Date</x-default.label>
-                                        <x-default.input name="date" class="form-control" id="date"
-                                                         type="date"></x-default.input>
-                                        <x-default.input-error name="date"></x-default.input-error>
-                                    </div>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="date">note</x-default.label>
-                                        <textarea class="form-control" name="note" id="" cols="30" rows="10"></textarea>
-                                        <x-default.input-error name="note"></x-default.input-error>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label required="true" for="date">Date</x-default.label>
+                                                <x-default.input name="date" class="form-control" id="date" type="date" />
+                                                <x-default.input-error name="date" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8 mb-3">
+                                            <div class="form-group">
+                                                <x-default.label for="note">Note</x-default.label>
+                                                <textarea class="form-control" name="note" id="note" rows="3"></textarea>
+                                                <x-default.input-error name="note" />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>

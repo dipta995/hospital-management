@@ -69,6 +69,17 @@ class RolePermissionSeeder extends Seeder
                 ]
             ],
 
+            // customer_balances Permissions
+            [
+                'group_name' => 'customer_balances',
+                'permissions' => [
+                    'customer_balances.index',
+                    'customer_balances.create',
+                    'customer_balances.edit',
+                    'customer_balances.delete',
+                ]
+            ],
+
 
 
 //            products permissions
