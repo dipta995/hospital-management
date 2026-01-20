@@ -40,7 +40,6 @@
                         <th>Purchase Price</th>
                         <th>Sell Price</th>
                         <th>Alert Qty</th>
-                        <th>Status</th>
                         <th class="text-center">Action</th>
                     </tr>
                     </thead>
@@ -57,13 +56,6 @@
                             <td>{{ number_format($data->purchase_price, 2) }}</td>
                             <td>{{ number_format($data->sell_price, 2) }}</td>
                             <td>{{ $data->alert_qty }}</td>
-                            <td>
-                                @if($data->status)
-                                    <span class="badge bg-success">Active</span>
-                                @else
-                                    <span class="badge bg-danger">Inactive</span>
-                                @endif
-                            </td>
                             <td class="text-center">
                                 @if(Auth::guard('admin')->user()->can('pharmacy_products.edit'))
                                     <a href="{{ route('admin.pharmacy_products.edit', $data->id) }}" class="btn btn-sm btn-warning">
@@ -79,7 +71,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="text-center">No data found</td>
+                            <td colspan="11" class="text-center">No data found</td>
                         </tr>
                     @endforelse
                     </tbody>

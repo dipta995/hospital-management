@@ -23,14 +23,6 @@
                                         <x-default.input name="name" class="form-control" id="name" type="text"></x-default.input>
                                         <x-default.input-error name="name"></x-default.input-error>
                                     </div>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="status">Status</x-default.label>
-                                        <select name="status" id="status" class="form-control">
-                                            <option value="1" {{ old('status', 1) == 1 ? 'selected' : '' }}>Active</option>
-                                            <option value="0" {{ old('status') == '0' ? 'selected' : '' }}>Inactive</option>
-                                        </select>
-                                        <x-default.input-error name="status"></x-default.input-error>
-                                    </div>
 
                                     <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
 

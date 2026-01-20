@@ -88,7 +88,6 @@ class PharmacyProductController extends Controller
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'alert_qty' => ['required', 'integer', 'min:0'],
-            'status' => ['required', 'boolean'],
         ];
 
         $request->validate($rules);
@@ -106,7 +105,8 @@ class PharmacyProductController extends Controller
             $row->purchase_price = $request->purchase_price;
             $row->sell_price = $request->sell_price;
             $row->alert_qty = $request->alert_qty;
-            $row->status = $request->status;
+            // Default status to active when creating
+            $row->status = 1;
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Product Created Successfully');
@@ -157,7 +157,6 @@ class PharmacyProductController extends Controller
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'alert_qty' => ['required', 'integer', 'min:0'],
-            'status' => ['required', 'boolean'],
         ];
 
         $request->validate($rules);
@@ -175,7 +174,6 @@ class PharmacyProductController extends Controller
                 $row->purchase_price = $request->purchase_price;
                 $row->sell_price = $request->sell_price;
                 $row->alert_qty = $request->alert_qty;
-                $row->status = $request->status;
 
                 if ($row->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Product Updated Successfully');

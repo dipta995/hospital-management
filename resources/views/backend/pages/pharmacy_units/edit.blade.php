@@ -28,16 +28,6 @@
                                         <strong class="text-danger">{{ $errors->first('name') }}</strong>
                                         @enderror
                                     </div>
-                                    <div class="form-group">
-                                        <label for="status">Status <strong class="text-danger">*</strong></label>
-                                        <select id="status" class="form-control" name="status">
-                                            <option value="1" {{ old('status', $edited->status) == 1 ? 'selected' : '' }}>Active</option>
-                                            <option value="0" {{ old('status', $edited->status) == 0 ? 'selected' : '' }}>Inactive</option>
-                                        </select>
-                                        @error('status')
-                                        <strong class="text-danger">{{ $errors->first('status') }}</strong>
-                                        @enderror
-                                    </div>
                                     <x-default.button class="float-end mt-2 btn-success">Update</x-default.button>
                                 </fieldset>
                             </form>

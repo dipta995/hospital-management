@@ -17,7 +17,6 @@ return new class extends Migration
             $table->decimal('paid_amount', 10, 2)->default(0);
             $table->decimal('due_amount', 10, 2)->default(0);
             $table->text('notes')->nullable();
-            $table->string('status')->default('Pending');
             $table->timestamps();
         });
     }

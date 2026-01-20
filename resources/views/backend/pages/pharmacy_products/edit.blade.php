@@ -110,12 +110,7 @@
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Status <span class="text-danger">*</span></label>
-                        <select name="status" class="form-control" required>
-                            <option value="1" {{ old('status', $edited->status) == 1 ? 'selected' : '' }}>Active</option>
-                            <option value="0" {{ old('status', $edited->status) == 0 ? 'selected' : '' }}>Inactive</option>
-                        </select>
-                        @error('status')<small class="text-danger">{{ $message }}</small>@enderror
+                        
                     </div>
                 </div>
 

@@ -24,7 +24,6 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Name</th>
-                                        <th>Status</th>
                                         <th>Action</th>
                                     </tr>
                                     </thead>
@@ -33,13 +32,6 @@
                                         <tr id="table-data{{ $item->id }}">
                                             <td>{{ $loop->index + 1 }}</td>
                                             <td>{{ $item->name }}</td>
-                                            <td>
-                                                @if($item->status)
-                                                    <span class="badge bg-success">Active</span>
-                                                @else
-                                                    <span class="badge bg-secondary">Inactive</span>
-                                                @endif
-                                            </td>
                                             <td>
                                                 <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
                                                    class="badge bg-info"><i class="fas fa-pen"></i></a>
@@ -50,7 +42,6 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td></td>
                                             <td></td>
                                             <td></td>
                                             <td>No record Found <a href="{{ route($pageHeader['create_route']) }}"

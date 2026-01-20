@@ -24,7 +24,6 @@ return new class extends Migration
             $table->decimal('purchase_price', 10, 2)->default(0);
             $table->decimal('sell_price', 10, 2)->default(0);
             $table->integer('alert_qty')->default(0);
-            $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }

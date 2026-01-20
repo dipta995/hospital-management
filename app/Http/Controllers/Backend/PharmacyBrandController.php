@@ -57,13 +57,13 @@ class PharmacyBrandController extends Controller
         $this->checkOwnPermission('pharmacy_brands.create');
         $rules = [
             'name' => 'required|max:200',
-            'status' => 'required|boolean',
         ];
         $request->validate($rules);
         try {
             $row = new PharmacyBrand();
             $row->name = $request->name;
-            $row->status = $request->status;
+            // Default status to active when creating
+            $row->status = 1;
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Brand Created Successfully');
@@ -94,12 +94,10 @@ class PharmacyBrandController extends Controller
         $this->checkOwnPermission('pharmacy_brands.edit');
         $request->validate([
             'name' => 'required|max:200',
-            'status' => 'required|boolean',
         ]);
         try {
             if ($row = PharmacyBrand::find($id)) {
                 $row->name = $request->name;
-                $row->status = $request->status;
                 if ($row->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Brand Updated Successfully');
 
