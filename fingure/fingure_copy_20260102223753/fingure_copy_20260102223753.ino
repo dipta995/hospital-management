@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiManager.h>
 #include <Adafruit_Fingerprint.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -17,9 +18,8 @@
 #define OLED_RESET   -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// ================= WIFI =================
-const char* ssid     = "Dark";
-const char* password = "password2025";
+// ================= WIFI (WiFiManager) =================
+WiFiManager wm; // manages WiFi credentials via web portal
 
 // ================= API =================
 const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
@@ -37,6 +37,76 @@ const int CONFIDENCE_THRESHOLD = 50;
 // Button long-press
 unsigned long buttonPressTime = 0;
 bool buttonHolding = false;
+// thresholds (ms): 10s for WiFi config, 20s for full reset
+const unsigned long WIFI_CONFIG_PRESS_MS = 10000UL;
+const unsigned long FULL_RESET_PRESS_MS  = 20000UL;
+
+// Forward declarations for helpers used before their definitions
+void showWifiConnecting();
+void showWifiConnected(const String &ip);
+void showWifiError(const String &msg);
+void showStatusScreen(const String &title, const String &subtitle, const String &icon);
+void beep(int onMs);
+void errorBeeps();
+void warningBeeps();
+void formatAllFingerprints();
+
+// ================= WIFI HELPERS =================
+void connectToWiFi() {
+  WiFi.mode(WIFI_STA);
+  Serial.println("Connecting using WiFiManager (autoConnect)...");
+
+  // This will try saved credentials; if none/invalid, it opens AP "FP-Config"
+  wm.setConfigPortalTimeout(180); // 3 minutes config portal timeout at boot
+
+  showWifiConnecting();
+
+  bool res = wm.autoConnect("FP-Config");
+  if (!res) {
+    Serial.println("[WiFi] AutoConnect failed or timed out. Continuing without WiFi.");
+    showWifiError("No WiFi");
+  } else {
+    Serial.println("[WiFi] Connected!");
+    showWifiConnected(WiFi.localIP().toString());
+  }
+}
+
+void startWifiConfigPortal() {
+  WiFi.mode(WIFI_STA);
+  Serial.println("[WiFi] Starting config portal (10s button press)...");
+  showStatusScreen("WIFI CFG", "Open AP", "~");
+  beep(300);
+
+  wm.setConfigPortalTimeout(300); // 5 minutes when manually triggered
+  bool res = wm.startConfigPortal("FP-Config");
+
+  if (res) {
+    Serial.println("[WiFi] Config saved, connected.");
+    beep(800);
+    showWifiConnected(WiFi.localIP().toString());
+  } else {
+    Serial.println("[WiFi] Config portal timeout / closed without connect.");
+    errorBeeps();
+    showWifiError("Cfg timeout");
+  }
+}
+
+void resetAllData() {
+  Serial.println("[RESET] 20s button press detected. Resetting ALL data...");
+  showStatusScreen("RESET", "All data", "!");
+  warningBeeps();
+
+  // Erase fingerprint database
+  formatAllFingerprints();
+
+  // Clear WiFi credentials stored by WiFiManager / WiFi stack
+  Serial.println("[RESET] Clearing WiFi settings...");
+  wm.resetSettings();
+
+  showStatusScreen("RESET", "Restarting", "!");
+  delay(2000);
+  ESP.restart();
+}
 
 // ================= OLED HELPERS =================
 void drawCenteredText(const String &text, int16_t y, uint8_t size) {
@@ -209,17 +279,9 @@ void setup() {
     while (1);
   }
   Serial.println("✅ Fingerprint sensor ready");
-  showWifiConnecting();
 
-  // ---- WIFI ----
-  Serial.print("Connecting to WiFi");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\n✅ WiFi Connected");
-  showWifiConnected(WiFi.localIP().toString());
+  // ---- WIFI (WiFiManager) ----
+  connectToWiFi();
 
   // ---- LOAD ENROLL ID ----
   finger.getTemplateCount();
@@ -240,32 +302,34 @@ void setup() {
 void loop() {
 
   // -------- BUTTON HANDLING --------
-  if (digitalRead(BUTTON_PIN) == LOW) {
+  int buttonState = digitalRead(BUTTON_PIN);
+
+  if (buttonState == LOW) {
+    // button pressed (active low)
     if (!buttonHolding) {
       buttonHolding = true;
       buttonPressTime = millis();
-    }
-
-    // ---- LONG PRESS (10 sec) ----
-    if (buttonHolding && millis() - buttonPressTime >= 10000) {
-      Serial.println("⚠️ LONG PRESS (10s) DETECTED");
-      Serial.println("⚠️ FORMATTING ALL FINGERPRINT DATA");
-      showStatusScreen("ERASE", "Erasing...", "!");
-      warningBeeps();
-      formatAllFingerprints();
-
-      buttonHolding = false;
-      delay(2000);
-      return;
     }
   } else {
     // ---- BUTTON RELEASE ----
     if (buttonHolding) {
       unsigned long pressDuration = millis() - buttonPressTime;
+      Serial.print("[BUTTON] Press duration (ms): ");
+      Serial.println(pressDuration);
 
-      // ---- SHORT PRESS (enroll) ----
-      if (pressDuration < 10000) {
-        Serial.println("Enroll mode requested");
+      if (pressDuration >= FULL_RESET_PRESS_MS) {
+        // 20s: full reset (WiFi + fingerprints) and restart
+        resetAllData();
+        buttonHolding = false;
+        return;
+      } else if (pressDuration >= WIFI_CONFIG_PRESS_MS) {
+        // 10–20s: WiFi config portal
+        startWifiConfigPortal();
+        buttonHolding = false;
+        return;
+      } else {
+        // short press: enrollment mode
+        Serial.println("Enroll mode requested (short press)");
         enrollRequested = true;
         beep(200);
         showEnrollRequested(enrollID);
