@@ -148,21 +148,31 @@
                                         <label for="invoice_customer_sms_format">
                                             Customer Sms
                                             <br>
-                                            {amount}
+                                            {invoice_number}, {due_amount}, {advance_amount}, {patient_name}, {ref_name}
                                         </label>
                                         <textarea name="invoice_customer_sms_format"
                                                   id="invoice_customer_sms_format" rows="7"
-                                                  class="form-control">{{ $edited['invoice_customer_sms_format'] ?? '' }}</textarea>
+                                                  class="form-control">{{ $edited['invoice_customer_sms_format'] ?? 'আমাদের হাসপাতালে আসার জন্য আপনাকে ধন্যবাদ । আইডি {invoice_number} বাকি {due_amount} এডভান্স {advance_amount} ২৪ঘন্টা  সেবায় আমরা আছি আপনার পাশে।' }}</textarea>
                                     </div>
                                     <div class="form-group">
                                         <label for="invoice_doctor_sms_format">
                                             Doctor / Ref sms
                                             <br>
-                                            {amount}
+                                            {invoice_number}, {amount}, {patient_name}, {dr_name}
                                         </label>
                                         <textarea name="invoice_doctor_sms_format"
                                                   id="invoice_doctor_sms_format" rows="7"
-                                                  class="form-control">{{ $edited['invoice_doctor_sms_format'] ?? '' }}</textarea>
+                                                  class="form-control">{{ $edited['invoice_doctor_sms_format'] ?? 'আমাদের হাসপাতালে রুগি পাঠানোর জন্য অনেক ধন্যবাদ। রুগির নাম {patient_name}, আইডি {invoice_number} । আপনার সহযোগিতা সর্বদা কামনা করি।' }}</textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="invoice_doctor_refer_sms_format">
+                                            Doctor & Refer Sms (Extra)
+                                            <br>
+                                            {amount}
+                                        </label>
+                                        <textarea name="invoice_doctor_refer_sms_format"
+                                                  id="invoice_doctor_refer_sms_format" rows="7"
+                                                  class="form-control">{{ $edited['invoice_doctor_refer_sms_format'] ?? '' }}</textarea>
                                     </div>
                                     <div class="form-group">
                                         <label for="creation_date">Invoice Creation Date Active</label>
@@ -241,6 +251,10 @@
                 height: 150,
             })
             $('#invoice_doctor_sms_format').summernote({
+                tabsize: 2,
+                height: 150,
+            })
+            $('#invoice_doctor_refer_sms_format').summernote({
                 tabsize: 2,
                 height: 150,
             })

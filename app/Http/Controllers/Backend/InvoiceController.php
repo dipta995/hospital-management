@@ -354,44 +354,107 @@ class InvoiceController extends Controller
                 if (Setting::get('invoice_sms') == 'Yes') {
                     $ref = Reefer::find($request['customerDetails']['refer_id']);
                     $refDr = Reefer::find($request['customerDetails']['dr_refer_id']);
-                    $format = Setting::get('invoice_customer_sms_format');
-                    $formatDr = Setting::get('invoice_doctor_sms_format');
-                    $messagePatient = str_replace(
-                        [
-                            '{due_amount}',
-                            '{patient_name}',
-                            '{ref_name}',
-                            '{invoice_number}'
-                        ],
-                        [
-                            $invoiceId->total_amount - $invoiceId->paidAmount->sum('paid_amount'),
-                            $invoiceId->patient_name,
-                            $ref->name,
-                            $invoiceId->invoice_number
-                        ],
-                        $format
-                    );
-                    $messageDr = str_replace(
-                        [
-                            '{amount}',
-                            '{patient_name}',
-                            '{dr_name}',
-                            '{invoice_number}'
-                        ],
-                        [
-                            $request['paymentDetails']['total_amount'],
-                            $invoiceId->patient_name,
-                            $refDr->name,
-                            $invoiceId->invoice_number
-                        ],
-                        $formatDr
-                    );
+
+                    $format = Setting::get('invoice_customer_sms_format')
+                        ?: 'আমাদের হাসপাতালে আসার জন্য আপনাকে ধন্যবাদ । আইডি {invoice_number} বাকি {due_amount} এডভান্স {advance_amount} ২৪ঘন্টা  সেবায় আমরা আছি আপনার পাশে।';
+                    $formatDr = Setting::get('invoice_doctor_sms_format')
+                        ?: 'আমাদের হাসপাতালে রুগি পাঠানোর জন্য অনেক ধন্যবাদ। রুগির নাম {patient_name}, আইডি {invoice_number} । আপনার সহযোগিতা সর্বদা কামনা করি।';
+                    $formatRf = Setting::get('invoice_doctor_refer_sms_format') ?: $formatDr;
+
+                    $dueAmount = $invoiceId->total_amount - $invoiceId->paidAmount->sum('paid_amount');
+                    $advanceAmount = $invoiceId->paidAmount->sum('paid_amount');
+
+                    // Customer SMS
+                    if ($ref) {
+                        $messagePatient = str_replace(
+                            [
+                                '{due_amount}',
+                                '{patient_name}',
+                                '{ref_name}',
+                                '{invoice_number}',
+                                '{advance_amount}'
+                            ],
+                            [
+                                $dueAmount,
+                                $invoiceId->patient_name,
+                                $ref->name,
+                                $invoiceId->invoice_number,
+                                $advanceAmount
+                            ],
+                            $format
+                        );
+                    } else {
+                        $messagePatient = str_replace(
+                            [
+                                '{due_amount}',
+                                '{patient_name}',
+                                '{ref_name}',
+                                '{invoice_number}',
+                                '{advance_amount}'
+                            ],
+                            [
+                                $dueAmount,
+                                $invoiceId->patient_name,
+                                '',
+                                $invoiceId->invoice_number,
+                                $advanceAmount
+                            ],
+                            $format
+                        );
+                    }
+
+                    // Referer SMS
+                    if ($ref) {
+                        $messageRef = str_replace(
+                            [
+                                '{amount}',
+                                '{patient_name}',
+                                '{dr_name}',
+                                '{invoice_number}'
+                            ],
+                            [
+                                $request['paymentDetails']['total_amount'],
+                                $invoiceId->patient_name,
+                                $ref->name,
+                                $invoiceId->invoice_number
+                            ],
+                            $formatRf
+                        );
+                    }
+
+                    // Doctor SMS
+                    if ($refDr) {
+                        $messageDr = str_replace(
+                            [
+                                '{amount}',
+                                '{patient_name}',
+                                '{dr_name}',
+                                '{invoice_number}'
+                            ],
+                            [
+                                $request['paymentDetails']['total_amount'],
+                                $invoiceId->patient_name,
+                                $refDr->name,
+                                $invoiceId->invoice_number
+                            ],
+                            $formatDr
+                        );
+                    }
+
+                    // Send to customer
                     if (isset($request['customerDetails']['patient_phone']) &&
                         preg_match('/^\d{11}$/', $request['customerDetails']['patient_phone'])) {
                         smsSent(auth()->user()->branch_id, $request['customerDetails']['patient_phone'], $messagePatient);
                     }
-                    if (preg_match('/^\d{11}$/', $ref->phone)) {
-                        smsSent(auth()->user()->branch_id, $ref->phone, $messageDr);
+
+                    // Send to referer
+                    if (isset($messageRef) && $ref && preg_match('/^\d{11}$/', $ref->phone)) {
+                        smsSent(auth()->user()->branch_id, $ref->phone, $messageRef);
+                    }
+
+                    // Send to doctor
+                    if (isset($messageDr) && $refDr && preg_match('/^\d{11}$/', $refDr->phone)) {
+                        smsSent(auth()->user()->branch_id, $refDr->phone, $messageDr);
                     }
                 }
 //            dd($invoiceId);
