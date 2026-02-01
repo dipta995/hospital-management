@@ -89,9 +89,6 @@ class ReceptController extends Controller
             $row->discount_amount = $request['paymentDetails']['discount_amount'] ?? 0;
             $row->save();
 
-            // Total products count (avoid undefined var)
-            $totalProducts = count($request['services']) > 0 ? count($request['services']) : 1;
-
             // 2️⃣ Create ReceptList entries
             foreach ($request['services'] as $service) {
                 ReceptList::create([
@@ -100,8 +97,7 @@ class ReceptController extends Controller
                     'recept_id'      => $row->id,
                     'service_id'     => $service['service_id'],
                     'price'          => $service['price'],
-                    'discount' => ($row->discount_amount / $totalProducts),
-                    'amount' =>  $service['price']-($row->discount_amount / $totalProducts),
+                    'discount'       => 0,
                 ]);
             }
 
@@ -148,38 +144,82 @@ class ReceptController extends Controller
         $this->checkOwnPermission('recepts.edit');
         $data['pageHeader'] = $this->pageHeader;
 
-        if ($data['edited'] = Recept::where('branch_id', auth()->user()->branch_id)->find($id)) {
-            return view('backend.pages.recepts.edit', $data);
-        } else {
+        $recept = Recept::where('branch_id', auth()->user()->branch_id)
+            ->with(['user', 'receptList.service', 'receptPayments'])
+            ->find($id);
+
+        if (!$recept) {
             return RedirectHelper::routeError($this->index_route, 'Recept not found.');
         }
+
+        $data['edited'] = $recept;
+        $data['service_categories'] = ServiceCategory::all();
+        $data['user_data'] = $recept->user; // for showing patient info similar to create
+
+        return view('backend.pages.recepts.edit', $data);
     }
 
     public function update(Request $request, $id)
     {
         $this->checkOwnPermission('recepts.edit');
-        $request->validate([
-            'user_id' => 'required|integer',
-            'branch_id' => 'required|integer',
-            'created_date' => 'required|date',
-        ]);
+
+        DB::beginTransaction();
 
         try {
-            if ($row = Recept::where('branch_id', auth()->user()->branch_id)->find($id)) {
-                $row->user_id = $request->user_id;
-                $row->branch_id = auth()->user()->branch_id;
-                $row->created_date = $request->created_date;
+            $recept = Recept::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
 
-                if ($row->save()) {
-                    return RedirectHelper::routeSuccess($this->index_route, 'Recept updated successfully.');
-                } else {
-                    return RedirectHelper::backWithInput();
-                }
-            } else {
-                return RedirectHelper::routeError($this->index_route, 'Recept not found.');
+            $services = $request->input('services', []);
+            $customerDetails = $request->input('customerDetails', []);
+            $paymentDetails = $request->input('paymentDetails', []);
+
+            // Basic validation
+            if (empty($services)) {
+                return response()->json(['status' => 422, 'message' => 'No services provided.']);
             }
+
+            // Update main recept
+            $recept->admit_id = $customerDetails['admit_id'] ?? $recept->admit_id;
+            $recept->user_id = $customerDetails['customer_id'] ?? $recept->user_id;
+            $recept->branch_id = auth()->user()->branch_id;
+            $recept->total_amount = $paymentDetails['total_amount'] ?? $recept->total_amount;
+            $recept->discount_amount = $paymentDetails['discount_amount'] ?? 0;
+            // keep existing created_date
+            $recept->save();
+
+            // Rebuild recept list
+            ReceptList::where('recept_id', $recept->id)->delete();
+
+            foreach ($services as $service) {
+                ReceptList::create([
+                    'branch_id'      => auth()->user()->branch_id,
+                    'user_id'        => $recept->user_id,
+                    'recept_id'      => $recept->id,
+                    'service_id'     => $service['service_id'],
+                    'price'          => $service['price'],
+                    'discount'       => 0,
+                ]);
+            }
+
+            // Rebuild payments (single payment record like create)
+            ReceptPayment::where('recept_id', $recept->id)->delete();
+
+            $duePaid = new ReceptPayment();
+            $duePaid->paid_amount = $paymentDetails['paid_amount'] ?? 0;
+            $duePaid->recept_id = $recept->id;
+            $duePaid->branch_id = auth()->user()->branch_id;
+            $duePaid->admin_id = auth()->id();
+            $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            $duePaid->save();
+
+            DB::commit();
+
+            return response()->json(['status' => 200, 'message' => 'Recept updated successfully.']);
         } catch (QueryException $e) {
-            return RedirectHelper::backWithInputFromException($e);
+            DB::rollBack();
+            return response()->json(['status' => 500, 'message' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 500, 'message' => $e->getMessage()]);
         }
     }
 

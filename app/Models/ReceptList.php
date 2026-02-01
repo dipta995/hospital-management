@@ -17,7 +17,6 @@ class ReceptList extends Model
         'service_id',
         'price',
         'discount',
-        'amount'
     ];
     public function service(){
         return $this->belongsTo(Service::class);

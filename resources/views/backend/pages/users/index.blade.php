@@ -52,16 +52,31 @@
                                             <td>{{ $item->phone }}</td>
                                             <td>{{ $item->address }}</td>
                                             <td>
-                                                <a href="{{ route('admin.invoices.create').'?for='.$item->id }}" class="btn bg-success text-white"><i class="fa fa-flask"
-                                                                                                                                                      aria-hidden="true"></i></a>
-                                                    <a href="{{ route('admin.admits.create').'?for='.$item->id }}" class="btn bg-dark text-white"><i class="fa fa-bed"
-                                                                                                                                                     aria-hidden="true"></i></a>
+                                                <a href="{{ route('admin.invoices.create').'?for='.$item->id }}" class="btn bg-success text-white">
+                                                    <i class="fa fa-flask" aria-hidden="true"></i>
+                                                </a>
 
-                                                    <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                       class="badge bg-info"><i class="fas fa-pencil"></i></a>
-                                                    <a class="badge bg-danger" href="javascript:void(0)"
-                                                       onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i
-                                                            class="fas fa-trash"></i></a>
+                                                @php
+                                                    $activeAdmit = $item->admits()->whereNull('release_at')->latest('id')->first();
+                                                @endphp
+
+                                                @if($activeAdmit)
+                                                    <a href="{{ route('admin.recepts.index').'?for='.$activeAdmit->id }}" class="btn bg-primary text-white" title="Recept List">
+                                                        <i class="fa fa-file-invoice" aria-hidden="true"></i>
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('admin.admits.create').'?for='.$item->id }}" class="btn bg-dark text-white" title="Admit Patient">
+                                                        <i class="fa fa-bed" aria-hidden="true"></i>
+                                                    </a>
+                                                @endif
+
+                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}" class="badge bg-info">
+                                                    <i class="fas fa-pencil"></i>
+                                                </a>
+                                                <a class="badge bg-danger" href="javascript:void(0)"
+                                                   onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
                                             </td>
                                         </tr>
                                     @empty

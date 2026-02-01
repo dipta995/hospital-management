@@ -16,7 +16,6 @@ return new class extends Migration
             $table->unsignedBigInteger('service_id');
             $table->decimal('price', 10, 2);
             $table->decimal('discount', 10, 2)->default(0);
-            $table->decimal('amount', 10, 2);
             $table->timestamps();
         });
     }
