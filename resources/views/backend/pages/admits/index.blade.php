@@ -21,6 +21,24 @@
                 {{-- Messages --}}
                 @include('backend.layouts.partials.message')
 
+                {{-- Filters --}}
+                <div class="card mb-3">
+                    <div class="card-body bg-white rounded">
+                        <form method="GET" action="{{ route('admin.admits.index') }}" class="row g-3 align-items-end" autocomplete="off">
+                            <div class="col-md-4 position-relative">
+                                <label for="admit_search" class="form-label">Search by Patient (Phone / Name)</label>
+                                <input type="text" id="admit_search" name="query" class="form-control" placeholder="Type phone or name">
+                                <div id="admit_suggestions" class="list-group position-absolute w-100" style="z-index: 1050;"></div>
+                                <input type="hidden" id="admit_user_id" name="user_id" value="{{ request('user_id') }}">
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary mt-4">Filter</button>
+                                <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary mt-4">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 {{-- Admit Table --}}
                 <div class="card">
                     <div class="card-body bg-white rounded">
@@ -117,8 +135,69 @@
 </div>
 
 {{-- Scripts --}}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Auto-suggest for admits (same behavior as patients list)
+    if (window.jQuery) {
+        $('#admit_search').on('input', function () {
+            const query = $(this).val().trim();
+            const $suggestions = $('#admit_suggestions');
+
+            $('#admit_user_id').val('');
+
+            if (query.length < 3) {
+                $suggestions.empty().hide();
+                return;
+            }
+
+            $.ajax({
+                url: '/admin/search-phone',
+                type: 'GET',
+                data: { query: query },
+                success: function (data) {
+                    $suggestions.empty();
+                    if (!data || !data.length) {
+                        $suggestions.hide();
+                        return;
+                    }
+
+                    data.forEach(function (item) {
+                        const label = `${item.name} (${item.phone})`;
+                        const $item = $('<a href="#" class="list-group-item list-group-item-action"></a>')
+                            .text(label)
+                            .data('user-id', item.userId || item.id)
+                            .data('phone', item.phone)
+                            .data('name', item.name);
+                        $suggestions.append($item);
+                    });
+
+                    $suggestions.show();
+                },
+                error: function () {
+                    $suggestions.empty().hide();
+                }
+            });
+        });
+
+        $('#admit_suggestions').on('click', '.list-group-item', function (e) {
+            e.preventDefault();
+            const userId = $(this).data('user-id');
+            const name = $(this).data('name');
+            const phone = $(this).data('phone');
+
+            $('#admit_search').val(`${name} (${phone})`);
+            $('#admit_user_id').val(userId);
+            $('#admit_suggestions').empty().hide();
+        });
+
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#admit_search, #admit_suggestions').length) {
+                $('#admit_suggestions').empty().hide();
+            }
+        });
+    }
+
     // Delete button
     document.querySelectorAll('.delete-btn').forEach((btn) => {
         btn.addEventListener('click', function() {
