@@ -41,6 +41,7 @@
                                         <th>Name</th>
                                         <th>Phone</th>
                                         <th>Address</th>
+                                        <th>Balance</th>
                                         <th>Action</th>
                                     </tr>
                                     </thead>
@@ -51,6 +52,16 @@
                                             <td>{{ $item->name }}</td>
                                             <td>{{ $item->phone }}</td>
                                             <td>{{ $item->address }}</td>
+                                            <td>
+                                                @php
+                                                    $customerBalance = $item->customerBalance;
+                                                @endphp
+                                                @if($customerBalance)
+                                                    {{ number_format($customerBalance->balance, 2) }}
+                                                @else
+                                                    0.00
+                                                @endif
+                                            </td>
                                             <td>
                                                 <a href="{{ route('admin.invoices.create').'?for='.$item->id }}" class="btn bg-success text-white">
                                                     <i class="fa fa-flask" aria-hidden="true"></i>
@@ -67,6 +78,15 @@
                                                 @else
                                                     <a href="{{ route('admin.admits.create').'?for='.$item->id }}" class="btn bg-dark text-white" title="Admit Patient">
                                                         <i class="fa fa-bed" aria-hidden="true"></i>
+                                                    </a>
+                                                @endif
+                                                @if($customerBalance)
+                                                    <a href="{{ route('admin.customer_balances.edit', $customerBalance->id) }}" class="btn bg-warning text-dark" title="Edit Balance">
+                                                        <i class="fas fa-wallet"></i>
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('admin.customer_balances.create').'?user_id='.$item->id }}" class="btn bg-warning text-dark" title="Add Balance">
+                                                        <i class="fas fa-wallet"></i>
                                                     </a>
                                                 @endif
 

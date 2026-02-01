@@ -11,10 +11,38 @@
                     <div class="card-body">
                         <h4 class="card-title">{{ $pageHeader['title'] }} List</h4>
                         @include('backend.layouts.partials.message')
-                        <div class="mb-3 text-end">
-                            <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-users"></i> Go to Patient List
-                            </a>
+
+                        {{-- Filter + Summary Row --}}
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <form method="GET" action="{{ route($pageHeader['index_route']) }}" class="row g-2 align-items-end">
+                                    <div class="col-md-4">
+                                        <label for="start_date" class="form-label">From Date</label>
+                                        <input type="date" id="start_date" name="start_date" value="{{ request('start_date') }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="end_date" class="form-label">To Date</label>
+                                        <input type="date" id="end_date" name="end_date" value="{{ request('end_date') }}" class="form-control">
+                                    </div>
+                                    @if(request('for'))
+                                        <input type="hidden" name="for" value="{{ request('for') }}">
+                                    @endif
+                                    <div class="col-md-4 d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-primary mt-4">Filter</button>
+                                        <a href="{{ route($pageHeader['index_route']) }}" class="btn btn-sm btn-secondary mt-4">Reset</a>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="border rounded p-2 bg-light">
+                                    <div><strong>Total Amount:</strong> {{ number_format($total_amount ?? 0, 2) }}</div>
+                                    <div><strong>Total Discount:</strong> {{ number_format($total_discount ?? 0, 2) }}</div>
+                                    <div><strong>Total Collection:</strong> {{ number_format($total_paid ?? 0, 2) }}</div>
+                                </div>
+                                <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-users"></i> Go to Patient List
+                                </a>
+                            </div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-striped">

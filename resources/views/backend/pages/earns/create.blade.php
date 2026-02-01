@@ -60,7 +60,7 @@
                                         </div>
                                         <div class="col-md-8 mb-3">
                                             <div class="form-group">
-                                                <x-default.label for="note">Note</x-default.label>
+                                                <x-default.label required="true" for="note">Note</x-default.label>
                                                 <textarea class="form-control" name="note" id="note" rows="3"></textarea>
                                                 <x-default.input-error name="note" />
                                             </div>

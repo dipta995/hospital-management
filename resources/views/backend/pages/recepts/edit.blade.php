@@ -327,7 +327,7 @@
                 const paidAmount = parseFloat($("#paid-amount").val()) || 0;
 
                 let discount = discountTaka > 0 ? discountTaka : (subtotal * discountPercent / 100);
-                let final = subtotal - discount;
+                let final = subtotal - discount; // net after discount
                 let due = final - paidAmount;
 
                 $("#discount-amount").text(discount.toFixed(2));
@@ -355,7 +355,8 @@
                 const paymentDetails = {
                     paid_amount: parseFloat($("#paid-amount").val()) || 0,
                     discount_amount: parseFloat($("#discount-amount").text()) || 0,
-                    total_amount: parseFloat($("#final-amount").text()) || 0
+                    // store main cost (before discount) so total_amount - discount_amount = net
+                    total_amount: parseFloat($("#subtotal").text()) || 0
                 };
 
                 if (!services.length) {

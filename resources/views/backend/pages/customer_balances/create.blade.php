@@ -22,7 +22,7 @@
                                         <select name="user_id" id="user_id" class="form-control">
                                             <option value="">Select Patient</option>
                                             @foreach($users as $user)
-                                                <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
+                                                <option value="{{ $user->id }}" {{ old('user_id', request('user_id')) == $user->id ? 'selected' : '' }}>
                                                     {{ $user->name }} - {{ $user->phone }}
                                                 </option>
                                             @endforeach

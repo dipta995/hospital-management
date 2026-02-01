@@ -46,33 +46,33 @@ class EarnController extends Controller
     {
         // Check permission
         $this->checkOwnPermission('earns.index');
-    
+
         // Initialize pageHeader
         $data['pageHeader'] = $this->pageHeader;
-    
+
         // Start building the query
         $query = Earn::where('branch_id', auth()->user()->branch_id);
-    
+
         // Apply month filter if requested
         if ($request->has('month') && $request->month != '') {
             $query->whereMonth('date', $request->month); // Filter by month using the 'date' column
         }
-    
+
         // Apply type filter if requested
         if ($request->has('type') && $request->type != '') {
             $query->where('type', $request->type);
         }
-    
+
         // Fetch the filtered and paginated data
         $data['datas'] = $query->orderBy('id', 'DESC')->paginate(10);
-    
+
         // Calculate the total earnings based on the filters
         $data['totalEarnings'] = $query->sum('amount');
-    
+
         // Return the view with the data
         return view('backend.pages.earns.index', $data);
     }
-    
+
 
     /**
      * Show the form for creating a new resource.
@@ -101,6 +101,7 @@ class EarnController extends Controller
             'type' => 'required|max:200',
             'amount' => 'required|max:200',
             'date' => 'required|max:200',
+            'note' => 'required',
         ];
         $request->validate($rules);
 //        try {
@@ -143,7 +144,7 @@ class EarnController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id) 
+    public function edit($id)
 {
     $this->checkOwnPermission('earns.edit');
 
@@ -173,7 +174,7 @@ class EarnController extends Controller
             'amount' => 'required|numeric',
             'date' => 'required|date',
         ]);
-    
+
         try {
             $row = Earn::where('branch_id', auth()->user()->branch_id)->find($id);
             if ($row) {
@@ -182,7 +183,7 @@ class EarnController extends Controller
                 $row->amount = $request->amount;
                 $row->note = $request->note;
                 $row->date = $request->date;
-    
+
                 if ($row->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Earn updated successfully.');
                 } else {

@@ -37,7 +37,7 @@
                                 </div>
                                 <div class="flex-right-height">
                                     <p class="font-weight-bold mb-1">Today's Collection</p>
-                                    <h2>{{ $todaysTotal->sum('total_amount') }}</h2>
+                                    <h2>{{ $todaysTotalCollection }}</h2>
 
                                 </div>
                             </div>

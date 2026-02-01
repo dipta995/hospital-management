@@ -46,16 +46,48 @@ class ReceptController extends Controller
     {
         $this->checkOwnPermission('recepts.index');
         $data['pageHeader'] = $this->pageHeader;
-        $for = $request->get('for'); // example: ?for=5
+        $for = $request->get('for'); // example: ?for=5 (admit id)
 
         $query = Recept::where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC');
 
+        // Filter by admit if provided
         if (!empty($for)) {
             $query->where('admit_id', $for);
         }
 
-        $data['datas'] = $query->paginate(10);
+        // Date filtering
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
+        if ($startDate || $endDate) {
+            if ($startDate) {
+                $query->whereDate('created_date', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('created_date', '<=', $endDate);
+            }
+        } else {
+            // Default to current month
+            $query->whereYear('created_date', now('Asia/Dhaka')->year)
+                  ->whereMonth('created_date', now('Asia/Dhaka')->month);
+        }
+
+        // Clone query for summary totals
+        $summaryQuery = clone $query;
+        $receiptsForSummary = $summaryQuery->with('receptPayments')->get();
+
+        $totalAmount = $receiptsForSummary->sum('total_amount');
+        $totalDiscount = $receiptsForSummary->sum('discount_amount');
+        $totalPaid = $receiptsForSummary->sum(function ($r) {
+            return $r->receptPayments->sum('paid_amount');
+        });
+
+        $data['total_amount'] = $totalAmount;
+        $data['total_discount'] = $totalDiscount;
+        $data['total_paid'] = $totalPaid;
+
+        $data['datas'] = $query->with(['user', 'receptPayments'])->paginate(20)->appends($request->all());
 
         return view('backend.pages.recepts.index', $data);
     }
