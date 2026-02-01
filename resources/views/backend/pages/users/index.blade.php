@@ -80,6 +80,9 @@
                                                         <i class="fa fa-bed" aria-hidden="true"></i>
                                                     </a>
                                                 @endif
+                                                <a href="{{ route('admin.admits.index').'?user_id='.$item->id }}" class="btn bg-secondary text-white" title="Admit History">
+                                                    <i class="fas fa-list"></i>
+                                                </a>
                                                 @if($customerBalance)
                                                     <a href="{{ route('admin.customer_balances.edit', $customerBalance->id) }}" class="btn bg-warning text-dark" title="Edit Balance">
                                                         <i class="fas fa-wallet"></i>

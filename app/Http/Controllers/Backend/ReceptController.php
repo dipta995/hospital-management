@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
+use App\Models\Admit;
 use App\Models\Recept;
 use App\Models\ReceptList;
 use App\Models\ReceptPayment;
@@ -96,6 +97,20 @@ class ReceptController extends Controller
     {
         $this->checkOwnPermission('recepts.create');
         $data['pageHeader'] = $this->pageHeader;
+        $admitId = request('admitId');
+
+        if ($admitId) {
+            $admit = Admit::where('branch_id', auth()->user()->branch_id)->find($admitId);
+
+            if (!$admit) {
+                return RedirectHelper::routeError('admin.admits.index', 'Admit not found.');
+            }
+
+            if ($admit->release_at) {
+                return RedirectHelper::routeError('admin.admits.index', 'Cannot create receipt for a released admit.');
+            }
+        }
+
         $data['user_data'] = User::find(request('for'));
         $data['service_categories'] = ServiceCategory::all();
         return view('backend.pages.recepts.create', $data);
@@ -109,6 +124,18 @@ class ReceptController extends Controller
         DB::beginTransaction(); // 🔹 Start transaction
 
         try {
+            // If linked to an admit, ensure it is not released
+            $admitId = $request['customerDetails']['admit_id'] ?? null;
+            if ($admitId) {
+                $admit = Admit::where('branch_id', auth()->user()->branch_id)->find($admitId);
+                if (!$admit || $admit->release_at) {
+                    return response()->json([
+                        'status' => 422,
+                        'message' => 'Cannot create receipt for a released or invalid admit.',
+                    ], 422);
+                }
+            }
+
             // 1️⃣ Create Recept
             $row = new Recept();
             $row->admit_id = $request['customerDetails']['admit_id'];

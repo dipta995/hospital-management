@@ -137,6 +137,9 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::post('/pharmacy-sales/due-pay/{id}', [PharmacySaleController::class, 'payDue'])->name('pharmacy_sales.due-pay');
     Route::resource('admits', AdmitController::class, ['names' => 'admits']);
     Route::post('admits/{id}/release', [AdmitController::class, 'storeRelease'])->name('admits.release');
+    Route::get('admits/{id}/release-details', [AdmitController::class, 'releaseDetails'])->name('admits.release.details');
+    Route::get('admits/{id}/release-print', [AdmitController::class, 'releasePrint'])->name('admits.release.print');
+    Route::post('admits/{id}/pay-due', [AdmitController::class, 'payDue'])->name('admits.pay-due');
     Route::get('admits/{id}/print', [AdmitController::class, 'print'])->name('admits.print');
 
     Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);

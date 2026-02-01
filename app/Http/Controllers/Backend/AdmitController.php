@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Admit;
-use App\Models\User;
 use App\Models\BedCabin;
+use App\Models\Recept;
+use App\Models\ReceptPayment;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -36,13 +38,20 @@ class AdmitController extends Controller
         ];
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->checkOwnPermission('admits.index');
 
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = Admit::with('reefer')->where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'DESC')->paginate(10);
+        $query = Admit::with(['reefer', 'user'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->orderBy('id', 'DESC');
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        $data['datas'] = $query->paginate(10)->appends($request->all());
 
         $data['users'] = User::all();
 
@@ -127,10 +136,17 @@ class AdmitController extends Controller
     public function edit($id)
     {
         $this->checkOwnPermission('admits.edit');
-
         $data['pageHeader'] = $this->pageHeader;
-        $data['edited'] = \App\Models\Admit::with('reefer')->findOrFail($id);
-        $data['users'] = \App\Models\User::all();
+
+        $data['edited'] = Admit::with('reefer')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        if ($data['edited']->release_at) {
+            return RedirectHelper::routeError($this->index_route, 'Released admits cannot be edited.');
+        }
+
+        $data['users'] = User::all();
 
         return view('backend.pages.admits.edit', $data);
     }
@@ -146,6 +162,9 @@ class AdmitController extends Controller
 
         try {
             if ($row = Admit::where('branch_id', auth()->user()->branch_id)->find($id)) {
+                if ($row->release_at) {
+                    return RedirectHelper::routeError($this->index_route, 'Released admits cannot be updated.');
+                }
                 $row->admit_at = $request->admit_at ? Carbon::parse($request->admit_at)->format('Y-m-d H:i:s') : null;
                 $row->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
                 $row->nid = $request->nid;
@@ -179,6 +198,10 @@ class AdmitController extends Controller
         $deleteData = Admit::where('branch_id', auth()->user()->branch_id)->find($id);
 
         if (!is_null($deleteData)) {
+            if ($deleteData->release_at) {
+                return response()->json(['status' => 422]);
+            }
+
             if ($deleteData->delete()) {
                 return response()->json(['status' => 200]);
             } else {
@@ -189,13 +212,150 @@ class AdmitController extends Controller
 
     public function storeRelease(Request $request, $id)
     {
-        $admit = Admit::findOrFail($id);
-        if (!$admit->release_at) {
-            $admit->release_at = $request->release_at ? Carbon::parse($request->release_at)->format('Y-m-d H:i:s') : null;
-            $admit->save();
-            return response()->json(['status' => 200, 'message' => 'Release date added successfully']);
+        $this->checkOwnPermission('admits.edit');
+
+        $request->validate([
+            'release_at' => 'required|string',
+        ]);
+
+        $admit = Admit::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+        if ($admit->release_at) {
+            return RedirectHelper::routeError($this->index_route, 'Admit already released.');
         }
-        return response()->json(['status' => 400, 'message' => 'Release date already exists']);
+
+        $admit->release_at = Carbon::parse($request->release_at)->format('Y-m-d H:i:s');
+        $admit->save();
+
+        return RedirectHelper::routeSuccess($this->index_route, 'Admit released successfully.');
+    }
+
+
+    public function releaseDetails($id)
+    {
+        $this->checkOwnPermission('admits.index');
+
+        $admit = Admit::with(['user', 'reefer', 'drreefer', 'bedCabin', 'recepts.receptPayments'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        $receipts = $admit->recepts;
+
+        $totalAmount = $receipts->sum('total_amount');
+        $totalDiscount = $receipts->sum('discount_amount');
+        $netTotal = $totalAmount - $totalDiscount;
+        $totalPaid = $receipts->sum(function ($r) {
+            return $r->receptPayments->sum('paid_amount');
+        });
+        $totalDue = max($netTotal - $totalPaid, 0);
+
+        return view('backend.pages.admits.release', [
+            'pageHeader'    => $this->pageHeader,
+            'admit'         => $admit,
+            'receipts'      => $receipts,
+            'total_amount'  => $totalAmount,
+            'total_discount'=> $totalDiscount,
+            'net_total'     => $netTotal,
+            'total_paid'    => $totalPaid,
+            'total_due'     => $totalDue,
+        ]);
+    }
+
+
+    public function releasePrint($id)
+    {
+        $this->checkOwnPermission('admits.index');
+
+        $admit = Admit::with(['user', 'reefer', 'drreefer', 'bedCabin', 'recepts.receptPayments'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        $receipts = $admit->recepts;
+
+        $totalAmount = $receipts->sum('total_amount');
+        $totalDiscount = $receipts->sum('discount_amount');
+        $netTotal = $totalAmount - $totalDiscount;
+        $totalPaid = $receipts->sum(function ($r) {
+            return $r->receptPayments->sum('paid_amount');
+        });
+        $totalDue = max($netTotal - $totalPaid, 0);
+
+        return view('backend.pages.admits.release-print', [
+            'admit'         => $admit,
+            'receipts'      => $receipts,
+            'total_amount'  => $totalAmount,
+            'total_discount'=> $totalDiscount,
+            'net_total'     => $netTotal,
+            'total_paid'    => $totalPaid,
+            'total_due'     => $totalDue,
+        ]);
+    }
+
+
+    public function payDue(Request $request, $id)
+    {
+        $this->checkOwnPermission('admits.edit');
+
+        $admit = Admit::with('recepts.receptPayments')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        if ($admit->release_at) {
+            return RedirectHelper::routeError($this->index_route, 'Cannot pay due for a released admit.');
+        }
+
+        $receipts = $admit->recepts;
+
+        $totalAmount = $receipts->sum('total_amount');
+        $totalDiscount = $receipts->sum('discount_amount');
+        $netTotal = $totalAmount - $totalDiscount;
+        $totalPaid = $receipts->sum(function ($r) {
+            return $r->receptPayments->sum('paid_amount');
+        });
+        $totalDue = max($netTotal - $totalPaid, 0);
+
+        if ($totalDue <= 0) {
+            return RedirectHelper::routeError($this->index_route, 'No due amount to pay for this admit.');
+        }
+
+        $request->validate([
+            'paid_amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $remaining = min($request->paid_amount, $totalDue);
+
+        foreach ($receipts->sortBy('id') as $recept) {
+            $net = $recept->total_amount - $recept->discount_amount;
+            $paid = $recept->receptPayments->sum('paid_amount');
+            $due = $net - $paid;
+
+            if ($due <= 0) {
+                continue;
+            }
+
+            $payNow = min($remaining, $due);
+
+            if ($payNow > 0) {
+                ReceptPayment::create([
+                    'recept_id'     => $recept->id,
+                    'branch_id'     => auth()->user()->branch_id,
+                    'admin_id'      => auth()->id(),
+                    'paid_amount'   => $payNow,
+                    'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
+                ]);
+
+                $remaining -= $payNow;
+
+                if ($remaining <= 0) {
+                    break;
+                }
+            }
+        }
+
+        // Flash a plain message for JS toast
+        session()->flash('toast_message', 'Due paid successfully.');
+
+        return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'Due paid successfully.');
     }
 
 

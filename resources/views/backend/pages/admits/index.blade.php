@@ -39,8 +39,7 @@
                                         <th>Diagnosis</th>
                                         <th>Note</th>
                                         <th>bed     </th>
-                                        <th>Release Date</th>
-
+                                        <th>Release</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -60,31 +59,39 @@
                                             <td>{{ $data->note ?? 'N/A'}}</td>
                                             <td>
                                                 @if(!$data->release_at)
-                                                    <button class="btn btn-sm btn-warning add-release-btn"
-                                                        data-id="{{ $data->id }}">
-                                                        <i class="fas fa-plus"></i> Add Release Date
-                                                    </button>
+                                                    <a href="{{ route('admin.admits.release.details', $data->id) }}" class="btn btn-sm btn-warning">
+                                                        <i class="fas fa-door-open"></i> Release
+                                                    </a>
                                                 @else
-                                                    {{ $data->release_at }}
+                                                    <div class="d-flex flex-column">
+                                                        <span>{{ $data->release_at }}</span>
+                                                        <a href="{{ route('admin.admits.release.details', $data->id) }}" target="_blank" class="btn btn-sm btn-outline-info mt-1">
+                                                            <i class="fas fa-eye"></i> Preview
+                                                        </a>
+                                                    </div>
                                                 @endif
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group">
-                                                    <a href="{{ route('admin.recepts.create').'?admitId='.$data->id .'&for='.$data->user_id }}" class="btn btn-sm btn-info text-white" title="Create Receipt">
-                                                        <i class="fas fa-file-invoice-dollar"></i>
-                                                    </a>
+                                                    @if(!$data->release_at)
+                                                        <a href="{{ route('admin.recepts.create').'?admitId='.$data->id .'&for='.$data->user_id }}" class="btn btn-sm btn-info text-white" title="Create Receipt">
+                                                            <i class="fas fa-file-invoice-dollar"></i>
+                                                        </a>
+                                                    @endif
                                                     <a href="{{ route('admin.recepts.index').'?for='.$data->id }}" class="btn btn-sm btn-warning text-white" title="View Receipts">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <a href="{{ route('admin.admits.print', $data->id) }}" class="btn btn-sm btn-secondary" title="Print Patient Details" target="_blank">
                                                         <i class="fas fa-print"></i>
                                                     </a>
-                                                    <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="btn btn-sm btn-primary" title="Edit Admit">
-                                                        <i class="fas fa-pen"></i>
-                                                    </a>
-                                                    <button type="button" class="btn btn-sm btn-danger delete-btn" data-id="{{ $data->id }}" title="Delete Admit">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    @if(!$data->release_at)
+                                                        <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="btn btn-sm btn-primary" title="Edit Admit">
+                                                            <i class="fas fa-pen"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-danger delete-btn" data-id="{{ $data->id }}" title="Delete Admit">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -109,71 +116,9 @@
     </div>
 </div>
 
-{{-- Release Date Modal --}}
-<div class="modal fade" id="releaseModal" tabindex="-1" aria-labelledby="releaseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="releaseModalLabel">Set Release Date</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <label for="releaseDate" class="form-label">Release Date & Time</label>
-                <input type="datetime-local" id="releaseDate" class="form-control">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-warning" id="saveReleaseBtn">Save Release Date</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {{-- Scripts --}}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let releaseId = null;
-    const releaseModal = new bootstrap.Modal(document.getElementById('releaseModal'));
-    const releaseInput = document.getElementById('releaseDate');
-    const saveBtn = document.getElementById('saveReleaseBtn');
-
-    // Open modal
-    document.querySelectorAll('.add-release-btn').forEach((btn) => {
-        btn.addEventListener('click', function() {
-            releaseId = this.dataset.id;
-            releaseInput.value = ''; // clear previous input
-            releaseModal.show();
-        });
-    });
-
-    // Save release date
-    saveBtn.addEventListener('click', function() {
-        const releaseDate = releaseInput.value;
-        if (!releaseDate) {
-            alert("Please select a date and time.");
-            return;
-        }
-
-        fetch(`/admin/admits/${releaseId}/release`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ release_at: releaseDate })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 200) {
-                alert('Release date added successfully!');
-                location.reload();
-            } else {
-                alert('Failed to add release date');
-            }
-        });
-    });
-
     // Delete button
     document.querySelectorAll('.delete-btn').forEach((btn) => {
         btn.addEventListener('click', function() {
