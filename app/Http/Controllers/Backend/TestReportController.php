@@ -6,6 +6,7 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\TestReport;
 use App\Models\TestReportDemo;
+use App\Models\Invoice;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
@@ -62,11 +63,55 @@ class TestReportController extends Controller
     {
         $this->checkOwnPermission('test_reports.create');
         $data['pageHeader'] = $this->pageHeader;
-        $data['invoiceId'] = \request('invoiceId');
-        $data['testReport'] = \request('testReport');
-        $data['reportDemo'] = TestReportDemo::get();
-        if(request()->query('testReport')){
-        $data['edited'] = TestReportDemo::findOrFail(request()->query('testReport'));        }
+        $invoiceId = request('invoiceId');
+        $data['invoiceId'] = $invoiceId;
+        $data['testReport'] = request('testReport');
+        // When an invoice is provided, always show that invoice's tests
+        // on the left, and attach any matching templates from TestReportDemo.
+        if ($invoiceId) {
+            $invoice = Invoice::with(['invoiceList.product.category'])
+                ->where('branch_id', auth()->user()->branch_id)
+                ->find($invoiceId);
+
+            $data['invoice'] = $invoice;
+
+            if ($invoice) {
+                $allTemplates = TestReportDemo::all();
+
+                $data['reportDemo'] = $invoice->invoiceList->map(function ($item) use ($allTemplates) {
+                    $product = $item->product;
+                    if (!$product) {
+                        return null;
+                    }
+
+                    $name = $product->name; // e.g. "CBC(1002)"
+                    $normalized = preg_replace('/\\s*\([^)]*\)$/', '', $name); // e.g. "CBC"
+
+                    // Prefer any existing saved report on the invoice item,
+                    // otherwise fall back to the product's default description.
+                    $baseReport = $item->test_report ?? $product->description ?? '';
+
+                    $categoryName = optional($product->category)->name ?? 'Others';
+
+                    return (object) [
+                        'id' => $item->id,
+                        'name' => $name,
+                        'type' => $categoryName,
+                        'test_report' => $baseReport,
+                    ];
+                })->filter()->values();
+            } else {
+                // If invoice not found, fall back to all templates
+                $data['reportDemo'] = TestReportDemo::all();
+            }
+        } else {
+            $data['invoice'] = null;
+            $data['reportDemo'] = TestReportDemo::all();
+        }
+
+        if (request()->query('testReport')) {
+            $data['edited'] = TestReportDemo::findOrFail(request()->query('testReport'));
+        }
         return view('backend.pages.test_reports.create', $data);
     }
 

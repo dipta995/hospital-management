@@ -9,12 +9,14 @@ class TestReport extends Model
 {
     use HasFactory;
 
-    public function reportDemo()
+    // Link saved report to the specific invoice test (invoice_lists row)
+    public function invoiceItem()
     {
-        return $this->belongsTo(TestReportDemo::class,'test_report_id' );
+        return $this->belongsTo(InvoiceList::class, 'test_report_id');
     }
+
     public function invoice()
     {
-        return $this->belongsTo(Invoice::class,'invoice_id' );
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 }

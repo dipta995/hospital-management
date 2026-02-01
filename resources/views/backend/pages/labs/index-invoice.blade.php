@@ -66,7 +66,18 @@
                                                 {{ $item->patient_name ?? 'NA'}}</td>
                                             <td>
                                                 @foreach($item->tests as $product)
-                                                    <span class="bg-dark badge">{{ $product->product->name }} </span>
+                                                    @php
+                                                        $status = $product->status;
+                                                        $complete = \App\Models\InvoiceList::$statusArray[2];
+                                                        $processing = \App\Models\InvoiceList::$statusArray[1];
+                                                        $badgeClass = 'bg-dark';
+                                                        if ($status === $complete) {
+                                                            $badgeClass = 'bg-success';
+                                                        } elseif ($status === $processing) {
+                                                            $badgeClass = 'bg-warning';
+                                                        }
+                                                    @endphp
+                                                    <span class="badge {{ $badgeClass }}">{{ $product->product->name }} </span>
                                                 @endforeach
                                             </td>
 

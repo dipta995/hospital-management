@@ -196,7 +196,7 @@
                                     <tbody>
                                     @foreach($reports as $item)
                                         <tr>
-                                            <td>{{ $item->reportDemo->name }}</td>
+                                            <td>{{ optional($item->invoiceItem->product)->name }}</td>
                                             <td>
                                                 <a class="badge bg-danger" target="_blank"
                                                    href="{{ route('admin.preview-pdf-report',$item->id) }}"><i
