@@ -195,18 +195,39 @@ class AdmitController extends Controller
     public function destroy($id)
     {
         $this->checkOwnPermission('admits.delete');
-        $deleteData = Admit::where('branch_id', auth()->user()->branch_id)->find($id);
+        $admit = Admit::with('recepts')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
 
-        if (!is_null($deleteData)) {
-            if ($deleteData->release_at) {
-                return response()->json(['status' => 422]);
+        if (!$admit) {
+            return response()->json(['status' => 404]);
+        }
+
+        if ($admit->release_at) {
+            // Do not allow deleting released admits
+            return response()->json(['status' => 422]);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Delete all related recept data (lists + payments + recepts)
+            $receptIds = $admit->recepts->pluck('id');
+
+            if ($receptIds->isNotEmpty()) {
+                \App\Models\ReceptList::whereIn('recept_id', $receptIds)->delete();
+                \App\Models\ReceptPayment::whereIn('recept_id', $receptIds)->delete();
+                \App\Models\Recept::whereIn('id', $receptIds)->delete();
             }
 
-            if ($deleteData->delete()) {
-                return response()->json(['status' => 200]);
-            } else {
-                return response()->json(['status' => 422]);
-            }
+            // Finally delete the admit
+            $admit->delete();
+
+            \DB::commit();
+            return response()->json(['status' => 200]);
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            return response()->json(['status' => 422]);
         }
     }
 
