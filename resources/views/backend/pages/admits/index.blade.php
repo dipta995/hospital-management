@@ -69,16 +69,23 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                  <a href="{{ route('admin.recepts.create').'?admitId='.$data->id .'&for='.$data->user_id }}" class="btn bg-info text-white"><i class="fa fa-pager"
-                                                  </a>  <a href="{{ route('admin.recepts.index').'?for='.$data->id }}" class="btn bg-warning text-white"><i class="fa fa-eye"
-                                                                                                                                                         aria-hidden="true"></i>
-                                                </a>
-                                                <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="badge bg-info">
-                                                    <i class="fas fa-pen"></i>
-                                                </a>
-                                                <a href="javascript:void(0)" class="badge bg-danger delete-btn" data-id="{{ $data->id }}">
-                                                    <i class="fas fa-trash"></i>
-                                                </a>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{{ route('admin.recepts.create').'?admitId='.$data->id .'&for='.$data->user_id }}" class="btn btn-sm btn-info text-white" title="Create Receipt">
+                                                        <i class="fas fa-file-invoice-dollar"></i>
+                                                    </a>
+                                                    <a href="{{ route('admin.recepts.index').'?for='.$data->id }}" class="btn btn-sm btn-warning text-white" title="View Receipts">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ route('admin.admits.print', $data->id) }}" class="btn btn-sm btn-secondary" title="Print Patient Details" target="_blank">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                    <a href="{{ route($pageHeader['edit_route'], $data->id) }}" class="btn btn-sm btn-primary" title="Edit Admit">
+                                                        <i class="fas fa-pen"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-danger delete-btn" data-id="{{ $data->id }}" title="Delete Admit">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

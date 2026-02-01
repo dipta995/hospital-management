@@ -199,4 +199,22 @@ class AdmitController extends Controller
     }
 
 
+    public function print($id)
+    {
+        $this->checkOwnPermission('admits.index');
+
+        $admit = Admit::with(['user', 'reefer', 'drreefer', 'bedCabin'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
+
+        if (!$admit) {
+            return RedirectHelper::routeError($this->index_route, 'Admit not found.');
+        }
+
+        return view('backend.pages.admits.print', [
+            'admit' => $admit,
+        ]);
+    }
+
+
 }

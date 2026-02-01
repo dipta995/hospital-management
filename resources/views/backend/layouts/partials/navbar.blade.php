@@ -23,9 +23,10 @@
 
 
                 @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                    <a href="{{ route('admin.users.create') }}" class="btn btn-info"> Patient Creation </a>
                     <a href="{{ route('admin.users.index') }}" class="btn btn-dark"> Patient List </a>
                     <a href="{{ route('admin.invoices.index') }}" class="btn btn-success"> Invoice List </a>
+                    <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary"> Admit List </a>
+                    <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning"> Recept List </a>
                 @endif
                 @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
                     <a href="{{ route('admin.labs.index') }}" class="btn btn-primary"> My Lab </a>
