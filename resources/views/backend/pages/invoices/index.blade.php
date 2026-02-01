@@ -16,7 +16,7 @@
 
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
-                       
+
                         <div class="card-body">
                             <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
 
@@ -214,17 +214,37 @@
                                                                             aria-label="Close"></button>
                                                                 </div>
                                                                 <div class="modal-body">
+                                                                    @php
+                                                                        $dueAmount = $item->total_amount - $item->paid_amount_sum_paid_amount;
+                                                                        $customerBalance = \App\Models\CustomerBalance::where('user_id', $item->user_id)
+                                                                            ->where('branch_id', auth()->user()->branch_id)
+                                                                            ->first();
+                                                                        $currentBalance = $customerBalance->balance ?? 0;
+                                                                    @endphp
                                                                     <form method="post"
                                                                           action="{{ route('admin.invoices.due-pay',$item->id) }}">
                                                                         @csrf
                                                                         <div class="mb-3">
-                                                                            <label for="month"
-                                                                                   class="form-label">Amount</label>
-                                                                            <input type="number" step="0.1"
+                                                                            <label class="form-label">Due Amount</label>
+                                                                            <input type="text" class="form-control" value="{{ number_format($dueAmount, 2) }}" readonly>
+                                                                        </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Customer Balance</label>
+                                                                            <input type="text" class="form-control" value="{{ number_format($currentBalance, 2) }}" readonly>
+                                                                        </div>
+                                                                        <div class="mb-3">
+                                                                            <label for="due_pay" class="form-label">Pay Amount</label>
+                                                                            <input type="number" step="0.01" min="0"
                                                                                    class="form-control"
-                                                                                   value="{{ $item->total_amount - $item->paid_amount_sum_paid_amount }}"
+                                                                                   value="{{ $dueAmount }}"
                                                                                    id="due_pay" name="due_pay"
                                                                                    required>
+                                                                        </div>
+                                                                        <div class="form-check mb-3">
+                                                                            <input class="form-check-input" type="checkbox" value="1" id="pay_from_balance_{{$item->id}}" name="pay_from_balance">
+                                                                            <label class="form-check-label" for="pay_from_balance_{{$item->id}}">
+                                                                                Pay from balance
+                                                                            </label>
                                                                         </div>
                                                                         <button type="submit"
                                                                                 class="btn btn-success">Save

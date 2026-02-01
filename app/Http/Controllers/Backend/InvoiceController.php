@@ -9,6 +9,7 @@ use App\Models\CustomPercent;
 use App\Models\Invoice;
 use App\Models\InvoiceList;
 use App\Models\InvoicePayment;
+use App\Models\CustomerBalance;
 use App\Models\Product;
 use App\Models\Reefer;
 use App\Models\Setting;
@@ -758,24 +759,69 @@ class InvoiceController extends Controller
     public function invoiceDuePay(Request $request, $id)
     {
         $rules = [
-            'due_pay' => 'required|numeric',
+            'due_pay' => 'required|numeric|min:0.01',
+            'pay_from_balance' => 'nullable|boolean',
         ];
         $request->validate($rules);
-        if ($request->due_pay != 0) {
+
+        try {
+            \DB::beginTransaction();
+
+            $invoice = Invoice::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+            // Current due
+            $total = $invoice->total_amount ?? 0;
+            $alreadyPaid = $invoice->paidAmount()->sum('paid_amount');
+            $due = $total - $alreadyPaid;
+
+            if ($due <= 0) {
+                \DB::rollBack();
+                return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Nothing due to pay.');
+            }
+
+            // Never pay more than due
+            $amount = min($request->due_pay, $due);
+
+            if ($amount <= 0) {
+                \DB::rollBack();
+                return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Invalid amount.');
+            }
+
+            $fromBalance = $request->boolean('pay_from_balance');
+
+            if ($fromBalance) {
+                $balance = CustomerBalance::firstOrNew([
+                    'user_id' => $invoice->user_id,
+                    'branch_id' => $invoice->branch_id,
+                ]);
+
+                if (($balance->balance ?? 0) < $amount) {
+                    \DB::rollBack();
+                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Insufficient balance.');
+                }
+
+                $balance->balance -= $amount;
+                $balance->save();
+            }
+
+            // Normal payment record (same as before, but with capped amount)
             $duePaid = new InvoicePayment();
             $duePaid->branch_id = auth()->user()->branch_id;
             $duePaid->admin_id = auth()->id();
-            $duePaid->paid_amount = $request->due_pay;
+            $duePaid->paid_amount = $amount;
             $duePaid->invoice_id = $id;
             $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-            if ($duePaid->save()) {
-                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong>Due paid');
-            } else {
-                return RedirectHelper::backWithInputFromException();
+            $duePaid->save();
 
-            }
-        } else {
-            RedirectHelper::backWithInputFromException();
+            \DB::commit();
+
+            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong>Due paid');
+        } catch (QueryException $e) {
+            \DB::rollBack();
+            return RedirectHelper::backWithInputFromException();
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return RedirectHelper::backWithInputFromException();
         }
     }
 

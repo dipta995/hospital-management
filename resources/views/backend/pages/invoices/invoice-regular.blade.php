@@ -27,6 +27,32 @@
             pointer-events: none; /* Make it non-interactive */
         }
 
+        .watermark-paid {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 140px;
+            font-weight: 900;
+            color: rgba(0, 128, 0, 0.12);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .watermark-due {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 140px;
+            font-weight: 900;
+            color: rgba(255, 0, 0, 0.15);
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 0;
+        }
+
         .header {
             display: flex;
             align-items: flex-start; /* keep items aligned at top */
@@ -110,11 +136,21 @@
         .financial-summary span {
             font-weight: bold;
         }
-    </style>
-</head>
-<body>
-<button onclick="window.print()" class="btn btn-primary no-print" style="background-color: #00a5bb; color: white;">🖨️ Print
-</button>
+        </style>
+    </head>
+    <body>
+    @php
+        $total = $invoice->total_amount ?? 0;
+        $paid = $invoice->paidAmount->sum('paid_amount');
+        $due = $total - $paid;
+    @endphp
+    @if($due > 0)
+        <div class="watermark-due">DUE</div>
+    @else
+        <div class="watermark-paid">PAID</div>
+    @endif
+    <button onclick="window.print()" class="btn btn-primary no-print" style="background-color: #00a5bb; color: white;">🖨️ Print
+    </button>
     <style>
         @media print {
             .no-print {
@@ -178,8 +214,8 @@
         <th>Doctor name</th>
         <td colspan="3">{{ $invoice->reeferDr->name ?? $invoice->dr_name }}</td>
     </tr>
-</table>
-<table class="tests">
+        </table>
+        <table class="tests">
     <thead>
     <tr>
         <th style="text-align: left; width: 60px;">Code</th>
