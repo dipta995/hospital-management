@@ -759,7 +759,7 @@ class InvoiceController extends Controller
     public function invoiceDuePay(Request $request, $id)
     {
         $rules = [
-            'due_pay' => 'required|numeric|min:0.01',
+            'due_pay' => 'required|numeric',
             'pay_from_balance' => 'nullable|boolean',
         ];
         $request->validate($rules);
@@ -774,17 +774,16 @@ class InvoiceController extends Controller
             $alreadyPaid = $invoice->paidAmount()->sum('paid_amount');
             $due = $total - $alreadyPaid;
 
-            if ($due <= 0) {
-                \DB::rollBack();
-                return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Nothing due to pay.');
-            }
+            // if ($due <= 0) {
+            //     \DB::rollBack();
+            //     return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Nothing due to pay.');
+            // }
 
-            // Never pay more than due
-            $amount = min($request->due_pay, $due);
-
-            if ($amount <= 0) {
-                \DB::rollBack();
-                return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Invalid amount.');
+            // Never pay more than current positive due for forward payments,
+            // but allow negative values (adjustments/refunds) as entered.
+            $amount = $request->due_pay;
+            if ($amount > 0) {
+                $amount = min($amount, $due);
             }
 
             $fromBalance = $request->boolean('pay_from_balance');

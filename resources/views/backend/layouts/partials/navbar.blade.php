@@ -12,11 +12,17 @@
                     </button>
                 </div>
 
-                <!-- Quick Actions moved to popup -->
-                @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                    <button type="button" id="openQuickNavModal" class="btn btn-outline-light px-3">
-                        <i class="fas fa-th-large me-1"></i> Quick Menu
-                    </button>
+              @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-dark"> Patient List </a>
+                    <a href="{{ route('admin.invoices.index') }}" class="btn btn-success"> Invoice List </a>
+                    <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary"> Admit List </a>
+                    <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning"> Recept List </a>
+                @endif
+                @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
+                    <a href="{{ route('admin.labs.index') }}" class="btn btn-primary"> My Lab </a>
+                @endif
+                @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
+                    <a href="{{ route('admin.costs.create') }}" class="btn btn-dark"> Add Cost's </a>
                 @endif
             </div>
 
@@ -31,7 +37,15 @@
                         <iconify-icon icon="solar:menu-dots-broken" class="fs-24 align-middle"></iconify-icon>
                     </button>
                 </div>
-
+  <!-- Category -->
+                <div class="dropdown topbar-item d-none d-lg-flex">
+                    <button type="button" class="topbar-button" data-toggle="fullscreen">
+                        <iconify-icon icon="solar:full-screen-broken"
+                                      class="fs-24 align-middle fullscreen"></iconify-icon>
+                        <iconify-icon icon="solar:quit-full-screen-broken"
+                                      class="fs-24 align-middle quit-fullscreen"></iconify-icon>
+                    </button>
+                </div>
                 <!-- Notification -->
                 <div class="dropdown topbar-item">
                     <button type="button" class="topbar-button position-relative"
@@ -135,85 +149,7 @@
     </div>
 </header>
 
-<!-- Quick Menu & Calculator Modal -->
-<div id="quickNavModal" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Quick Menu & Calculator</h5>
-                <button type="button" class="btn-close close-quicknav" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6 border-end">
-                        <h6 class="mb-3">Shortcuts</h6>
-                        <div class="d-grid gap-2">
-                            @if ( $userGuard->can('invoices.index'))
-                                <a href="{{ route('admin.users.index') }}" class="btn btn-dark btn-sm text-start">
-                                    <i class="fas fa-users me-1"></i> Patient List
-                                </a>
-                                <a href="{{ route('admin.invoices.index') }}" class="btn btn-success btn-sm text-start">
-                                    <i class="fas fa-file-invoice-dollar me-1"></i> Invoice List
-                                </a>
-                                <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary btn-sm text-start">
-                                    <i class="fas fa-procedures me-1"></i> Admit List
-                                </a>
-                                <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning btn-sm text-start">
-                                    <i class="fas fa-receipt me-1"></i> Recept List
-                                </a>
-                            @endif
 
-                            @if ( $userGuard->can('labs.index'))
-                                <a href="{{ route('admin.labs.index') }}" class="btn btn-primary btn-sm text-start">
-                                    <i class="fas fa-vials me-1"></i> My Lab
-                                </a>
-                            @endif
-
-                            @if ( $userGuard->can('costs.create'))
-                                <a href="{{ route('admin.costs.create') }}" class="btn btn-dark btn-sm text-start">
-                                    <i class="fas fa-money-bill-wave me-1"></i> Add Cost's
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="mb-3">Calculator</h6>
-                        <div class="quick-calc">
-                            <input type="text" id="quickCalcDisplay" class="quick-calc-display form-control mb-2" value="0" readonly>
-                            <div class="quick-calc-grid">
-                                <button type="button" class="quick-calc-btn" data-value="C">C</button>
-                                <button type="button" class="quick-calc-btn" data-value="DEL">⌫</button>
-                                <button type="button" class="quick-calc-btn" data-value="/">÷</button>
-                                <button type="button" class="quick-calc-btn" data-value="*">×</button>
-
-                                <button type="button" class="quick-calc-btn" data-value="7">7</button>
-                                <button type="button" class="quick-calc-btn" data-value="8">8</button>
-                                <button type="button" class="quick-calc-btn" data-value="9">9</button>
-                                <button type="button" class="quick-calc-btn" data-value="-">−</button>
-
-                                <button type="button" class="quick-calc-btn" data-value="4">4</button>
-                                <button type="button" class="quick-calc-btn" data-value="5">5</button>
-                                <button type="button" class="quick-calc-btn" data-value="6">6</button>
-                                <button type="button" class="quick-calc-btn" data-value="+">+</button>
-
-                                <button type="button" class="quick-calc-btn" data-value="1">1</button>
-                                <button type="button" class="quick-calc-btn" data-value="2">2</button>
-                                <button type="button" class="quick-calc-btn" data-value="3">3</button>
-                                <button type="button" class="quick-calc-btn quick-calc-btn-eq" data-value="=">=</button>
-
-                                <button type="button" class="quick-calc-btn quick-calc-btn-zero" data-value="0">0</button>
-                                <button type="button" class="quick-calc-btn" data-value=".">.</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-quicknav">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <style>
     .quick-calc {
@@ -477,11 +413,12 @@
 </script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.querySelector('.button-toggle-menu.topbar-button');
+        const toggleBtn = document.getElementByClass("button-toggle-menu topbar-button");
 
         if (toggleBtn) {
             toggleBtn.addEventListener("click", function () {
                 document.documentElement.classList.toggle("sidebar-enable");
+                console.log("Toggled sidebar-enable on <html>"); // debug
             });
         }
     });

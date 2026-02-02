@@ -233,8 +233,8 @@
                                                                             <input type="text" class="form-control" value="{{ number_format($currentBalance, 2) }}" readonly>
                                                                         </div>
                                                                         <div class="mb-3">
-                                                                            <label for="due_pay" class="form-label">Pay Amount</label>
-                                                                            <input type="number" step="0.01" min="0"
+                                                                                  <label for="due_pay" class="form-label">Pay Amount</label>
+                                                                                  <input type="number" step="0.01"
                                                                                    class="form-control"
                                                                                    value="{{ $dueAmount }}"
                                                                                    id="due_pay" name="due_pay"
