@@ -34,12 +34,21 @@ uint8_t enrollID = 1;
 bool enrollRequested = false;
 const int CONFIDENCE_THRESHOLD = 50;
 
+// Auto restart every 2 hours
+const unsigned long AUTO_RESTART_INTERVAL_MS = 2UL * 60UL * 60UL * 1000UL;
+unsigned long lastRestartMillis = 0;
+
+// WiFi reconnect tracking
+bool wasWifiConnected = false;
+unsigned long lastWifiCheckMillis = 0;
+const unsigned long WIFI_RECHECK_INTERVAL_MS = 15000UL; // check every 15 seconds
+
 // Button long-press
 unsigned long buttonPressTime = 0;
 bool buttonHolding = false;
-// thresholds (ms): 10s for WiFi config, 20s for full reset
+// thresholds (ms): 10s for WiFi config, 30s for full reset (erase data)
 const unsigned long WIFI_CONFIG_PRESS_MS = 10000UL;
-const unsigned long FULL_RESET_PRESS_MS  = 20000UL;
+const unsigned long FULL_RESET_PRESS_MS  = 30000UL;
 
 // Forward declarations for helpers used before their definitions
 void showWifiConnecting();
@@ -50,6 +59,7 @@ void beep(int onMs);
 void errorBeeps();
 void warningBeeps();
 void formatAllFingerprints();
+void handleWiFiReconnect();
 
 // ================= WIFI HELPERS =================
 void connectToWiFi() {
@@ -251,6 +261,46 @@ void warningBeeps() {
   }
 }
 
+// ================= WIFI RECONNECT HANDLER =================
+void handleWiFiReconnect() {
+  unsigned long now = millis();
+
+  // Limit how often we check/retry
+  if (now - lastWifiCheckMillis < WIFI_RECHECK_INTERVAL_MS) {
+    return;
+  }
+  lastWifiCheckMillis = now;
+
+  wl_status_t status = WiFi.status();
+
+  if (status != WL_CONNECTED) {
+    if (wasWifiConnected) {
+      Serial.println("[WiFi] Lost connection, attempting reconnect...");
+    } else {
+      Serial.println("[WiFi] Not connected, attempting reconnect...");
+    }
+    // Show that we are trying to connect
+    showWifiConnecting();
+
+    // Try to reconnect using stored credentials
+    WiFi.reconnect();
+    // Some ESP32 setups need an explicit begin with stored config
+    WiFi.begin();
+  } else {
+    // We are connected now
+    if (!wasWifiConnected) {
+      Serial.println("[WiFi] Connected/reconnected, beeping twice (0.5s each)...");
+      beep(500);
+      delay(200);
+      beep(500);
+      // After reconnection, return to ready state for fingerprint
+      showReady();
+    }
+  }
+
+  wasWifiConnected = (status == WL_CONNECTED);
+}
+
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
@@ -283,6 +333,11 @@ void setup() {
   // ---- WIFI (WiFiManager) ----
   connectToWiFi();
 
+  // ---- INIT TIMERS & WIFI STATE ----
+  lastRestartMillis = millis();
+  lastWifiCheckMillis = millis();
+  wasWifiConnected = (WiFi.status() == WL_CONNECTED);
+
   // ---- LOAD ENROLL ID ----
   finger.getTemplateCount();
   enrollID = finger.templateCount + 1;
@@ -301,6 +356,16 @@ void setup() {
 // ================= LOOP =================
 void loop() {
 
+  // -------- WIFI RECONNECT & STATUS --------
+  handleWiFiReconnect();
+
+  // -------- AUTO RESTART TIMER (every 10 minutes) --------
+  if (millis() - lastRestartMillis >= AUTO_RESTART_INTERVAL_MS) {
+    Serial.println("[SYSTEM] Auto restart after 10 minutes");
+    beep(1000); // 1 second beep before restart
+    ESP.restart();
+  }
+
   // -------- BUTTON HANDLING --------
   int buttonState = digitalRead(BUTTON_PIN);
 
@@ -318,7 +383,7 @@ void loop() {
       Serial.println(pressDuration);
 
       if (pressDuration >= FULL_RESET_PRESS_MS) {
-        // 20s: full reset (WiFi + fingerprints) and restart
+        // 30s: full reset (WiFi + fingerprints) and restart
         resetAllData();
         buttonHolding = false;
         return;
@@ -344,6 +409,12 @@ void loop() {
     enrollFinger(enrollID);
     enrollID++;
     return;
+  }
+
+  // -------- WIFI REQUIRED FOR ATTENDANCE DISPLAY/SCAN --------
+  if (WiFi.status() != WL_CONNECTED) {
+    showWifiError("No WiFi");
+    return; // do not proceed to fingerprint scanning when offline
   }
 
   // -------- ATTENDANCE MODE --------
