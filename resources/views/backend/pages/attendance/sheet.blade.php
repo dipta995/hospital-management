@@ -112,8 +112,8 @@
                     <td></td>
                     <td></td>
                     <td>{{ optional($attendance->employee)->name ?? '-' }}</td>
-                    <td>{{ $attendance->in_time ? Carbon::parse($attendance->in_time)->format('H:i:s') : '-' }}</td>
-                    <td>{{ $attendance->out_time ? Carbon::parse($attendance->out_time)->format('H:i:s') : '-' }}</td>
+                    <td>{{ $attendance->in_time ? Carbon::parse($attendance->in_time)->format('h:i:s A') : '-' }}</td>
+                    <td>{{ $attendance->out_time ? Carbon::parse($attendance->out_time)->format('h:i:s A') : '-' }}</td>
                 </tr>
             @endforeach
         @empty

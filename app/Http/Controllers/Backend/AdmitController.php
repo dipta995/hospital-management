@@ -420,6 +420,11 @@ class AdmitController extends Controller
                 ->where('account_details', 'admit_id:' . $admit->id)
                 ->first();
 
+            // If cost exists but its creation_date is not today, block update
+            if ($cost && $cost->creation_date && $cost->creation_date !== Carbon::now('Asia/Dhaka')->format('Y-m-d')) {
+                return RedirectHelper::routeError($this->index_route, 'PC payment can only be updated on the current date.');
+            }
+
             if (!$cost) {
                 $cost = new Cost();
                 $cost->branch_id = auth()->user()->branch_id;
