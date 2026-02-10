@@ -30,6 +30,12 @@
                                 <p><strong>Bed/Cabin:</strong> {{ $admit->bed_or_cabin ?? 'N/A' }}</p>
                                 <p><strong>Father/Spouse:</strong> {{ $admit->father_or_spouse ?? 'N/A' }}</p>
                                 <p><strong>Received By:</strong> {{ $admit->received_by ?? 'N/A' }}</p>
+                                <p><strong>Refer:</strong>
+                                    {{ $admit->reefer->name ?? 'N/A' }}
+                                    @if(!empty($admit->reefer?->phone))
+                                        ({{ $admit->reefer->phone }})
+                                    @endif
+                                </p>
                             </div>
                         </div>
 
@@ -126,7 +132,7 @@
                                         <button type="submit" class="btn btn-success">Pay Due</button>
                                     </form>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <h5>Release Patient</h5>
                                     <form method="POST" action="{{ route('admin.admits.release', $admit->id) }}">
                                         @csrf
@@ -143,6 +149,67 @@
                             <div class="alert alert-info" role="alert">
                                 This admit was released on {{ $admit->release_at }}. Further changes are not allowed.
                             </div>
+                        @endif
+
+                        {{-- PC Payment is allowed even after release (only when refer exists) --}}
+                        @if($admit->reefer)
+                        <div class="row mb-4">
+                            <div class="col-md-3 offset-md-9">
+                                <h5>PC Payment</h5>
+                                <form method="POST" action="{{ route('admin.admits.pc-payment', $admit->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="admit_id" value="{{ $admit->id }}">
+
+                                    <div class="form-group mb-2">
+                                        <label>Refer Name</label>
+                                        <input type="text" class="form-control" value="{{ $admit->reefer->name ?? 'N/A' }}" readonly>
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label>Refer Phone</label>
+                                        <input type="text" class="form-control" value="{{ $admit->reefer->phone ?? 'N/A' }}" readonly>
+                                    </div>
+
+                                    @if($pcPayment)
+                                        <div class="alert alert-success py-1 mb-2">
+                                            <small>Already paid PC: <strong>{{ number_format($pcPayment->amount, 2) }}</strong></small>
+                                        </div>
+                                    @endif
+
+                                    <div class="form-group mb-2">
+                                        <label for="amount">Amount</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            name="amount"
+                                            id="amount"
+                                            class="form-control"
+                                            value="{{ old('amount', optional($pcPayment)->amount) }}"
+                                            placeholder="Enter amount"
+                                        >
+                                        <x-default.input-error name="amount" />
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label for="reason">Reason</label>
+                                        <input
+                                            type="text"
+                                            name="reason"
+                                            id="reason"
+                                            class="form-control"
+                                            value="{{ old('reason', optional($pcPayment)->reason) }}"
+                                            placeholder="Enter reason"
+                                        >
+                                        <x-default.input-error name="reason" />
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary">
+                                        {{ $pcPayment ? 'Update PC Payment' : 'Pay PC' }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                         @endif
 
                         <div class="d-flex gap-2 mt-3">

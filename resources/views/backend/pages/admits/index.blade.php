@@ -49,6 +49,7 @@
                                         <th>#</th>
                                         <th>Patient</th>
                                         <th>DR.</th>
+                                        <th>Refer.</th>
                                         <th>Father/Spouse</th>
                                         {{-- <th>DR.</th> --}}
                                         <th>Bed/Cabin</th>
@@ -66,6 +67,7 @@
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
+                                            <td>{{ $data->drreefer?->name }}</td>
                                             <td>{{ $data->reefer?->name }}</td>
                                             <td>{{ ($data->father_or_spouse) ?? 'N/A' }}</td>
                                             <td>{{ ($data->bed_or_cabin) ?? 'N/A' }}</td>

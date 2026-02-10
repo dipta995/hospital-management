@@ -140,6 +140,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('admits/{id}/release-details', [AdmitController::class, 'releaseDetails'])->name('admits.release.details');
     Route::get('admits/{id}/release-print', [AdmitController::class, 'releasePrint'])->name('admits.release.print');
     Route::post('admits/{id}/pay-due', [AdmitController::class, 'payDue'])->name('admits.pay-due');
+    Route::post('admits/{id}/pc-payment', [AdmitController::class, 'pcPayment'])->name('admits.pc-payment');
     Route::get('admits/{id}/print', [AdmitController::class, 'print'])->name('admits.print');
 
     Route::resource('recepts', ReceptController::class, ['names' => 'recepts']);

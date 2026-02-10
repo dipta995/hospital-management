@@ -6,8 +6,11 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Admit;
 use App\Models\BedCabin;
+use App\Models\Cost;
+use App\Models\CostCategory;
 use App\Models\Recept;
 use App\Models\ReceptPayment;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -43,7 +46,7 @@ class AdmitController extends Controller
         $this->checkOwnPermission('admits.index');
 
         $data['pageHeader'] = $this->pageHeader;
-        $query = Admit::with(['reefer', 'user'])
+        $query = Admit::with(['reefer', 'drreefer', 'user'])
             ->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC');
 
@@ -270,6 +273,16 @@ class AdmitController extends Controller
         });
         $totalDue = max($netTotal - $totalPaid, 0);
 
+        // Existing PC payment for this admit (if any)
+        $pcPayment = null;
+        $admitReferCategoryId = Setting::get('admit_refer_cost_category');
+        if ($admitReferCategoryId) {
+            $pcPayment = Cost::where('branch_id', auth()->user()->branch_id)
+                ->where('cost_category_id', $admitReferCategoryId)
+                ->where('account_details', 'admit_id:' . $admit->id)
+                ->first();
+        }
+
         return view('backend.pages.admits.release', [
             'pageHeader'    => $this->pageHeader,
             'admit'         => $admit,
@@ -279,6 +292,7 @@ class AdmitController extends Controller
             'net_total'     => $netTotal,
             'total_paid'    => $totalPaid,
             'total_due'     => $totalDue,
+            'pcPayment'     => $pcPayment,
         ]);
     }
 
@@ -377,6 +391,64 @@ class AdmitController extends Controller
         session()->flash('toast_message', 'Due paid successfully.');
 
         return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'Due paid successfully.');
+    }
+
+
+    public function pcPayment(Request $request, $id)
+    {
+        $this->checkOwnPermission('admits.edit');
+
+        $admit = Admit::with('reefer')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        $admitReferCategoryId = Setting::get('admit_refer_cost_category');
+
+        if (!$admitReferCategoryId) {
+            return RedirectHelper::routeError($this->index_route, 'Admit refer cost category is not configured.');
+        }
+
+        try {
+            // Find existing PC payment for this admit, or create new
+            $cost = Cost::where('branch_id', auth()->user()->branch_id)
+                ->where('cost_category_id', $admitReferCategoryId)
+                ->where('account_details', 'admit_id:' . $admit->id)
+                ->first();
+
+            if (!$cost) {
+                $cost = new Cost();
+                $cost->branch_id = auth()->user()->branch_id;
+                $cost->cost_category_id = $admitReferCategoryId;
+                $cost->refer_id = $admit->refer_id;
+                $cost->account_details = 'admit_id:' . $admit->id;
+                $cost->payment_type = Cost::$paymentArray[0];
+                $cost->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            }
+
+            $cost->reason = $request->reason ?: ('PC Payment for Admit #' . $admit->id);
+            $cost->amount = $request->amount;
+            $cost->save();
+
+            if (Setting::get('pc_payment_sms') == 'Yes' && $admit->reefer && $admit->reefer->phone) {
+                $format = Setting::get('refer_payment_sms_format');
+                $message = str_replace(
+                    ['{amount}'],
+                    [$cost->amount],
+                    $format
+                );
+
+                smsSent(auth()->user()->branch_id, $admit->reefer->phone, $message);
+            }
+
+            return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'PC payment saved successfully.');
+        } catch (QueryException $e) {
+            return RedirectHelper::backWithInputFromException($e);
+        }
     }
 
 
