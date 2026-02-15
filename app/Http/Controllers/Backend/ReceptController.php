@@ -88,7 +88,8 @@ class ReceptController extends Controller
         $data['total_discount'] = $totalDiscount;
         $data['total_paid'] = $totalPaid;
 
-        $data['datas'] = $query->with(['user', 'receptPayments'])->paginate(20)->appends($request->all());
+        // Also eager-load admit so views can check release status
+        $data['datas'] = $query->with(['user', 'receptPayments', 'admit'])->paginate(20)->appends($request->all());
 
         return view('backend.pages.recepts.index', $data);
     }
@@ -204,11 +205,16 @@ class ReceptController extends Controller
         $data['pageHeader'] = $this->pageHeader;
 
         $recept = Recept::where('branch_id', auth()->user()->branch_id)
-            ->with(['user', 'receptList.service', 'receptPayments'])
+            ->with(['user', 'receptList.service', 'receptPayments', 'admit'])
             ->find($id);
 
         if (!$recept) {
             return RedirectHelper::routeError($this->index_route, 'Recept not found.');
+        }
+
+        // If this receipt is linked to an admit that is already released, do not allow editing
+        if ($recept->admit && $recept->admit->release_at) {
+            return RedirectHelper::routeError($this->index_route, 'Cannot edit receipt for a released admit.');
         }
 
         $data['edited'] = $recept;
@@ -225,7 +231,15 @@ class ReceptController extends Controller
         DB::beginTransaction();
 
         try {
-            $recept = Recept::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+            $recept = Recept::where('branch_id', auth()->user()->branch_id)
+                ->with('admit')
+                ->findOrFail($id);
+
+            // Block updates if the linked admit is already released
+            if ($recept->admit && $recept->admit->release_at) {
+                DB::rollBack();
+                return response()->json(['status' => 422, 'message' => 'Cannot update receipt for a released admit.']);
+            }
 
             $services = $request->input('services', []);
             $customerDetails = $request->input('customerDetails', []);

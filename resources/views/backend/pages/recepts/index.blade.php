@@ -83,19 +83,11 @@
                                                    href="{{ route('admin.recepts.pdf-preview',$item->id) }}"
                                                    class="badge bg-danger"><i class="fas fa-file-pdf"></i></a>
                                                 <br>
-                                                <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
+                                                @if(!$item->admit || !$item->admit->release_at)
+                                                    <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
+                                                @endif
                                                 <a href="javascript:void(0)" class="badge bg-danger"
                                                    onclick="dataDelete({{ $item->id }}, '{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
-                                                @if($due > 0)
-                                                    <a href="javascript:void(0)" class="badge bg-success mt-1"
-                                                       data-bs-toggle="modal"
-                                                       data-bs-target="#receptPaymentModal"
-                                                       data-id="{{ $item->id }}"
-                                                       data-due="{{ $due }}"
-                                                       data-balance="{{ $balance }}">
-                                                        <i class="fas fa-money-bill"></i> Pay
-                                                    </a>
-                                                @endif
                                             </td>
                                         </tr>
                                     @empty
@@ -113,5 +105,4 @@
         </div>
     </div>
 </div>
-@include('backend.pages.recepts.partials.payment-modal')
 @endsection
