@@ -50,6 +50,45 @@ class AdmitController extends Controller
             ->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC');
 
+        // Release status filter (default: only not released)
+        $status = $request->input('status', 'not_released');
+        if ($status === 'released') {
+            $query->whereNotNull('release_at');
+        } elseif ($status === 'not_released') {
+            $query->whereNull('release_at');
+        }
+
+        // Date range filter based on admit_at
+        $dateRange = $request->input('date_range');
+        if ($dateRange) {
+            $today = Carbon::now('Asia/Dhaka');
+
+            switch ($dateRange) {
+                case 'today':
+                    $query->whereDate('admit_at', $today->toDateString());
+                    break;
+                case 'this_week':
+                    $startOfWeek = $today->copy()->startOfWeek();
+                    $endOfWeek = $today->copy()->endOfWeek();
+                    $query->whereBetween('admit_at', [$startOfWeek, $endOfWeek]);
+                    break;
+                case 'last_week':
+                    $startOfLastWeek = $today->copy()->subWeek()->startOfWeek();
+                    $endOfLastWeek = $today->copy()->subWeek()->endOfWeek();
+                    $query->whereBetween('admit_at', [$startOfLastWeek, $endOfLastWeek]);
+                    break;
+                case 'last_month':
+                    $lastMonth = $today->copy()->subMonth();
+                    $query->whereYear('admit_at', $lastMonth->year)
+                          ->whereMonth('admit_at', $lastMonth->month);
+                    break;
+                case 'current_month':
+                    $query->whereYear('admit_at', $today->year)
+                          ->whereMonth('admit_at', $today->month);
+                    break;
+            }
+        }
+
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->input('user_id'));
         }

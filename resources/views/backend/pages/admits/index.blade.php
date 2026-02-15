@@ -31,7 +31,26 @@
                                 <div id="admit_suggestions" class="list-group position-absolute w-100" style="z-index: 1050;"></div>
                                 <input type="hidden" id="admit_user_id" name="user_id" value="{{ request('user_id') }}">
                             </div>
-                            <div class="col-md-3 d-flex gap-2">
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Release Status</label>
+                                <select name="status" id="status" class="form-select">
+                                    <option value="not_released" {{ request('status', 'not_released') === 'not_released' ? 'selected' : '' }}>Not Released</option>
+                                    <option value="released" {{ request('status') === 'released' ? 'selected' : '' }}>Released</option>
+                                    <option value="all" {{ request('status') === 'all' ? 'selected' : '' }}>All</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="date_range" class="form-label">Date Range</label>
+                                <select name="date_range" id="date_range" class="form-select">
+                                    <option value="">All Time</option>
+                                    <option value="today" {{ request('date_range') === 'today' ? 'selected' : '' }}>Today</option>
+                                    <option value="this_week" {{ request('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                    <option value="last_week" {{ request('date_range') === 'last_week' ? 'selected' : '' }}>Last Week</option>
+                                    <option value="last_month" {{ request('date_range') === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                                    <option value="current_month" {{ request('date_range') === 'current_month' ? 'selected' : '' }}>Current Month</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex gap-2">
                                 <button type="submit" class="btn btn-primary mt-4">Filter</button>
                                 <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary mt-4">Reset</a>
                             </div>
