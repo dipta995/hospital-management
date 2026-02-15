@@ -104,6 +104,7 @@ function expairyAlertNotificationCount()
 
 use App\Models\Earn;
 use App\Models\Cost;
+use App\Models\ReceptPayment;
 
 function currentBalanceMonth()
 {
@@ -117,6 +118,7 @@ function currentBalanceMonth()
 //            $q->where('branch_id', $branchId);
 //        });
 
+    // Diagnostic collections (from diagnostic invoices)
     $query = InvoicePayment::with(['invoice.invoiceList'])
         ->whereHas('invoice', function ($q) {
             $q->where('branch_id', auth()->user()->branch_id);
@@ -141,7 +143,29 @@ function currentBalanceMonth()
         $query->whereMonth('creation_date', $now->month)
             ->whereYear('creation_date', $now->year);
     }
-    $totalCollection = $query->sum('paid_amount');
+    $diagnosticCollection = $query->sum('paid_amount');
+
+    // Hospital collections (from admit release payments)
+    $hospitalQuery = ReceptPayment::whereHas('recept', function ($q) use ($branchId) {
+        $q->where('branch_id', $branchId)
+            ->whereNotNull('admit_id');
+    });
+
+    if (\request()->filled('from_date') && \request()->filled('to_date')) {
+        $hospitalQuery->whereBetween('creation_date', [\request()->from_date, \request()->to_date]);
+    } elseif (\request()->filled('from_date')) {
+        $hospitalQuery->where('creation_date', '>=', \request()->from_date);
+    } elseif (\request()->filled('to_date')) {
+        $hospitalQuery->where('creation_date', '<=', \request()->to_date);
+    } else {
+        $now = Carbon::now('Asia/Dhaka');
+        $hospitalQuery->whereMonth('creation_date', $now->month)
+            ->whereYear('creation_date', $now->year);
+    }
+
+    $hospitalCollection = $hospitalQuery->sum('paid_amount');
+
+    $totalCollection = $diagnosticCollection + $hospitalCollection;
 
     // Earn
     $earn = Earn::where('branch_id', $branchId);
@@ -190,7 +214,9 @@ function currentBalanceMonth()
     return '
     <div style="font-family: Arial, sans-serif; border: 1px solid #ccc; padding: 20px; border-radius: 10px; max-width: 600px; background: #f9f9f9;">
         <h5 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">' . $title . '</h5>
-        <p><strong>Collection:</strong> <span style="float:right;">৳ ' . number_format($totalCollection, 2) . '</span></p>
+        <p><strong>Diagnostic Collection:</strong> <span style="float:right;">৳ ' . number_format($diagnosticCollection, 2) . '</span></p>
+        <p><strong>Hospital Collection:</strong> <span style="float:right;">৳ ' . number_format($hospitalCollection, 2) . '</span></p>
+        <p><strong>Total Collection:</strong> <span style="float:right;">৳ ' . number_format($totalCollection, 2) . '</span></p>
         <p><strong>Earn:</strong> <span style="float:right;">৳ ' . number_format($totalEarn, 2) . '</span></p>
         <hr>
         <p><strong>Amount:</strong> <span style="float:right;">৳ ' . number_format($totalCollection + $totalEarn, 2) . '</span></p>

@@ -82,6 +82,16 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
+                                        <label for="admit_hospital_cost_category">Hospital Cost Category (Admit)</label>
+                                        <select name="admit_hospital_cost_category" id="admit_hospital_cost_category" class="form-control">
+                                            <option value="">Choose</option>
+                                            @foreach(\App\Models\CostCategory::where('branch_id',auth()->user()->branch_id)->get() as $item)
+                                                <option
+                                                    value="{{ $item->id }}" @selected(old('admit_hospital_cost_category', $edited['admit_hospital_cost_category'] ?? '') == $item->id)>{{ $item->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
                                         <label for="pc_payment_sms">PC Payment SMS</label>
                                         <select name="pc_payment_sms" id="pc_payment_sms" class="form-control">
                                             <option value="">Choose</option>

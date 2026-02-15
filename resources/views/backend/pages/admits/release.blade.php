@@ -166,6 +166,16 @@
                             </div>
                         @endif
 
+                        <div class="row mb-4">
+                            <div class="col-md-3 offset-md-9">
+                                <h5>Hospital Cost</h5>
+                                <p><strong>Total Hospital Cost:</strong> {{ number_format($hospital_cost_total, 2) }}</p>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#hospitalCostModal">
+                                    Add / Update Hospital Cost
+                                </button>
+                            </div>
+                        </div>
+
                         {{-- PC Payment is allowed even after release (only when refer exists) --}}
                         @if($admit->reefer)
                         <div class="row mb-4">
@@ -208,14 +218,13 @@
 
                                     <div class="form-group mb-2">
                                         <label for="reason">Reason</label>
-                                        <input
-                                            type="text"
+                                        <textarea
                                             name="reason"
                                             id="reason"
                                             class="form-control"
-                                            value="{{ old('reason', optional($pcPayment)->reason) }}"
+                                            rows="3"
                                             placeholder="Enter reason"
-                                        >
+                                        >{{ old('reason', optional($pcPayment)->reason) }}</textarea>
                                         <x-default.input-error name="reason" />
                                     </div>
 
@@ -236,6 +245,49 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+<!-- Hospital Cost Modal -->
+<div class="modal fade" id="hospitalCostModal" tabindex="-1" aria-labelledby="hospitalCostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hospitalCostModalLabel">Add Hospital Cost</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('admin.admits.hospital-cost', $admit->id) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group mb-2">
+                        <label for="hospital_cost_amount">Amount</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            name="amount"
+                            id="hospital_cost_amount"
+                            class="form-control"
+                            placeholder="Enter amount"
+                            required
+                        >
+                    </div>
+                    <div class="form-group mb-2">
+                        <label for="hospital_cost_reason">Reason</label>
+                        <textarea
+                            name="reason"
+                            id="hospital_cost_reason"
+                            class="form-control"
+                            rows="3"
+                            placeholder="Enter reason (optional)"
+                        ></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Save Hospital Cost</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

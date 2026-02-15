@@ -436,6 +436,18 @@
                 </li>
             @endif
 
+            {{--   Hospital Cost's   --}}
+            @if ($userGuard->can('costs.index'))
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.hospital_costs.index') }}">
+                        <span class="nav-icon">
+                            <i class="fas fa-hospital"></i>
+                        </span>
+                        <span class="nav-text">Hospital Cost</span>
+                    </a>
+                </li>
+            @endif
+
             {{--   Bed/Cabin's   --}}
             @if ($userGuard->can('bed_cabins.index') || $userGuard->can('bed_cabins.create') || $userGuard->can('bed_cabins.edit') || $userGuard->can('bed_cabins.delete'))
                 <li class="nav-item">

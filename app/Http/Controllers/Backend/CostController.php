@@ -45,6 +45,73 @@ class CostController extends Controller
     }
 
     /**
+     * Hospital-related costs (admit refer + hospital cost categories).
+     */
+    public function hospitalIndex(Request $request)
+    {
+        $this->checkOwnPermission('costs.index');
+
+        $data['pageHeader'] = [
+            'title' => "Hospital Costs",
+            'sub_title' => "",
+            'plural_name' => "hospital_costs",
+            'singular_name' => "Hospital Cost",
+            'index_route' => 'admin.hospital_costs.index',
+            'create_route' => 'admin.costs.create',
+            'store_route' => $this->store_route,
+            'edit_route' => $this->edit_route,
+            'update_route' => $this->update_route,
+            'base_url' => url('admin/costs'),
+        ];
+
+        $nowDhaka = Carbon::now('Asia/Dhaka');
+
+        $admitReferCategoryId = Setting::get('admit_refer_cost_category');
+        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+
+        $categoryIds = array_filter([$admitReferCategoryId, $hospitalCostCategoryId]);
+
+        $query = Cost::query();
+
+        if (!$request->filled('start_date') && !$request->filled('end_date')) {
+            $query->whereDate('creation_date', $nowDhaka->toDateString());
+        } else {
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('creation_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->where('creation_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->where('creation_date', '<=', $request->end_date);
+            }
+        }
+
+        if (!empty($categoryIds)) {
+            $query->whereIn('cost_category_id', $categoryIds);
+        } else {
+            // If no categories configured, return empty set for safety
+            $query->whereRaw('1 = 0');
+        }
+
+        $costQuery = $query->where('branch_id', auth()->user()->branch_id)
+            ->orderBy('id', 'desc');
+
+        if ($request->query('export') == 'pdf') {
+            $data['datas'] = $costQuery->get();
+        } else {
+            $data['datas'] = $costQuery->paginate(10);
+        }
+
+        $data['totalAmount'] = $query->where('branch_id', auth()->user()->branch_id)
+            ->sum('amount');
+
+        if ($request->query('export') == 'pdf') {
+            return view('backend.pages.costs.export-pdf', $data);
+        }
+
+        return view('backend.pages.costs.index', $data);
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
@@ -67,6 +134,15 @@ class CostController extends Controller
                 $query->where('creation_date', '<=', $request->end_date);
             }
         }
+
+        // Exclude hospital-related categories (hospital cost + admit refer cost) from general costs list
+        $admitReferCategoryId = Setting::get('admit_refer_cost_category');
+        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+        $excludeCategoryIds = array_filter([$admitReferCategoryId, $hospitalCostCategoryId]);
+        if (!empty($excludeCategoryIds)) {
+            $query->whereNotIn('cost_category_id', $excludeCategoryIds);
+        }
+
         $costQuery = $query->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'desc');
         if ($request->query('export') == 'pdf') {
@@ -120,7 +196,7 @@ class CostController extends Controller
         try {
             $row = new Cost();
             $row->branch_id = auth()->user()->branch_id;
-            $row->admin_id = auth()->id();
+            // $row->admin_id = auth()->id();
             $row->cost_category_id = $request->cost_category_id;
             if ($request->account_no) {
                 $row->reason = $request->reason . "(account-" . $request->account_no . ")";
@@ -173,7 +249,7 @@ class CostController extends Controller
             foreach ($request->invoices as $item) {
                 $row = new Cost();
                 $row->branch_id = auth()->user()->branch_id;
-                $row->admin_id = auth()->id();
+                // $row->admin_id = auth()->id();
 //            $row->cost_category_id = $item->cost_category_id;
 //            if ($item->account_no) {
 //                $row->reason = "(Refer Paymen account-" . $item->account_no . ")";

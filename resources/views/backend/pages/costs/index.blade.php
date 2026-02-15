@@ -15,6 +15,13 @@
                     <div class="card">
                         <div class="card-body">
                             <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
+                            @if(Route::is('admin.hospital_costs.index'))
+                                <div class="mb-3 text-end">
+                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hospitalCostCreateModal">
+                                        + Add Hospital Cost
+                                    </button>
+                                </div>
+                            @endif
                             <form action="" method="GET" class="mb-4">
                                 <div class="row">
                                     <div class="col-md-3">
@@ -151,3 +158,55 @@ function updateEmployeeAfterCost(employeeId) {
 
 
 @endpush
+
+@if(Route::is('admin.hospital_costs.index'))
+    <!-- Hospital Cost Create Modal -->
+    <div class="modal fade" id="hospitalCostCreateModal" tabindex="-1" aria-labelledby="hospitalCostCreateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="hospitalCostCreateModalLabel">Add Hospital Cost</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ route('admin.costs.store') }}">
+                    @csrf
+                    <div class="modal-body">
+                        @php
+                            $hospitalCostCategoryId = \App\Models\Setting::get('admit_hospital_cost_category');
+                            $hospitalCategory = $hospitalCostCategoryId
+                                ? \App\Models\CostCategory::where('branch_id', auth()->user()->branch_id)
+                                    ->where('id', $hospitalCostCategoryId)
+                                    ->first()
+                                : null;
+                        @endphp
+                        <div class="form-group mb-2">
+                            <label>Category</label>
+                            @if($hospitalCategory)
+                                <input type="hidden" name="cost_category_id" value="{{ $hospitalCategory->id }}">
+                                <input type="text" class="form-control" value="{{ $hospitalCategory->name }}" readonly>
+                            @else
+                                <input type="text" class="form-control" value="Hospital cost category not configured" readonly>
+                            @endif
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="hospital_cost_reason">Reason</label>
+                            <textarea name="reason" id="hospital_cost_reason" class="form-control" rows="3" placeholder="Enter reason"></textarea>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="hospital_cost_amount">Amount</label>
+                            <input type="number" step="0.01" min="0.01" name="amount" id="hospital_cost_amount" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="hospital_cost_date">Date</label>
+                            <input type="date" name="date" id="hospital_cost_date" class="form-control" value="{{ \Carbon\Carbon::now('Asia/Dhaka')->format('Y-m-d') }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-danger">Save Hospital Cost</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif

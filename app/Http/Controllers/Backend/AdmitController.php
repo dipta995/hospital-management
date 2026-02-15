@@ -190,6 +190,18 @@ class AdmitController extends Controller
 
         $data['users'] = User::all();
 
+        // Hospital cost total for this admit (if category configured)
+        $hospitalCostTotal = 0;
+        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+        if ($hospitalCostCategoryId) {
+            $hospitalCostTotal = Cost::where('branch_id', auth()->user()->branch_id)
+                ->where('cost_category_id', $hospitalCostCategoryId)
+                ->where('account_details', 'admit_id:' . $data['edited']->id)
+                ->sum('amount');
+        }
+
+        $data['hospital_cost_total'] = $hospitalCostTotal;
+
         return view('backend.pages.admits.edit', $data);
     }
 
@@ -328,6 +340,16 @@ class AdmitController extends Controller
         });
         $totalDue = max($netTotal - $totalPaid, 0);
 
+        // Existing hospital costs for this admit (summary)
+        $hospitalCostTotal = 0;
+        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+        if ($hospitalCostCategoryId) {
+            $hospitalCostTotal = Cost::where('branch_id', auth()->user()->branch_id)
+                ->where('cost_category_id', $hospitalCostCategoryId)
+                ->where('account_details', 'admit_id:' . $admit->id)
+                ->sum('amount');
+        }
+
         // Existing PC payment for this admit (if any)
         $pcPayment = null;
         $admitReferCategoryId = Setting::get('admit_refer_cost_category');
@@ -347,6 +369,7 @@ class AdmitController extends Controller
             'net_total'     => $netTotal,
             'total_paid'    => $totalPaid,
             'total_due'     => $totalDue,
+            'hospital_cost_total' => $hospitalCostTotal,
             'pcPayment'     => $pcPayment,
         ]);
     }
@@ -553,6 +576,42 @@ class AdmitController extends Controller
             }
 
             return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'PC payment saved successfully.');
+        } catch (QueryException $e) {
+            return RedirectHelper::backWithInputFromException($e);
+        }
+    }
+
+
+    public function hospitalCost(Request $request, $id)
+    {
+        $this->checkOwnPermission('admits.edit');
+
+        $admit = Admit::where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+
+        if (!$hospitalCostCategoryId) {
+            return RedirectHelper::routeError($this->index_route, 'Hospital cost category is not configured.');
+        }
+
+        try {
+            $cost = new Cost();
+            $cost->branch_id = auth()->user()->branch_id;
+            $cost->cost_category_id = $hospitalCostCategoryId;
+            $cost->account_details = 'admit_id:' . $admit->id;
+            $cost->payment_type = Cost::$paymentArray[0];
+            $cost->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+            $cost->reason = $request->reason ?: ('Hospital cost for Admit #' . $admit->id);
+            $cost->amount = $request->amount;
+            $cost->save();
+
+            return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'Hospital cost saved successfully.');
         } catch (QueryException $e) {
             return RedirectHelper::backWithInputFromException($e);
         }
