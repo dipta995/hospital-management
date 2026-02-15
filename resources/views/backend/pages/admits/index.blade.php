@@ -48,6 +48,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Patient</th>
+                                        <th>Balance</th>
                                         <th>DR.</th>
                                         <th>Refer.</th>
                                         <th>Father/Spouse</th>
@@ -64,9 +65,14 @@
                                 </thead>
                                 <tbody>
                                     @forelse($datas as $data)
+                                        @php
+                                            $balanceValue = optional(optional($data->user)->customerBalance)->balance ?? 0;
+                                            $balanceClass = $data->release_at ? 'text-primary fw-bold' : 'text-danger fw-bold';
+                                        @endphp
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
+                                            <td class="{{ $balanceClass }}">৳ {{ number_format($balanceValue, 2) }}</td>
                                             <td>{{ $data->drreefer?->name }}</td>
                                             <td>{{ $data->reefer?->name }}</td>
                                             <td>{{ ($data->father_or_spouse) ?? 'N/A' }}</td>

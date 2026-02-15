@@ -46,7 +46,7 @@ class AdmitController extends Controller
         $this->checkOwnPermission('admits.index');
 
         $data['pageHeader'] = $this->pageHeader;
-        $query = Admit::with(['reefer', 'drreefer', 'user'])
+        $query = Admit::with(['reefer', 'drreefer', 'user.customerBalance'])
             ->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC');
 
@@ -242,10 +242,26 @@ class AdmitController extends Controller
             'release_at' => 'required|string',
         ]);
 
-        $admit = Admit::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+        $admit = Admit::with('recepts.receptPayments')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
 
         if ($admit->release_at) {
             return RedirectHelper::routeError($this->index_route, 'Admit already released.');
+        }
+
+        // Calculate current due; do not allow release if any due remains
+        $receipts = $admit->recepts;
+        $totalAmount = $receipts->sum('total_amount');
+        $totalDiscount = $receipts->sum('discount_amount');
+        $netTotal = $totalAmount - $totalDiscount;
+        $totalPaid = $receipts->sum(function ($r) {
+            return $r->receptPayments->sum('paid_amount');
+        });
+        $totalDue = max($netTotal - $totalPaid, 0);
+
+        if ($totalDue > 0) {
+            return RedirectHelper::routeError('admin.admits.release.details', 'Cannot release while due amount remains. Please clear all dues first.');
         }
 
         $admit->release_at = Carbon::parse($request->release_at)->format('Y-m-d H:i:s');

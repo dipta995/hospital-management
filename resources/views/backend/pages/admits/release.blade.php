@@ -111,7 +111,7 @@
                                             Total due for this admit: <strong>{{ number_format($total_due, 2) }}</strong>.
                                             You can give a discount and/or take payment now.
                                         </p>
-                                        <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}">
+                                        <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}" id="pay-due-form">
                                             @csrf
                                             <div class="form-group mb-1">
                                                 <label for="discount_amount">Discount Amount</label>
@@ -144,19 +144,19 @@
                                                 <x-default.input-error name="paid_amount" />
                                             </div>
                                             <small class="text-muted d-block mb-2">System will automatically adjust discount and payment across all unpaid receipts.</small>
-                                            <button type="submit" class="btn btn-success">Apply &amp; Save</button>
+                                            <button type="button" id="pay-due-submit" class="btn btn-success">Apply &amp; Save</button>
                                         </form>
                                     </div>
                                 <div class="col-md-3">
                                     <h5>Release Patient</h5>
-                                    <form method="POST" action="{{ route('admin.admits.release', $admit->id) }}">
+                                    <form method="POST" action="{{ route('admin.admits.release', $admit->id) }}" id="release-form">
                                         @csrf
                                         <div class="form-group mb-2">
-                                            <label for="release_at">Release Date & Time</label>
+                                            <label for="release_at">Release Date &amp; Time</label>
                                             <input type="datetime-local" name="release_at" id="release_at" class="form-control" value="{{ now('Asia/Dhaka')->format('Y-m-d\TH:i') }}">
                                             <x-default.input-error name="release_at" />
                                         </div>
-                                        <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to release this admit? After release, editing and deleting will not be possible.')">Release</button>
+                                        <button type="button" id="release-submit" class="btn btn-warning">Release</button>
                                     </form>
                                 </div>
                             </div>
@@ -278,6 +278,95 @@
 
                                 // Initialize on load so fields are consistent
                                 updatePayFromDiscount();
+                            }
+
+                            // Confirm pay-due in a toast-style popup
+                            const payDueForm = document.getElementById('pay-due-form');
+                            const payDueSubmit = document.getElementById('pay-due-submit');
+
+                            if (payDueForm && payDueSubmit && typeof Swal !== 'undefined') {
+                                payDueSubmit.addEventListener('click', function (e) {
+                                    e.preventDefault();
+
+                                    const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+                                    const payVal = payInput ? (parseFloat(payInput.value) || 0) : 0;
+
+                                    if (discountVal <= 0 && payVal <= 0) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid payment input',
+                                            html: '<p>Please enter a discount and/or pay amount before submitting.</p>',
+                                            confirmButtonText: 'OK',
+                                        });
+                                        return;
+                                    }
+
+                                    const remainingAfterDiscount = Math.max(totalDue - discountVal, 0);
+                                    const dueAfterPayment = Math.max(remainingAfterDiscount - payVal, 0);
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Confirm due payment',
+                                        html: `<div style="text-align:left;font-size:13px;">`
+                                            + `<div><strong>Total due:</strong> ${totalDue.toFixed(2)}</div>`
+                                            + `<div><strong>Discount:</strong> ${discountVal.toFixed(2)}</div>`
+                                            + `<div><strong>Pay amount:</strong> ${payVal.toFixed(2)}</div>`
+                                            + `<div><strong>Due after payment:</strong> ${dueAfterPayment.toFixed(2)}</div>`
+                                            + `</div>`,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Yes, pay now',
+                                        cancelButtonText: 'Cancel',
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            payDueForm.submit();
+                                        }
+                                    });
+                                });
+                            }
+
+                            // Confirm release in a toast-style popup and warn if due remains
+                            const releaseForm = document.getElementById('release-form');
+                            const releaseSubmit = document.getElementById('release-submit');
+
+                            if (releaseForm && releaseSubmit && typeof Swal !== 'undefined') {
+                                releaseSubmit.addEventListener('click', function (e) {
+                                    e.preventDefault();
+
+                                    if (totalDue > 0) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Cannot release patient',
+                                            html: `<div style="text-align:left;font-size:13px;">`
+                                                + `<div>There is still due remaining for this admit.</div>`
+                                                + `<div><strong>Current due:</strong> ${totalDue.toFixed(2)}</div>`
+                                                + `<div>Please clear all dues from the release payment section before releasing.</div>`
+                                                + `</div>`,
+                                            confirmButtonText: 'OK',
+                                        });
+                                        return;
+                                    }
+
+                                    const releaseAtInput = document.getElementById('release_at');
+                                    const releaseTime = releaseAtInput && releaseAtInput.value
+                                        ? releaseAtInput.value.replace('T', ' ')
+                                        : 'now';
+
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Confirm patient release',
+                                        html: `<div style="text-align:left;font-size:13px;">`
+                                            + `<div>After release, editing and deleting this admit will not be possible.</div>`
+                                            + `<div><strong>Release time:</strong> ${releaseTime}</div>`
+                                            + `</div>`,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Yes, release',
+                                        cancelButtonText: 'Cancel',
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            releaseForm.submit();
+                                        }
+                                    });
+                                });
                             }
                         });
                     </script>

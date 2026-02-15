@@ -34,12 +34,7 @@
                                 </form>
                             </div>
                             <div class="col-md-4 text-end">
-                                <div class="border rounded p-2 bg-light">
-                                    <div><strong>Total Amount:</strong> {{ number_format($total_amount ?? 0, 2) }}</div>
-                                    <div><strong>Total Discount:</strong> {{ number_format($total_discount ?? 0, 2) }}</div>
-                                    <div><strong>Total Collection:</strong> {{ number_format($total_paid ?? 0, 2) }}</div>
-                                </div>
-                                <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-primary mt-2">
+                                <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-primary mt-4">
                                     <i class="fas fa-users"></i> Go to Patient List
                                 </a>
                             </div>
