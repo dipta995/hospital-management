@@ -85,10 +85,9 @@
                                                 @foreach($group['data'] as $index => $item)
                                                     <tr>
                                                         <td>{{ $index + 1 }}
-                                                            @foreach($invoice->services?? [] as $pr)
+                                                            @foreach($invoice->receptList ?? [] as $pr)
                                                                 {{ $pr->service->name }}
                                                             @endforeach
-
                                                         </td>
                                                         <td>{{ ($invoice->total_amount ?? 0) + ($invoice->discount_amount ?? 0) }}</td>
                                                         <td>{{ $invoice->discount_amount ?? 0 }}</td>

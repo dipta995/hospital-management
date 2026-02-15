@@ -160,14 +160,16 @@ class ReportController extends Controller
 
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
-        // Query payments linked to invoices of the same branch
-        $query = ReceptPayment::with(['recept.receptList'])
+        // Query payments linked to admitted patients (release payments) of the same branch
+        $query = ReceptPayment::with(['recept.receptList', 'recept.admit.drreefer', 'recept.admit.reefer'])
             ->whereHas('recept', function ($q) {
-                $q->where('branch_id', auth()->user()->branch_id);
+                $q->where('branch_id', auth()->user()->branch_id)
+                    ->whereNotNull('admit_id');
             });
 
-        // Query invoices for accurate total calculations
-        $invQuery = Recept::where('branch_id', auth()->user()->branch_id);
+        // Query admitted receipts for accurate total calculations
+        $invQuery = Recept::where('branch_id', auth()->user()->branch_id)
+            ->whereNotNull('admit_id');
 
         // Apply date filters
         if (!$request->filled('start_date') && !$request->filled('end_date')) {
@@ -206,7 +208,7 @@ class ReportController extends Controller
             $dataPaginator = $dataPaginator->paginate(2000);
         }
 
-        // Group payments by DATE and INVOICE to avoid duplicate invoice totals
+        // Group payments by DATE and RECEIPT to avoid duplicate receipt totals
         $groupedDatas = collect($dataPaginator instanceof \Illuminate\Pagination\LengthAwarePaginator
             ? $dataPaginator->items()
             : $dataPaginator
