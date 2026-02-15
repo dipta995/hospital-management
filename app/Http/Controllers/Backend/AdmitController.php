@@ -350,16 +350,37 @@ class AdmitController extends Controller
         $totalDue = max($netTotal - $totalPaid, 0);
 
         if ($totalDue <= 0) {
-            return RedirectHelper::routeError($this->index_route, 'No due amount to pay for this admit.');
+            return RedirectHelper::routeError($this->index_route, 'No due amount to settle for this admit.');
         }
 
         $request->validate([
-            'paid_amount' => 'required|numeric|min:0.01',
+            'paid_amount'     => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $remaining = min($request->paid_amount, $totalDue);
+        $paidAmount = (float) ($request->input('paid_amount') ?? 0);
+        $discountAmount = (float) ($request->input('discount_amount') ?? 0);
+
+        if ($paidAmount <= 0 && $discountAmount <= 0) {
+            return RedirectHelper::routeError($this->index_route, 'Please enter a discount and/or payment amount.');
+        }
+
+        // Cap discount so it cannot exceed total due
+        $discountToApply = min($discountAmount, $totalDue);
+
+        // Ensure combined discount + payment does not exceed total due
+        if ($paidAmount + $discountToApply > $totalDue + 0.0001) {
+            return RedirectHelper::routeError($this->index_route, 'Combined discount and payment cannot exceed total due.');
+        }
+
+        // 1) Apply discount across receipts (oldest first)
+        $remainingDiscount = $discountToApply;
 
         foreach ($receipts->sortBy('id') as $recept) {
+            if ($remainingDiscount <= 0) {
+                break;
+            }
+
             $net = $recept->total_amount - $recept->discount_amount;
             $paid = $recept->receptPayments->sum('paid_amount');
             $due = $net - $paid;
@@ -368,29 +389,55 @@ class AdmitController extends Controller
                 continue;
             }
 
-            $payNow = min($remaining, $due);
+            $discountNow = min($remainingDiscount, $due);
 
-            if ($payNow > 0) {
-                ReceptPayment::create([
-                    'recept_id'     => $recept->id,
-                    'branch_id'     => auth()->user()->branch_id,
-                    'admin_id'      => auth()->id(),
-                    'paid_amount'   => $payNow,
-                    'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
-                ]);
+            if ($discountNow > 0) {
+                $recept->discount_amount += $discountNow;
+                $recept->save();
+                $remainingDiscount -= $discountNow;
+            }
+        }
 
-                $remaining -= $payNow;
+        // Remaining due after discount
+        $remainingDueForPayment = $totalDue - $discountToApply;
 
-                if ($remaining <= 0) {
-                    break;
+        // 2) Apply payment across receipts (if any), re-checking dues after discount
+        $remainingPayment = min($paidAmount, $remainingDueForPayment);
+
+        if ($remainingPayment > 0) {
+            foreach ($receipts->sortBy('id') as $recept) {
+                $net = $recept->total_amount - $recept->discount_amount;
+                $paid = $recept->receptPayments->sum('paid_amount');
+                $due = $net - $paid;
+
+                if ($due <= 0) {
+                    continue;
+                }
+
+                $payNow = min($remainingPayment, $due);
+
+                if ($payNow > 0) {
+                    ReceptPayment::create([
+                        'recept_id'     => $recept->id,
+                        'branch_id'     => auth()->user()->branch_id,
+                        'admin_id'      => auth()->id(),
+                        'paid_amount'   => $payNow,
+                        'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
+                    ]);
+
+                    $remainingPayment -= $payNow;
+
+                    if ($remainingPayment <= 0) {
+                        break;
+                    }
                 }
             }
         }
 
         // Flash a plain message for JS toast
-        session()->flash('toast_message', 'Due paid successfully.');
+        session()->flash('toast_message', 'Release payment & discount applied successfully.');
 
-        return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'Due paid successfully.');
+        return RedirectHelper::routeSuccessWithSubParam('admin.admits.release.details', $admit->id, 'Release payment & discount applied successfully.');
     }
 
 

@@ -106,32 +106,47 @@
                         @if(!$admit->release_at)
                             <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <h5>Pay Due (Global)</h5>
-                                    <p class="text-muted mb-2">
-                                        Total due for this admit: <strong>{{ number_format($total_due, 2) }}</strong>.
-                                        To clear all dues, pay this full amount.
-                                    </p>
-                                    <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}">
-                                        @csrf
-                                        <div class="form-group mb-1">
-                                            <label for="paid_amount">Pay Amount</label>
-                                            <input
-                                                type="number"
-                                                name="paid_amount"
-                                                id="paid_amount"
-                                                step="0.01"
-                                                min="0"
-                                                max="{{ $total_due }}"
-                                                class="form-control"
-                                                value="{{ old('paid_amount', $total_due) }}"
-                                                placeholder="e.g. {{ number_format($total_due, 2) }}"
-                                            >
-                                            <x-default.input-error name="paid_amount" />
-                                        </div>
-                                        <small class="text-muted d-block mb-2">System will automatically adjust this payment across all unpaid receipts.</small>
-                                        <button type="submit" class="btn btn-success">Pay Due</button>
-                                    </form>
-                                </div>
+                                        <h5>Release Payment (Global)</h5>
+                                        <p class="text-muted mb-2">
+                                            Total due for this admit: <strong>{{ number_format($total_due, 2) }}</strong>.
+                                            You can give a discount and/or take payment now.
+                                        </p>
+                                        <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}">
+                                            @csrf
+                                            <div class="form-group mb-1">
+                                                <label for="discount_amount">Discount Amount</label>
+                                                <input
+                                                    type="number"
+                                                    name="discount_amount"
+                                                    id="discount_amount"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="{{ $total_due }}"
+                                                    class="form-control"
+                                                    value="{{ old('discount_amount', 0) }}"
+                                                    placeholder="e.g. 0.00"
+                                                >
+                                                <x-default.input-error name="discount_amount" />
+                                            </div>
+                                            <div class="form-group mb-1 mt-2">
+                                                <label for="paid_amount">Pay Amount</label>
+                                                <input
+                                                    type="number"
+                                                    name="paid_amount"
+                                                    id="paid_amount"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="{{ $total_due }}"
+                                                    class="form-control"
+                                                    value="{{ old('paid_amount', $total_due) }}"
+                                                    placeholder="e.g. {{ number_format($total_due, 2) }}"
+                                                >
+                                                <x-default.input-error name="paid_amount" />
+                                            </div>
+                                            <small class="text-muted d-block mb-2">System will automatically adjust discount and payment across all unpaid receipts.</small>
+                                            <button type="submit" class="btn btn-success">Apply &amp; Save</button>
+                                        </form>
+                                    </div>
                                 <div class="col-md-3">
                                     <h5>Release Patient</h5>
                                     <form method="POST" action="{{ route('admin.admits.release', $admit->id) }}">
@@ -238,6 +253,32 @@
                                 timerProgressBar: true,
                             });
                             @endif
+
+                            // Auto adjust pay amount when discount changes
+                            const totalDue = {{ $total_due }};
+                            const discountInput = document.getElementById('discount_amount');
+                            const payInput = document.getElementById('paid_amount');
+
+                            if (discountInput && payInput) {
+                                const updatePayFromDiscount = () => {
+                                    let discount = parseFloat(discountInput.value) || 0;
+                                    if (discount < 0) discount = 0;
+                                    if (discount > totalDue) discount = totalDue;
+
+                                    const remaining = Math.max(totalDue - discount, 0);
+
+                                    // Set max pay = remaining due after discount
+                                    payInput.max = remaining.toFixed(2);
+
+                                    // Always set pay amount to remaining (auto adjust)
+                                    payInput.value = remaining.toFixed(2);
+                                };
+
+                                discountInput.addEventListener('input', updatePayFromDiscount);
+
+                                // Initialize on load so fields are consistent
+                                updatePayFromDiscount();
+                            }
                         });
                     </script>
                     @endpush
