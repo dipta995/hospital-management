@@ -171,46 +171,36 @@
 
                                         </tr>
 
-                                        <!-- Discount Choose section -->
-                                        <tr>
-                                            <td colspan="2"><strong>Discount Choose</strong></td>
-                                            <td colspan="3">
-                                                <label><input type="radio" id="discount-choose" name="discount-type" value="percent"> Percent(%)</label>
-                                                <label><input type="radio" id="discount-choose" name="discount-type" value="taka"> TK </label>
-                                            </td>
-                                        </tr>
+                                        @if(!request('admitId'))
+                                            <!-- Discount Choose section (OPD only) -->
+                                            <tr>
+                                                <td colspan="2"><strong>Discount Choose</strong></td>
+                                                <td colspan="3">
+                                                    <label><input type="radio" id="discount-choose" name="discount-type" value="percent"> Percent(%)</label>
+                                                    <label><input type="radio" id="discount-choose" name="discount-type" value="taka"> TK </label>
+                                                </td>
+                                            </tr>
 
-                                        <!-- Discount Percentage Section -->
-                                        <tr id="discount-percent-row">
-                                            <td colspan="2"><strong>Discount (%)</strong></td>
-                                            <td><input type="number" id="discount-percent" class="form-control" value="0"></td>
-                                            <td colspan="2"><strong>Discount Amount:</strong> <span id="discount-amount">0</span></td>
-                                        </tr>
+                                            <!-- Discount Percentage Section -->
+                                            <tr id="discount-percent-row">
+                                                <td colspan="2"><strong>Discount (%)</strong></td>
+                                                <td><input type="number" id="discount-percent" class="form-control" value="0"></td>
+                                                <td colspan="2"><strong>Discount Amount:</strong> <span id="discount-amount">0</span></td>
+                                            </tr>
 
-                                        <!-- Discount Taka Section -->
-                                        <tr id="discount-taka-row" style="display: none;">
-                                            <td colspan="2"><strong>Discount (TK)</strong></td>
-                                            <td><input type="number" id="discount-taka" class="form-control" value="0"></td>
-                                            <td colspan="2"><strong>Discount Amount:</strong> <span id="discount-amount-taka">0</span></td>
-                                        </tr>
+                                            <!-- Discount Taka Section -->
+                                            <tr id="discount-taka-row" style="display: none;">
+                                                <td colspan="2"><strong>Discount (TK)</strong></td>
+                                                <td><input type="number" id="discount-taka" class="form-control" value="0"></td>
+                                                <td colspan="2"><strong>Discount Amount:</strong> <span id="discount-amount-taka">0</span></td>
+                                            </tr>
 
-                                        <!-- Discount By Section -->
-                                        <tr>
-                                            <td colspan="2"><strong>Discount By:</strong></td>
-                                            <td colspan="3"><input type="text" name="discount_by" value="{{ auth()->user()->name }}" id="discount-by" class="form-control"></td>
-                                        </tr>
-
-                                        <!-- Paid Amount Section -->
-                                        <tr>
-                                            <td colspan="2"><strong>Paid</strong></td>
-                                            <td colspan="3"><input type="number" id="paid-amount" class="form-control"></td>
-                                        </tr>
-
-                                        <!-- Due Amount Section -->
-                                        <tr>
-                                            <td colspan="2"><strong>Due</strong></td>
-                                            <td id="due-amount" colspan="3">0</td>
-                                        </tr>
+                                            <!-- Discount By Section -->
+                                            <tr>
+                                                <td colspan="2"><strong>Discount By:</strong></td>
+                                                <td colspan="3"><input type="text" name="discount_by" value="{{ auth()->user()->name }}" id="discount-by" class="form-control"></td>
+                                            </tr>
+                                        @endif
 
                                         <!-- Final Amount Section -->
                                         <tr>
@@ -357,18 +347,15 @@
                 let subtotal = selectedRecepts.reduce((sum, s) => sum + s.price, 0);
                 const discountPercent = parseFloat($("#discount-percent").val()) || 0;
                 const discountTaka = parseFloat($("#discount-taka").val()) || 0;
-                const paidAmount = parseFloat($("#paid-amount").val()) || 0;
 
                 let discount = discountTaka > 0 ? discountTaka : (subtotal * discountPercent / 100);
                 let final = subtotal - discount; // net after discount
-                let due = final - paidAmount;
 
                 $("#discount-amount").text(discount.toFixed(2));
                 $("#final-amount").text(final.toFixed(2));
-                $("#due-amount").text(due.toFixed(2));
             }
 
-            $("#discount-percent, #discount-taka, #paid-amount").on("input", updateSummary);
+            $("#discount-percent, #discount-taka").on("input", updateSummary);
 
             $(document).on("click", ".remove-service", function () {
                 const index = $(this).data("index");
@@ -387,7 +374,7 @@
                     discount_by: "admin"
                 };
                 const paymentDetails = {
-                    paid_amount: parseFloat($("#paid-amount").val()) || 0,
+                    paid_amount: 0,
                     discount_amount: parseFloat($("#discount-amount").text()) || 0,
                     // store main cost (before discount) in total_amount so that
                     // total_amount - discount_amount equals net bill

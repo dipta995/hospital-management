@@ -161,14 +161,17 @@ class ReceptController extends Controller
                 ]);
             }
 
-            // 3️⃣ Create Payment entry
-            $duePaid = new ReceptPayment();
-            $duePaid->paid_amount = $request['paymentDetails']['paid_amount'];
-            $duePaid->recept_id = $row->id;
-            $duePaid->branch_id = auth()->user()->branch_id;
-            $duePaid->admin_id = auth()->id();
-            $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-            $duePaid->save();
+            // 3️⃣ Create Payment entry (only when an upfront amount is provided)
+            $initialPaid = $request['paymentDetails']['paid_amount'] ?? 0;
+            if ($initialPaid > 0) {
+                $duePaid = new ReceptPayment();
+                $duePaid->paid_amount = $initialPaid;
+                $duePaid->recept_id = $row->id;
+                $duePaid->branch_id = auth()->user()->branch_id;
+                $duePaid->admin_id = auth()->id();
+                $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+                $duePaid->save();
+            }
 
             // Optionally record advance balance if provided (customer balance top-up)
             $advanceBalance = $request->input('paymentDetails.advance_balance');
@@ -273,16 +276,19 @@ class ReceptController extends Controller
                 ]);
             }
 
-            // Rebuild payments (single payment record like create)
+            // Rebuild payments (single payment record like create) only if a positive upfront payment is provided
             ReceptPayment::where('recept_id', $recept->id)->delete();
 
-            $duePaid = new ReceptPayment();
-            $duePaid->paid_amount = $paymentDetails['paid_amount'] ?? 0;
-            $duePaid->recept_id = $recept->id;
-            $duePaid->branch_id = auth()->user()->branch_id;
-            $duePaid->admin_id = auth()->id();
-            $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-            $duePaid->save();
+            $initialPaid = $paymentDetails['paid_amount'] ?? 0;
+            if ($initialPaid > 0) {
+                $duePaid = new ReceptPayment();
+                $duePaid->paid_amount = $initialPaid;
+                $duePaid->recept_id = $recept->id;
+                $duePaid->branch_id = auth()->user()->branch_id;
+                $duePaid->admin_id = auth()->id();
+                $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
+                $duePaid->save();
+            }
 
             DB::commit();
 
