@@ -62,7 +62,14 @@
 
                         <div class="row mb-4">
                             <div class="col-md-12">
-                                <h5>Receipts List</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">Receipts List</h5>
+                                    @if(!$admit->release_at)
+                                        <a href="{{ route('admin.recepts.create').'?admitId='.$admit->id .'&for='.$admit->user_id }}" class="btn btn-sm btn-info text-white">
+                                            <i class="fas fa-file-invoice-dollar"></i> Create Receipt
+                                        </a>
+                                    @endif
+                                </div>
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover align-middle">
                                         <thead>
