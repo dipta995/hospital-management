@@ -343,14 +343,22 @@ class AdmitController extends Controller
 
         $totalDue = max($netTotal - $totalPaid, 0);
 
-        // Existing hospital costs for this admit (summary)
+        // Existing hospital costs for this admit (summary + list)
         $hospitalCostTotal = 0;
+        $hospitalCostLastReason = null;
+        $hospitalCosts = collect();
         $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
         if ($hospitalCostCategoryId) {
-            $hospitalCostTotal = Cost::where('branch_id', auth()->user()->branch_id)
+            $hospitalCostsQuery = Cost::where('branch_id', auth()->user()->branch_id)
                 ->where('cost_category_id', $hospitalCostCategoryId)
-                ->where('account_details', 'admit_id:' . $admit->id)
-                ->sum('amount');
+                ->where('account_details', 'admit_id:' . $admit->id);
+
+            $hospitalCostTotal = (clone $hospitalCostsQuery)->sum('amount');
+            $lastHospitalCost = (clone $hospitalCostsQuery)->latest('id')->first();
+            $hospitalCostLastReason = optional($lastHospitalCost)->reason;
+
+            // Fetch all hospital costs for this admit, latest first, to show individually in UI
+            $hospitalCosts = $hospitalCostsQuery->orderByDesc('id')->get();
         }
 
         // Existing PC payment for this admit (if any)
@@ -373,6 +381,8 @@ class AdmitController extends Controller
             'total_paid'    => $totalPaid,
             'total_due'     => $totalDue,
             'hospital_cost_total' => $hospitalCostTotal,
+            'hospital_cost_last_reason' => $hospitalCostLastReason,
+            'hospital_costs' => $hospitalCosts,
             'pcPayment'     => $pcPayment,
         ]);
     }
