@@ -337,11 +337,16 @@ class AdmitController extends Controller
         $netTotal = $totalAmount - $totalDiscount;
 
         // All payments for this admit (including advances), regardless of receipt
-        $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+        $rawTotalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
             ->where('admit_id', $admit->id)
             ->sum('paid_amount');
 
-        $totalDue = max($netTotal - $totalPaid, 0);
+        // For display, never show Total Paid more than Net Amount;
+        // any overpayment behaves like an internal advance/refund and is not highlighted here.
+        $totalPaid = min($rawTotalPaid, $netTotal);
+
+        // Due cannot go below zero in the UI; it reflects how much of Net is still unpaid
+        $totalDue = max($netTotal - $rawTotalPaid, 0);
 
         // Existing hospital costs for this admit (summary + list)
         $hospitalCostTotal = 0;
@@ -402,11 +407,14 @@ class AdmitController extends Controller
         $totalDiscount = $receipts->sum('discount_amount');
         $netTotal = $totalAmount - $totalDiscount;
 
-        $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+        $rawTotalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
             ->where('admit_id', $admit->id)
             ->sum('paid_amount');
 
-        $totalDue = max($netTotal - $totalPaid, 0);
+        // Mirror the on-screen logic: cap displayed paid at net amount
+        $totalPaid = min($rawTotalPaid, $netTotal);
+
+        $totalDue = max($netTotal - $rawTotalPaid, 0);
 
         return view('backend.pages.admits.release-print', [
             'admit'         => $admit,
@@ -448,20 +456,29 @@ class AdmitController extends Controller
         $request->validate([
             'paid_amount'     => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
+            'creation_date'   => 'nullable|date_format:Y-m-d',
         ]);
 
         $paidAmount = (float) ($request->input('paid_amount') ?? 0);
         $discountAmount = (float) ($request->input('discount_amount') ?? 0);
+        $creationDate = $request->input('creation_date') ?: Carbon::now('Asia/Dhaka')->format('Y-m-d');
 
         if ($paidAmount <= 0 && $discountAmount <= 0) {
             return RedirectHelper::routeError($this->index_route, 'Please enter a discount and/or payment amount.');
         }
 
-        // Cap discount so it cannot exceed total due
-        $discountToApply = min($discountAmount, $totalDue);
+        // Determine how much discount to apply
+        $isDiscountOnlyAfterPaid = ($totalDue <= 0 && $paidAmount == 0 && $discountAmount > 0);
 
-        if ($totalDue <= 0 && $discountToApply > 0) {
-            return RedirectHelper::routeError($this->index_route, 'No due amount to apply discount.');
+        if ($totalDue > 0) {
+            // When there is due, cap discount so it cannot exceed total due
+            $discountToApply = min($discountAmount, $totalDue);
+        } else {
+            // When there is no due, allow discount-only adjustments (no additional payment)
+            if ($paidAmount > 0 && $discountAmount > 0) {
+                return RedirectHelper::routeError($this->index_route, 'Cannot apply both discount and payment when no due remains.');
+            }
+            $discountToApply = max($discountAmount, 0);
         }
 
         // 1) Apply discount across receipts (oldest first)
@@ -474,13 +491,17 @@ class AdmitController extends Controller
 
             $net = $recept->total_amount - $recept->discount_amount;
             $paid = $recept->receptPayments->sum('paid_amount');
-            $due = $net - $paid;
+            // When adjusting after full payment, allow discount up to remaining net;
+            // otherwise only discount up to the remaining due on this receipt.
+            $availableForDiscount = $isDiscountOnlyAfterPaid
+                ? max($net, 0)
+                : max($net - $paid, 0);
 
-            if ($due <= 0) {
+            if ($availableForDiscount <= 0) {
                 continue;
             }
 
-            $discountNow = min($remainingDiscount, $due);
+            $discountNow = min($remainingDiscount, $availableForDiscount);
 
             if ($discountNow > 0) {
                 $recept->discount_amount += $discountNow;
@@ -515,7 +536,7 @@ class AdmitController extends Controller
                         'branch_id'     => auth()->user()->branch_id,
                         'admin_id'      => auth()->id(),
                         'paid_amount'   => $payNow,
-                        'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
+                        'creation_date' => $creationDate,
                     ]);
 
                     $remainingPayment -= $payNow;
@@ -536,7 +557,7 @@ class AdmitController extends Controller
                 'branch_id'     => auth()->user()->branch_id,
                 'admin_id'      => auth()->id(),
                 'paid_amount'   => $remainingPayment,
-                'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
+                'creation_date' => $creationDate,
             ]);
         }
 

@@ -67,41 +67,25 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Patient</th>
-                                        <th>Balance</th>
                                         <th>DR.</th>
                                         <th>Refer.</th>
                                         <th>Father/Spouse</th>
-                                        {{-- <th>DR.</th> --}}
                                         <th>Bed/Cabin</th>
                                         <th>Admit Date</th>
-                                        <th>Received By</th>
-                                        <th>Diagnosis</th>
-                                        <th>Note</th>
-                                        <th>bed     </th>
                                         <th>Release</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse($datas as $data)
-                                        @php
-                                            $balanceValue = optional(optional($data->user)->customerBalance)->balance ?? 0;
-                                            $balanceClass = $data->release_at ? 'text-primary fw-bold' : 'text-danger fw-bold';
-                                        @endphp
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
                                             <td>{{ optional($data->user)->name ?? 'Unknown' }}</td>
-                                            <td class="{{ $balanceClass }}">৳ {{ number_format($balanceValue, 2) }}</td>
                                             <td>{{ $data->drreefer?->name }}</td>
                                             <td>{{ $data->reefer?->name }}</td>
                                             <td>{{ ($data->father_or_spouse) ?? 'N/A' }}</td>
                                             <td>{{ ($data->bed_or_cabin) ?? 'N/A' }}</td>
                                             <td>{{ $data->admit_at ?? 'N/A' }}</td>
-                                            <td>{{ $data->clinical_diagnosis ?? 'N/A' }}</td>
-                                             <td>{{ $data->received_by ?? 'N/A' }}</td>
-                                            {{-- <td>{{ $data->reefer?->name ?? 'N/A' }}</td> --}}
-                                            <td>{{ $data->bed_cabin ?? 'N/A' }}</td>
-                                            <td>{{ $data->note ?? 'N/A'}}</td>
                                             <td>
                                                 @if(!$data->release_at)
                                                     <a href="{{ route('admin.admits.release.details', $data->id) }}" class="btn btn-sm btn-warning">
@@ -142,7 +126,7 @@
                                         </tr>
                                     @empty
                                         <tr class="bg-white">
-                                            <td colspan="7" class="text-center">No admits found</td>
+                                            <td colspan="9" class="text-center">No admits found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

@@ -100,31 +100,30 @@
                                                 <th>#</th>
                                                 <th>Date</th>
                                                 <th>Total</th>
-                                                <th>Discount</th>
-                                                <th>Net</th>
-                                                <th>Paid</th>
-                                                <th>Due</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @forelse($receipts as $recept)
-                                                @php
-                                                    $net = $recept->total_amount - $recept->discount_amount;
-                                                    $paid = $recept->receptPayments->sum('paid_amount');
-                                                    $due = max($net - $paid, 0);
-                                                @endphp
                                                 <tr>
                                                     <td>{{ $loop->iteration }}</td>
                                                     <td>{{ $recept->created_date }}</td>
                                                     <td>{{ number_format($recept->total_amount, 2) }}</td>
-                                                    <td>{{ number_format($recept->discount_amount, 2) }}</td>
-                                                    <td>{{ number_format($net, 2) }}</td>
-                                                    <td>{{ number_format($paid, 2) }}</td>
-                                                    <td>{{ number_format($due, 2) }}</td>
+                                                    <td>
+                                                        <a target="_blank"
+                                                           href="{{ route('admin.recepts.pdf-preview',$recept->id) }}"
+                                                           class="badge bg-danger"><i class="fas fa-file-pdf"></i></a>
+                                                        <br>
+                                                        @if(!$admit->release_at)
+                                                            <a href="{{ route('admin.recepts.edit', $recept->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
+                                                            <a href="javascript:void(0)" class="badge bg-danger mt-1"
+                                                               onclick="dataDelete({{ $recept->id }}, '{{ url('admin/recepts') }}')"><i class="fas fa-trash"></i></a>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="7" class="text-center">No receipts found for this admit.</td>
+                                                    <td colspan="4" class="text-center">No receipts found for this admit.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -145,7 +144,17 @@
                                         <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}" id="pay-due-form">
                                             @csrf
                                             <div class="row g-3">
-                                                <div class="col-md-6">
+                                                <div class="col-md-4">
+                                                    <label for="creation_date" class="form-label mb-1">Creation Date</label>
+                                                    <input
+                                                        type="date"
+                                                        name="creation_date"
+                                                        id="creation_date"
+                                                        class="form-control form-control-sm"
+                                                        value="{{ old('creation_date', now('Asia/Dhaka')->format('Y-m-d')) }}"
+                                                    >
+                                                </div>
+                                                <div class="col-md-4">
                                                     <label for="discount_amount" class="form-label mb-1">Discount Amount</label>
                                                     <input
                                                         type="number"
@@ -153,14 +162,13 @@
                                                         id="discount_amount"
                                                         step="0.01"
                                                         min="0"
-                                                        max="{{ $total_due }}"
                                                         class="form-control form-control-sm"
                                                         value="{{ old('discount_amount', 0) }}"
                                                         placeholder="0.00"
                                                     >
                                                     <x-default.input-error name="discount_amount" />
                                                 </div>
-                                                <div class="col-md-6">
+                                                <div class="col-md-4">
                                                     <label for="paid_amount" class="form-label mb-1">Pay Amount</label>
                                                     <input
                                                         type="number"
@@ -404,12 +412,12 @@
                             });
                             @endif
 
-                            // Auto adjust pay amount when discount changes
+                            // Auto adjust pay amount when discount changes (only when there is due)
                             const totalDue = {{ $total_due }};
                             const discountInput = document.getElementById('discount_amount');
                             const payInput = document.getElementById('paid_amount');
 
-                            if (discountInput && payInput) {
+                            if (discountInput && payInput && totalDue > 0) {
                                 const updatePayFromDiscount = () => {
                                     let discount = parseFloat(discountInput.value) || 0;
                                     if (discount < 0) discount = 0;
@@ -519,6 +527,18 @@
                                 });
                             }
                         });
+
+                        // Generic delete helper for receipts from this page
+                        function dataDelete(id, base_url) {
+                            if (confirm('Are you sure you want to delete this receipt?')) {
+                                let form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = base_url + '/' + id;
+                                form.innerHTML = '@csrf @method("DELETE")';
+                                document.body.appendChild(form);
+                                form.submit();
+                            }
+                        }
                     </script>
                     @endpush
 @endsection
