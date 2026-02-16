@@ -145,11 +145,6 @@
     $net = $total - $discount;
     $due = $net - $paid;
 @endphp
-@if($due > 0)
-    <div class="watermark-due">DUE</div>
-@else
-    <div class="watermark-paid">PAID</div>
-@endif
 <button onclick="window.print()" class="btn btn-primary no-print" style="background-color: #00a5bb; color: white;">🖨️ Print
 </button>
     <style>
@@ -235,28 +230,11 @@
     </tbody>
 </table>
 <div style="margin-top: 15px; width: 100%; overflow: hidden;">
-    <div style="width: 120px; float: left; text-align: center; padding-top: 10px;">
-        <span class="badge-status">
-            @if($due > 0) DUE @else PAID @endif
-        </span>
-    </div>
-    <div style="width: 280px; float: right;">
+    <div style="width: 280px; float: right; margin-left: auto;">
         <table class="details" style="margin-bottom: 4px;">
             <tr>
                 <th style="text-align: right; width: 50%;">Sub Total</th>
                 <td style="text-align: right; width: 50%;">{{ number_format($total, 2) }}</td>
-            </tr>
-            <tr>
-                <th style="text-align: right;">Less [-]</th>
-                <td style="text-align: right;">{{ number_format($discount, 2) }}</td>
-            </tr>
-            <tr>
-                <th style="text-align: right;">Received Amount</th>
-                <td style="text-align: right;">{{ number_format($paid, 2) }}</td>
-            </tr>
-            <tr>
-                <th style="text-align: right;">Due</th>
-                <td style="text-align: right;">{{ number_format($due, 2) }}</td>
             </tr>
         </table>
     </div>

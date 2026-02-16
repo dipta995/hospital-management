@@ -137,6 +137,25 @@ class RedirectHelper
   }
 
   /**
+   * Redirect to a named route that requires a single parameter, with an error message.
+   *
+   * @param $route
+   * @param $param
+   * @param string $message
+   * @return \Illuminate\Http\RedirectResponse
+   */
+  public static function routeErrorWithSubParam($route, $param, string $message = '<strong>Sorry!!!</strong>'): \Illuminate\Http\RedirectResponse
+  {
+    $status = '<div class="alert alert-danger alert-dismissible show" role="alert">
+                ' . $message . '
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+              </div>';
+    return redirect()->route($route, $param)->with('status', $status);
+  }
+
+  /**
    * @param $route
    * @param string $message
    * @return \Illuminate\Http\RedirectResponse

@@ -161,17 +161,7 @@ class ReceptController extends Controller
                 ]);
             }
 
-            // 3️⃣ Create Payment entry (only when an upfront amount is provided)
-            $initialPaid = $request['paymentDetails']['paid_amount'] ?? 0;
-            if ($initialPaid > 0) {
-                $duePaid = new ReceptPayment();
-                $duePaid->paid_amount = $initialPaid;
-                $duePaid->recept_id = $row->id;
-                $duePaid->branch_id = auth()->user()->branch_id;
-                $duePaid->admin_id = auth()->id();
-                $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-                $duePaid->save();
-            }
+            // 3️⃣ Payment entries are now tracked by admit only (no per-receipt payments)
 
             // Optionally record advance balance if provided (customer balance top-up)
             $advanceBalance = $request->input('paymentDetails.advance_balance');
@@ -276,78 +266,12 @@ class ReceptController extends Controller
                 ]);
             }
 
-            // Rebuild payments (single payment record like create) only if a positive upfront payment is provided
-            ReceptPayment::where('recept_id', $recept->id)->delete();
-
-            $initialPaid = $paymentDetails['paid_amount'] ?? 0;
-            if ($initialPaid > 0) {
-                $duePaid = new ReceptPayment();
-                $duePaid->paid_amount = $initialPaid;
-                $duePaid->recept_id = $recept->id;
-                $duePaid->branch_id = auth()->user()->branch_id;
-                $duePaid->admin_id = auth()->id();
-                $duePaid->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-                $duePaid->save();
-            }
-
-            DB::commit();
-
-            return response()->json(['status' => 200, 'message' => 'Recept updated successfully.']);
-        } catch (QueryException $e) {
-            DB::rollBack();
-            return response()->json(['status' => 500, 'message' => $e->getMessage()]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['status' => 500, 'message' => $e->getMessage()]);
-        }
-    }
-
-    public function pay(Request $request, $id)
-    {
-        $this->checkOwnPermission('recepts.edit');
-
-        $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'pay_from_balance' => 'nullable|boolean',
+            // Payments are now tracked only at admit level; no per-receipt payment rebuild
+        // Per-receipt payments are no longer supported; use admit-level payment on release page instead
+        return response()->json([
+            'status' => 422,
+            'message' => 'Per-receipt payments are disabled. Please use admit release payment.',
         ]);
-
-        DB::beginTransaction();
-
-        try {
-            $recept = Recept::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
-
-            $total = $recept->total_amount ?? 0;
-            $discount = $recept->discount_amount ?? 0;
-            $paid = $recept->receptPayments->sum('paid_amount');
-            $net = $total - $discount;
-            $due = $net - $paid;
-
-            $amount = min($request->amount, $due);
-
-            if ($amount <= 0) {
-                return response()->json(['status' => 422, 'message' => 'Nothing due to pay.']);
-            }
-
-            $fromBalance = $request->boolean('pay_from_balance');
-
-            if ($fromBalance) {
-                $balance = CustomerBalance::firstOrNew([
-                    'user_id' => $recept->user_id,
-                    'branch_id' => $recept->branch_id,
-                ]);
-
-                if (($balance->balance ?? 0) < $amount) {
-                    return response()->json(['status' => 422, 'message' => 'Insufficient balance.']);
-                }
-
-                $balance->balance -= $amount;
-                $balance->save();
-            }
-
-            $payment = new ReceptPayment();
-            $payment->recept_id = $recept->id;
-            $payment->branch_id = $recept->branch_id;
-            $payment->admin_id = auth()->id();
             $payment->paid_amount = $amount;
             $payment->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
             $payment->save();
@@ -376,15 +300,24 @@ class ReceptController extends Controller
     public function destroy($id)
     {
         $this->checkOwnPermission('recepts.delete');
-        $deleteData = Recept::where('branch_id', auth()->user()->branch_id)->find($id);
+        $deleteData = Recept::where('branch_id', auth()->user()->branch_id)
+            ->with('admit')
+            ->find($id);
 
-        if (!is_null($deleteData)) {
-            if ($deleteData->delete()) {
-                return response()->json(['status' => 200]);
-            } else {
-                return response()->json(['status' => 422]);
-            }
+        if (!$deleteData) {
+            return response()->json(['status' => 404]);
         }
+
+        // Prevent deleting receipts for released admits
+        if ($deleteData->admit && $deleteData->admit->release_at) {
+            return response()->json(['status' => 422, 'message' => 'Cannot delete receipt for a released admit.']);
+        }
+
+        if ($deleteData->delete()) {
+            return response()->json(['status' => 200]);
+        }
+
+        return response()->json(['status' => 422]);
     }
 
     public function receptPdfPreview($id)

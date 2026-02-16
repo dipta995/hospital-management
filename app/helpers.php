@@ -146,9 +146,10 @@ function currentBalanceMonth()
     $diagnosticCollection = $query->sum('paid_amount');
 
     // Hospital collections (from admit release payments)
-    $hospitalQuery = ReceptPayment::whereHas('recept', function ($q) use ($branchId) {
-        $q->where('branch_id', $branchId)
-            ->whereNotNull('admit_id');
+    // ReceptPayment is admit-level only and linked to Admit;
+    // filter by the admit's branch to match current logic elsewhere.
+    $hospitalQuery = ReceptPayment::whereHas('admit', function ($q) use ($branchId) {
+        $q->where('branch_id', $branchId);
     });
 
     if (\request()->filled('from_date') && \request()->filled('to_date')) {

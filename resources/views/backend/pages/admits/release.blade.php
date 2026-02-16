@@ -73,9 +73,19 @@
                                             <div class="text-muted small">Total Paid</div>
                                             <div class="fw-bold fs-5 text-success">{{ number_format($total_paid, 2) }}</div>
                                             <div class="mt-1">
-                                                <span class="badge {{ $total_due > 0 ? 'bg-danger' : 'bg-success' }}">
-                                                    Due: {{ number_format($total_due, 2) }}
-                                                </span>
+                                                @if($total_due > 0)
+                                                    <span class="badge bg-danger">
+                                                        Due: {{ number_format($total_due, 2) }}
+                                                    </span>
+                                                @elseif(!empty($extra_amount) && $extra_amount > 0)
+                                                    <span class="badge bg-primary">
+                                                        Extra: {{ number_format($extra_amount, 2) }}
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-success">
+                                                        Due: 0.00
+                                                    </span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -139,6 +149,9 @@
                                         <h5 class="mb-2">Release Payment (Global)</h5>
                                         <p class="text-muted mb-3 small">
                                             Total due for this admit: <strong>{{ number_format($total_due, 2) }}</strong>.
+                                            @if(!empty($extra_amount) && $extra_amount > 0)
+                                                <span class="ms-2">Extra amount: <strong>{{ number_format($extra_amount, 2) }}</strong></span>
+                                            @endif
                                             You can give a discount and/or take payment now.
                                         </p>
                                         <form method="POST" action="{{ route('admin.admits.pay-due', $admit->id) }}" id="pay-due-form">
@@ -183,6 +196,23 @@
                                                     >
                                                     <x-default.input-error name="paid_amount" />
                                                 </div>
+                                                @if(!empty($extra_amount) && $extra_amount > 0)
+                                                    <div class="col-md-4">
+                                                        <label for="extra_return" class="form-label mb-1">Return Extra Amount</label>
+                                                        <input
+                                                            type="number"
+                                                            name="extra_return"
+                                                            id="extra_return"
+                                                            step="0.01"
+                                                            min="0"
+                                                            max="{{ $extra_amount }}"
+                                                            class="form-control form-control-sm"
+                                                            value="{{ old('extra_return', $extra_amount) }}"
+                                                            placeholder="{{ number_format($extra_amount, 2) }}"
+                                                        >
+                                                        <x-default.input-error name="extra_return" />
+                                                    </div>
+                                                @endif
                                             </div>
                                             <small class="text-muted d-block mt-2">System will automatically adjust discount and payment across all unpaid receipts.</small>
                                             <div class="mt-3">
@@ -414,8 +444,10 @@
 
                             // Auto adjust pay amount when discount changes (only when there is due)
                             const totalDue = {{ $total_due }};
+                            const extraAmount = {{ $extra_amount ?? 0 }};
                             const discountInput = document.getElementById('discount_amount');
                             const payInput = document.getElementById('paid_amount');
+                            const extraReturnInput = document.getElementById('extra_return');
 
                             if (discountInput && payInput && totalDue > 0) {
                                 const updatePayFromDiscount = () => {
@@ -448,12 +480,13 @@
 
                                     const discountVal = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
                                     const payVal = payInput ? (parseFloat(payInput.value) || 0) : 0;
+                                    const extraReturnVal = extraReturnInput ? (parseFloat(extraReturnInput.value) || 0) : 0;
 
-                                    if (discountVal <= 0 && payVal <= 0) {
+                                    if (discountVal <= 0 && payVal <= 0 && extraReturnVal <= 0) {
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'Invalid payment input',
-                                            html: '<p>Please enter a discount and/or pay amount before submitting.</p>',
+                                            html: '<p>Please enter a discount, pay amount, and/or extra return before submitting.</p>',
                                             confirmButtonText: 'OK',
                                         });
                                         return;
@@ -469,6 +502,7 @@
                                             + `<div><strong>Total due:</strong> ${totalDue.toFixed(2)}</div>`
                                             + `<div><strong>Discount:</strong> ${discountVal.toFixed(2)}</div>`
                                             + `<div><strong>Pay amount:</strong> ${payVal.toFixed(2)}</div>`
+                                            + `<div><strong>Return extra:</strong> ${extraReturnVal.toFixed(2)}</div>`
                                             + `<div><strong>Due after payment:</strong> ${dueAfterPayment.toFixed(2)}</div>`
                                             + `</div>`,
                                         showCancelButton: true,

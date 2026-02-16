@@ -80,9 +80,9 @@
                                                 <br>
                                                 @if(!$item->admit || !$item->admit->release_at)
                                                     <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
+                                                                     <a href="javascript:void(0)" class="badge bg-danger"
+                                                                         onclick="dataDelete({{ $item->id }}, '{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
                                                 @endif
-                                                <a href="javascript:void(0)" class="badge bg-danger"
-                                                   onclick="dataDelete({{ $item->id }}, '{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
                                             </td>
                                         </tr>
                                     @empty

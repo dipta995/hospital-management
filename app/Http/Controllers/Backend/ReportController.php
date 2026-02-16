@@ -160,11 +160,11 @@ class ReportController extends Controller
 
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
-        // Query payments linked to admitted patients (release payments) of the same branch
-        $query = ReceptPayment::with(['recept.receptList', 'recept.admit.drreefer', 'recept.admit.reefer'])
-            ->whereHas('recept', function ($q) {
-                $q->where('branch_id', auth()->user()->branch_id)
-                    ->whereNotNull('admit_id');
+        // Query payments linked to admits (release payments) of the same branch
+        // ReceptPayment is admit-level only now, so we join via admit
+        $query = ReceptPayment::with(['admit.drreefer', 'admit.reefer', 'admit.recepts.receptList'])
+            ->whereHas('admit', function ($q) {
+                $q->where('branch_id', auth()->user()->branch_id);
             });
 
         // Query admitted receipts for accurate total calculations
@@ -208,21 +208,30 @@ class ReportController extends Controller
             $dataPaginator = $dataPaginator->paginate(2000);
         }
 
-        // Group payments by DATE and RECEIPT to avoid duplicate receipt totals
+        // Group payments by DATE and ADMIT to structure like invoice collections
         $groupedDatas = collect($dataPaginator instanceof \Illuminate\Pagination\LengthAwarePaginator
             ? $dataPaginator->items()
             : $dataPaginator
         )->groupBy(function ($item) {
             return \Carbon\Carbon::parse($item->creation_date)->format('Y-m-d'); // Group by date
         })->map(function ($dateGroup) {
-            return $dateGroup->groupBy('recept_id')->map(function ($group) {
-                $firstInvoice = $group->first()->recept; // Get invoice data only once
+            // For each date, group by admit to mimic invoice-style grouping
+            return $dateGroup->groupBy('admit_id')->map(function ($group) {
+                $firstPayment = $group->first();
+                $admit = $firstPayment->admit;
+
+                // Sum totals from all receipts under this admit
+                $receipts = $admit?->recepts ?? collect();
+                $totalAmount = $receipts->sum('total_amount');
+                $receiptDiscount = $receipts->sum('discount_amount');
+                $admitDiscount = $admit->discount_amount ?? 0;
+                $totalDiscount = $receiptDiscount + $admitDiscount;
 
                 return [
-                    'data' => $group,
-                    'total_collection' => $group->sum('paid_amount'), // Sum of payments per invoice
-                    'total_amount' => $firstInvoice->total_amount ?? 0, // Total invoice amount (once)
-                    'total_discount' => $firstInvoice->discount_amount ?? 0, // Total discount (once)
+                    'data' => $group, // all payments for this admit on this date
+                    'total_collection' => $group->sum('paid_amount'),
+                    'total_amount' => $totalAmount,
+                    'total_discount' => $totalDiscount,
                 ];
             });
         });

@@ -217,44 +217,126 @@
             <span class="label">Total Due</span>
             <span class="value">{{ number_format($total_due, 2) }}</span>
         </div>
+        @php
+            $extra_amount = $extra_amount ?? max($total_paid - $net_total, 0);
+        @endphp
+        @if($extra_amount > 0)
+            <div class="summary-badge">
+                <span class="label">Extra / Advance</span>
+                <span class="value">{{ number_format($extra_amount, 2) }}</span>
+            </div>
+        @endif
     </div>
 
-    <h4 class="section-title">Receipts & Payments</h4>
+    <h4 class="section-title">Receipts</h4>
     <table class="table table-bordered table-sm mb-4">
         <thead>
         <tr>
             <th>#</th>
             <th>Date</th>
+            <th>Receipt No</th>
             <th>Total</th>
             <th>Discount</th>
             <th>Net</th>
-            <th>Paid</th>
-            <th>Due</th>
         </tr>
         </thead>
         <tbody>
         @forelse($receipts as $recept)
             @php
                 $net = $recept->total_amount - $recept->discount_amount;
-                $paid = $recept->receptPayments->sum('paid_amount');
-                $due = max($net - $paid, 0);
             @endphp
             <tr>
                 <td>{{ $loop->iteration }}</td>
-                <td>{{ $recept->created_date }}</td>
+                <td>{{ $recept->created_at?->format('Y-m-d') }}</td>
+                <td>{{ $recept->id }}</td>
                 <td>{{ number_format($recept->total_amount, 2) }}</td>
                 <td>{{ number_format($recept->discount_amount, 2) }}</td>
                 <td>{{ number_format($net, 2) }}</td>
-                <td>{{ number_format($paid, 2) }}</td>
-                <td>{{ number_format($due, 2) }}</td>
             </tr>
         @empty
             <tr>
-                <td colspan="7" class="text-center">No receipts found for this admit.</td>
+                <td colspan="6" class="text-center">No receipts found for this admit.</td>
             </tr>
         @endforelse
         </tbody>
     </table>
+
+    <h4 class="section-title">Payment Ledger</h4>
+    <table class="table table-bordered table-sm mb-4">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th class="text-end">Debit (Paid)</th>
+            <th class="text-end">Credit (Return)</th>
+            <th class="text-end">Running Paid</th>
+        </tr>
+        </thead>
+        <tbody>
+        @php
+            $runningPaid = 0;
+            $totalDebit = 0;
+            $totalCredit = 0;
+        @endphp
+        @forelse($payments as $payment)
+            @php
+                $amount = (float) $payment->paid_amount;
+                $isDebit = $amount >= 0;
+                $debit = $isDebit ? $amount : 0;
+                $credit = $isDebit ? 0 : abs($amount);
+                $runningPaid += $amount;
+                $totalDebit += $debit;
+                $totalCredit += $credit;
+            @endphp
+            <tr>
+                <td>{{ $loop->iteration }}</td>
+                <td>{{ $payment->creation_date ?? $payment->created_at?->format('Y-m-d') }}</td>
+                <td>{{ $isDebit ? 'Payment' : 'Return / Adjustment' }}</td>
+                <td class="text-end">{{ $debit ? number_format($debit, 2) : '' }}</td>
+                <td class="text-end">{{ $credit ? number_format($credit, 2) : '' }}</td>
+                <td class="text-end">{{ number_format($runningPaid, 2) }}</td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6" class="text-center">No payments recorded for this admit.</td>
+            </tr>
+        @endforelse
+        </tbody>
+        @php
+            $netPaid = $totalDebit - $totalCredit;
+            $finalDue = max($net_total - $netPaid, 0);
+            $finalExtra = max($netPaid - $net_total, 0);
+        @endphp
+        <tfoot>
+        <tr>
+            <th colspan="3" class="text-end">Totals</th>
+            <th class="text-end">{{ number_format($totalDebit, 2) }}</th>
+            <th class="text-end">{{ number_format($totalCredit, 2) }}</th>
+            <th class="text-end">{{ number_format($netPaid, 2) }}</th>
+        </tr>
+        <tr>
+            <th colspan="3" class="text-end">Final Position</th>
+            <th colspan="3" class="text-end">
+                Net: {{ number_format($net_total, 2) }} | Paid: {{ number_format($netPaid, 2) }} |
+                Due: {{ number_format($finalDue, 2) }} | Extra: {{ number_format($finalExtra, 2) }}
+            </th>
+        </tr>
+        </tfoot>
+    </table>
+
+    <div class="row mt-5">
+        <div class="col-6 text-center">
+            <div style="border-top:1px solid #000; display:inline-block; padding-top:4px; min-width:180px; font-size:12px;">
+                Authorized Signature
+            </div>
+        </div>
+        <div class="col-6 text-center">
+            <div style="border-top:1px solid #000; display:inline-block; padding-top:4px; min-width:180px; font-size:12px;">
+                Patient / Family Member
+            </div>
+        </div>
+    </div>
 </div>
 
 </body>

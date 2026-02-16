@@ -50,8 +50,8 @@ class AdmitController extends Controller
             ->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'DESC');
 
-        // Release status filter (default: only not released)
-        $status = $request->input('status', 'not_released');
+        // Release status filter (default: show both released and not released)
+        $status = $request->input('status', 'all');
         if ($status === 'released') {
             $query->whereNotNull('release_at');
         } elseif ($status === 'not_released') {
@@ -59,10 +59,13 @@ class AdmitController extends Controller
         }
 
         // Date range filter based on admit_at
+        // Default behaviour (no date_range provided) -> show current month admits
         $dateRange = $request->input('date_range');
-        if ($dateRange) {
-            $today = Carbon::now('Asia/Dhaka');
+        $appliedDateRange = $dateRange;
 
+        $today = Carbon::now('Asia/Dhaka');
+
+        if ($dateRange) {
             switch ($dateRange) {
                 case 'today':
                     $query->whereDate('admit_at', $today->toDateString());
@@ -87,6 +90,11 @@ class AdmitController extends Controller
                           ->whereMonth('admit_at', $today->month);
                     break;
             }
+        } else {
+            // No explicit date filter -> apply current month by default
+            $query->whereYear('admit_at', $today->year)
+                  ->whereMonth('admit_at', $today->month);
+            $appliedDateRange = 'current_month';
         }
 
         if ($request->filled('user_id')) {
@@ -94,7 +102,7 @@ class AdmitController extends Controller
         }
 
         $data['datas'] = $query->paginate(10)->appends($request->all());
-
+        $data['appliedDateRange'] = $appliedDateRange;
         $data['users'] = User::all();
 
         return view('backend.pages.admits.index', $data);
@@ -270,9 +278,11 @@ class AdmitController extends Controller
 
             if ($receptIds->isNotEmpty()) {
                 \App\Models\ReceptList::whereIn('recept_id', $receptIds)->delete();
-                \App\Models\ReceptPayment::whereIn('recept_id', $receptIds)->delete();
                 \App\Models\Recept::whereIn('id', $receptIds)->delete();
             }
+
+            // Delete all admit-level payments
+            \App\Models\ReceptPayment::where('admit_id', $admit->id)->delete();
 
             // Finally delete the admit
             $admit->delete();
@@ -301,18 +311,27 @@ class AdmitController extends Controller
             return RedirectHelper::routeError($this->index_route, 'Admit already released.');
         }
 
-        // Calculate current due; do not allow release if any due remains
+        // Calculate current due using the same logic as releaseDetails
         $receipts = $admit->recepts;
         $totalAmount = $receipts->sum('total_amount');
-        $totalDiscount = $receipts->sum('discount_amount');
+        $receiptDiscount = $receipts->sum('discount_amount');
+        $admitDiscount = $admit->discount_amount ?? 0;
+        $totalDiscount = $receiptDiscount + $admitDiscount;
         $netTotal = $totalAmount - $totalDiscount;
-        $totalPaid = $receipts->sum(function ($r) {
-            return $r->receptPayments->sum('paid_amount');
-        });
+
+        // All payments for this admit (positive = paid, negative = refund), tracked by admit_id
+        $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+            ->where('admit_id', $admit->id)
+            ->sum('paid_amount');
+
         $totalDue = max($netTotal - $totalPaid, 0);
 
         if ($totalDue > 0) {
-            return RedirectHelper::routeError('admin.admits.release.details', 'Cannot release while due amount remains. Please clear all dues first.');
+            return RedirectHelper::routeErrorWithSubParam(
+                'admin.admits.release.details',
+                $admit->id,
+                'Cannot release while due amount remains. Please clear all dues first.'
+            );
         }
 
         $admit->release_at = Carbon::parse($request->release_at)->format('Y-m-d H:i:s');
@@ -333,20 +352,20 @@ class AdmitController extends Controller
         $receipts = $admit->recepts;
 
         $totalAmount = $receipts->sum('total_amount');
-        $totalDiscount = $receipts->sum('discount_amount');
+        $receiptDiscount = $receipts->sum('discount_amount');
+        $admitDiscount = $admit->discount_amount ?? 0;
+        $totalDiscount = $receiptDiscount + $admitDiscount;
         $netTotal = $totalAmount - $totalDiscount;
 
-        // All payments for this admit (including advances), regardless of receipt
-        $rawTotalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+        // All payments for this admit (positive = paid, negative = refund), tracked only by admit_id
+        $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
             ->where('admit_id', $admit->id)
             ->sum('paid_amount');
 
-        // For display, never show Total Paid more than Net Amount;
-        // any overpayment behaves like an internal advance/refund and is not highlighted here.
-        $totalPaid = min($rawTotalPaid, $netTotal);
-
-        // Due cannot go below zero in the UI; it reflects how much of Net is still unpaid
-        $totalDue = max($netTotal - $rawTotalPaid, 0);
+        // Balance = Net - Paid (can be positive = due, or negative = extra/advance)
+        $balance = $netTotal - $totalPaid;
+        $totalDue = max($balance, 0);
+        $extraAmount = max(-$balance, 0);
 
         // Existing hospital costs for this admit (summary + list)
         $hospitalCostTotal = 0;
@@ -385,6 +404,8 @@ class AdmitController extends Controller
             'net_total'     => $netTotal,
             'total_paid'    => $totalPaid,
             'total_due'     => $totalDue,
+            'extra_amount'  => $extraAmount,
+            'extra_amount'  => $extraAmount,
             'hospital_cost_total' => $hospitalCostTotal,
             'hospital_cost_last_reason' => $hospitalCostLastReason,
             'hospital_costs' => $hospitalCosts,
@@ -404,17 +425,24 @@ class AdmitController extends Controller
         $receipts = $admit->recepts;
 
         $totalAmount = $receipts->sum('total_amount');
-        $totalDiscount = $receipts->sum('discount_amount');
+        $receiptDiscount = $receipts->sum('discount_amount');
+        $admitDiscount = $admit->discount_amount ?? 0;
+        $totalDiscount = $receiptDiscount + $admitDiscount;
         $netTotal = $totalAmount - $totalDiscount;
 
-        $rawTotalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+        $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
             ->where('admit_id', $admit->id)
             ->sum('paid_amount');
 
-        // Mirror the on-screen logic: cap displayed paid at net amount
-        $totalPaid = min($rawTotalPaid, $netTotal);
+        $totalDue = max($netTotal - $totalPaid, 0);
+        $extraAmount = max($totalPaid - $netTotal, 0);
 
-        $totalDue = max($netTotal - $rawTotalPaid, 0);
+        // All admit-level payments (positive = payment, negative = return) for ledger
+        $payments = ReceptPayment::where('branch_id', auth()->user()->branch_id)
+            ->where('admit_id', $admit->id)
+            ->orderBy('creation_date')
+            ->orderBy('id')
+            ->get();
 
         return view('backend.pages.admits.release-print', [
             'admit'         => $admit,
@@ -424,6 +452,8 @@ class AdmitController extends Controller
             'net_total'     => $netTotal,
             'total_paid'    => $totalPaid,
             'total_due'     => $totalDue,
+            'extra_amount'  => $extraAmount,
+            'payments'      => $payments,
         ]);
     }
 
@@ -443,10 +473,12 @@ class AdmitController extends Controller
         $receipts = $admit->recepts;
 
         $totalAmount = $receipts->sum('total_amount');
-        $totalDiscount = $receipts->sum('discount_amount');
+        $receiptDiscount = $receipts->sum('discount_amount');
+        $admitDiscount = $admit->discount_amount ?? 0;
+        $totalDiscount = $receiptDiscount + $admitDiscount;
         $netTotal = $totalAmount - $totalDiscount;
 
-        // All payments for this admit (including previous advances or settlements)
+        // All payments for this admit (including previous adjustments), tracked only by admit_id
         $totalPaid = ReceptPayment::where('branch_id', auth()->user()->branch_id)
             ->where('admit_id', $admit->id)
             ->sum('paid_amount');
@@ -456,107 +488,50 @@ class AdmitController extends Controller
         $request->validate([
             'paid_amount'     => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
+            'extra_return'    => 'nullable|numeric|min:0',
             'creation_date'   => 'nullable|date_format:Y-m-d',
         ]);
 
         $paidAmount = (float) ($request->input('paid_amount') ?? 0);
         $discountAmount = (float) ($request->input('discount_amount') ?? 0);
+        $extraReturn = (float) ($request->input('extra_return') ?? 0);
         $creationDate = $request->input('creation_date') ?: Carbon::now('Asia/Dhaka')->format('Y-m-d');
 
-        if ($paidAmount <= 0 && $discountAmount <= 0) {
-            return RedirectHelper::routeError($this->index_route, 'Please enter a discount and/or payment amount.');
+        if ($paidAmount <= 0 && $discountAmount <= 0 && $extraReturn <= 0) {
+            return RedirectHelper::routeError($this->index_route, 'Please enter a discount, payment, and/or extra return amount.');
         }
 
-        // Determine how much discount to apply
-        $isDiscountOnlyAfterPaid = ($totalDue <= 0 && $paidAmount == 0 && $discountAmount > 0);
+        // Payments are tracked in recept_payments (by admit_id);
+        // discounts are stored only on the admit record;
+        // extra returns are stored as negative payments.
 
-        if ($totalDue > 0) {
-            // When there is due, cap discount so it cannot exceed total due
-            $discountToApply = min($discountAmount, $totalDue);
-        } else {
-            // When there is no due, allow discount-only adjustments (no additional payment)
-            if ($paidAmount > 0 && $discountAmount > 0) {
-                return RedirectHelper::routeError($this->index_route, 'Cannot apply both discount and payment when no due remains.');
-            }
-            $discountToApply = max($discountAmount, 0);
-        }
-
-        // 1) Apply discount across receipts (oldest first)
-        $remainingDiscount = $discountToApply;
-
-        foreach ($receipts->sortBy('id') as $recept) {
-            if ($remainingDiscount <= 0) {
-                break;
-            }
-
-            $net = $recept->total_amount - $recept->discount_amount;
-            $paid = $recept->receptPayments->sum('paid_amount');
-            // When adjusting after full payment, allow discount up to remaining net;
-            // otherwise only discount up to the remaining due on this receipt.
-            $availableForDiscount = $isDiscountOnlyAfterPaid
-                ? max($net, 0)
-                : max($net - $paid, 0);
-
-            if ($availableForDiscount <= 0) {
-                continue;
-            }
-
-            $discountNow = min($remainingDiscount, $availableForDiscount);
-
-            if ($discountNow > 0) {
-                $recept->discount_amount += $discountNow;
-                $recept->save();
-                $remainingDiscount -= $discountNow;
-            }
-        }
-
-        // Remaining due after discount
-        $remainingDueForPayment = max($totalDue - $discountToApply, 0);
-
-        // 2) Apply payment across receipts (if any), re-checking dues after discount
-        $remainingPayment = $paidAmount;
-
-        // First settle any existing due across receipts
-        if ($remainingPayment > 0 && $remainingDueForPayment > 0) {
-            foreach ($receipts->sortBy('id') as $recept) {
-                $net = $recept->total_amount - $recept->discount_amount;
-                $paid = $recept->receptPayments->sum('paid_amount');
-                $due = max($net - $paid, 0);
-
-                if ($due <= 0) {
-                    continue;
-                }
-
-                $payNow = min($remainingPayment, $due);
-
-                if ($payNow > 0) {
-                    ReceptPayment::create([
-                        'recept_id'     => $recept->id,
-                        'admit_id'      => $admit->id,
-                        'branch_id'     => auth()->user()->branch_id,
-                        'admin_id'      => auth()->id(),
-                        'paid_amount'   => $payNow,
-                        'creation_date' => $creationDate,
-                    ]);
-
-                    $remainingPayment -= $payNow;
-                    $remainingDueForPayment -= $payNow;
-
-                    if ($remainingPayment <= 0 || $remainingDueForPayment <= 0) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Any leftover payment after all dues are cleared is treated as advance for this admit
-        if ($remainingPayment > 0) {
+        if ($paidAmount > 0) {
             ReceptPayment::create([
-                'recept_id'     => null,
                 'admit_id'      => $admit->id,
                 'branch_id'     => auth()->user()->branch_id,
                 'admin_id'      => auth()->id(),
-                'paid_amount'   => $remainingPayment,
+                'paid_amount'   => $paidAmount,
+                'creation_date' => $creationDate,
+            ]);
+        }
+
+        if ($discountAmount > 0) {
+            $admit->discount_amount = ($admit->discount_amount ?? 0) + $discountAmount;
+            $admit->save();
+        }
+
+        // Return extra amount as negative payment, capped by current extra
+        if ($extraReturn > 0) {
+            $currentExtra = max($totalPaid - $netTotal, 0);
+            if ($extraReturn > $currentExtra + 0.0001) {
+                return RedirectHelper::routeError($this->index_route, 'Extra return amount cannot exceed current extra.');
+            }
+
+            ReceptPayment::create([
+                'admit_id'      => $admit->id,
+                'branch_id'     => auth()->user()->branch_id,
+                'admin_id'      => auth()->id(),
+                'paid_amount'   => -$extraReturn,
                 'creation_date' => $creationDate,
             ]);
         }

@@ -34,20 +34,26 @@
                             <div class="col-md-3">
                                 <label for="status" class="form-label">Release Status</label>
                                 <select name="status" id="status" class="form-select">
-                                    <option value="not_released" {{ request('status', 'not_released') === 'not_released' ? 'selected' : '' }}>Not Released</option>
-                                    <option value="released" {{ request('status') === 'released' ? 'selected' : '' }}>Released</option>
-                                    <option value="all" {{ request('status') === 'all' ? 'selected' : '' }}>All</option>
+                                    @php
+                                        $currentStatus = request('status', 'all');
+                                    @endphp
+                                    <option value="not_released" {{ $currentStatus === 'not_released' ? 'selected' : '' }}>Not Released</option>
+                                    <option value="released" {{ $currentStatus === 'released' ? 'selected' : '' }}>Released</option>
+                                    <option value="all" {{ $currentStatus === 'all' ? 'selected' : '' }}>All</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label for="date_range" class="form-label">Date Range</label>
                                 <select name="date_range" id="date_range" class="form-select">
+                                    @php
+                                        $currentRange = $appliedDateRange ?? request('date_range');
+                                    @endphp
                                     <option value="">All Time</option>
-                                    <option value="today" {{ request('date_range') === 'today' ? 'selected' : '' }}>Today</option>
-                                    <option value="this_week" {{ request('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
-                                    <option value="last_week" {{ request('date_range') === 'last_week' ? 'selected' : '' }}>Last Week</option>
-                                    <option value="last_month" {{ request('date_range') === 'last_month' ? 'selected' : '' }}>Last Month</option>
-                                    <option value="current_month" {{ request('date_range') === 'current_month' ? 'selected' : '' }}>Current Month</option>
+                                    <option value="today" {{ $currentRange === 'today' ? 'selected' : '' }}>Today</option>
+                                    <option value="this_week" {{ $currentRange === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                    <option value="last_week" {{ $currentRange === 'last_week' ? 'selected' : '' }}>Last Week</option>
+                                    <option value="last_month" {{ $currentRange === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                                    <option value="current_month" {{ $currentRange === 'current_month' ? 'selected' : '' }}>Current Month</option>
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex gap-2">

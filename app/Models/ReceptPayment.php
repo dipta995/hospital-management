@@ -11,17 +11,12 @@ class ReceptPayment extends Model
 
     protected $table = 'recept_payments';
     protected $fillable = [
-        'recept_id',
         'admit_id',
         'branch_id',
         'admin_id',
         'paid_amount',
         'creation_date'
     ];
-    public function recept()
-    {
-        return $this->belongsTo(Recept::class, 'recept_id', 'id');
-    }
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id', 'id');

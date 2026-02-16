@@ -37,17 +37,17 @@
 
                 </thead>
                 <tbody>
-                @foreach($datas as $date => $invoices)
+                @foreach($datas as $date => $admits)
                     <tr class="table-info">
                         <td colspan="3"><strong>Date: {{ $date }}</strong> </td>
-                        <td colspan="2"><strong>Sub.  {{ $invoices->sum('total_amount') +  $invoices->sum('total_discount') }}</strong></td>
-                        <td colspan="1"><strong>Dis.  {{ $invoices->sum('total_discount') }}</strong></td>
-                        <td colspan="1"><strong>Col.  {{ $invoices->sum('total_collection') }}</strong></td>
+                        <td colspan="2"><strong>Sub.  {{ $admits->sum('total_amount') +  $admits->sum('total_discount') }}</strong></td>
+                        <td colspan="1"><strong>Dis.  {{ $admits->sum('total_discount') }}</strong></td>
+                        <td colspan="1"><strong>Col.  {{ $admits->sum('total_collection') }}</strong></td>
                     </tr>
                     <tr>
                         <th>#</th>
-{{--                        <th>Invoice Number</th>--}}
-                        <th>Test's</th>
+                        <th>Admit ID</th>
+                        <th>Services</th>
                         <th>Sub Total</th>
                         <th>Discount</th>
                         <th>Collection</th>
@@ -55,30 +55,32 @@
                         <th>Refer</th>
                     </tr>
 
-                    @foreach($invoices as $invoice_id => $group)
+                    @foreach($admits as $admitId => $group)
                         @php
-                            $invoice = isset($group['data']) ? collect($group['data'])->first()->recept ?? null : null;
+                            $firstPayment = isset($group['data']) ? collect($group['data'])->first() : null;
+                            $admit = $firstPayment?->admit;
                         @endphp
                         <tr class="table-warning">
-                            <td colspan="8"><strong>Recept: {{ $invoice->id ?? 'N/A' }}</strong></td>
+                            <td colspan="8"><strong>Admit: {{ $admit->id ?? 'N/A' }}</strong></td>
                         </tr>
 
                         @if(isset($group['data']))
                             @foreach($group['data'] as $index => $item)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
-{{--                                    <td>{{ $invoice->invoice_number ?? 'N/A' }}</td>--}}
+                                    <td>{{ $admit->id ?? 'N/A' }}</td>
                                     <td>
-                                        @foreach($invoice->receptList ?? [] as $pr)
-                                            {{ $pr->service->name }}
+                                        @foreach(($admit->recepts ?? []) as $recept)
+                                            @foreach($recept->receptList ?? [] as $pr)
+                                                {{ $pr->service->name }}
+                                            @endforeach
                                         @endforeach
-
                                     </td>
-                                    <td>{{ $invoice->total_amount + $invoice->discount_amount ?? 0 }}</td>
-                                    <td>{{ $invoice->discount_amount ?? 0 }}</td>
+                                    <td>{{ ($group['total_amount'] ?? 0) + ($group['total_discount'] ?? 0) }}</td>
+                                    <td>{{ $group['total_discount'] ?? 0 }}</td>
                                     <td>{{ $item->paid_amount }}</td>
-                                    <td>{{ $invoice->admit->drreefer->name ?? 'N/A' }}</td>
-                                    <td>{{ $invoice->admit->reefer->name ?? 'N/A' }}</td>
+                                    <td>{{ $admit->drreefer->name ?? 'N/A' }}</td>
+                                    <td>{{ $admit->reefer->name ?? 'N/A' }}</td>
                                 </tr>
                             @endforeach
                         @endif
