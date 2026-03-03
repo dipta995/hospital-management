@@ -134,15 +134,6 @@ class CostController extends Controller
                 $query->where('creation_date', '<=', $request->end_date);
             }
         }
-
-        // Exclude hospital-related categories (hospital cost + admit refer cost) from general costs list
-        $admitReferCategoryId = Setting::get('admit_refer_cost_category');
-        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
-        $excludeCategoryIds = array_filter([$admitReferCategoryId, $hospitalCostCategoryId]);
-        if (!empty($excludeCategoryIds)) {
-            $query->whereNotIn('cost_category_id', $excludeCategoryIds);
-        }
-
         $costQuery = $query->where('branch_id', auth()->user()->branch_id)
             ->orderBy('id', 'desc');
         if ($request->query('export') == 'pdf') {
@@ -157,6 +148,7 @@ class CostController extends Controller
         }
         return view('backend.pages.costs.index', $data);
     }
+
 
     /**
      * Show the form for creating a new resource.
