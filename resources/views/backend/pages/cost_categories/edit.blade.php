@@ -28,6 +28,19 @@
                                         <strong class="text-danger">{{ $errors->first('name') }}</strong>
                                         @enderror
                                     </div>
+                                    <div class="form-group mt-2">
+                                        <label for="type">Type</label>
+                                        <select name="type" id="type" class="form-control">
+                                            @php
+                                                $selectedType = old('type', $edited->type ?? 'diagnostic');
+                                            @endphp
+                                            <option value="diagnostic" {{ $selectedType == 'diagnostic' ? 'selected' : '' }}>Diagnostic</option>
+                                            <option value="hospital" {{ $selectedType == 'hospital' ? 'selected' : '' }}>Hospital</option>
+                                        </select>
+                                        @error('type')
+                                        <strong class="text-danger">{{ $errors->first('type') }}</strong>
+                                        @enderror
+                                    </div>
                                     <x-default.button class="float-end mt-2 btn-success">Update</x-default.button>
                                 </fieldset>
                             </form>

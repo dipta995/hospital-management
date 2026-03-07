@@ -49,7 +49,8 @@ class CostController extends Controller
      */
     public function hospitalIndex(Request $request)
     {
-        $this->checkOwnPermission('costs.index');
+        // Hospital cost listing uses recept permissions (same as indoor receipts)
+        $this->checkOwnPermission('recepts.index');
 
         $data['pageHeader'] = [
             'title' => "Hospital Costs",
@@ -67,9 +68,18 @@ class CostController extends Controller
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
         $admitReferCategoryId = Setting::get('admit_refer_cost_category');
-        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
 
-        $categoryIds = array_filter([$admitReferCategoryId, $hospitalCostCategoryId]);
+        // All hospital-type cost categories for this branch
+        $hospitalCategoryIds = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'hospital')
+            ->pluck('id')
+            ->toArray();
+
+        // Hospital-related costs include refer category (if configured) + all hospital-type categories
+        $categoryIds = array_filter(array_merge(
+            $admitReferCategoryId ? [$admitReferCategoryId] : [],
+            $hospitalCategoryIds
+        ));
 
         $query = Cost::query();
 
@@ -134,7 +144,12 @@ class CostController extends Controller
                 $query->where('creation_date', '<=', $request->end_date);
             }
         }
+        $diagnosticCategoryIds = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'diagnostic')
+            ->pluck('id');
+
         $costQuery = $query->where('branch_id', auth()->user()->branch_id)
+            ->whereIn('cost_category_id', $diagnosticCategoryIds)
             ->orderBy('id', 'desc');
         if ($request->query('export') == 'pdf') {
             $data['datas'] = $costQuery->get();
@@ -142,6 +157,7 @@ class CostController extends Controller
             $data['datas'] = $costQuery->paginate(10);
         }
         $data['totalAmount'] = $query->where('branch_id', auth()->user()->branch_id)
+            ->whereIn('cost_category_id', $diagnosticCategoryIds)
             ->sum('amount');
         if ($request->query('export') == 'pdf') {
             return view('backend.pages.costs.export-pdf', $data);
@@ -159,7 +175,9 @@ class CostController extends Controller
     {
         $this->checkOwnPermission('costs.create');
         $data['pageHeader'] = $this->pageHeader;
-        $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)->get();
+        $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'diagnostic')
+            ->get();
         return view('backend.pages.costs.create', $data);
     }
 
@@ -310,7 +328,9 @@ class CostController extends Controller
     {
         $this->checkOwnPermission('costs.edit');
         $data['pageHeader'] = $this->pageHeader;
-        $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)->get();
+        $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'diagnostic')
+            ->get();
         if ($data['edited'] = Cost::where('branch_id', auth()->user()->branch_id)
             ->find($id)) {
             return view('backend.pages.costs.edit', $data);

@@ -198,17 +198,15 @@ class AdmitController extends Controller
 
         $data['users'] = User::all();
 
-        // Hospital cost total for this admit (if category configured)
-        $hospitalCostTotal = 0;
-        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
-        if ($hospitalCostCategoryId) {
-            $hospitalCostTotal = Cost::where('branch_id', auth()->user()->branch_id)
-                ->where('cost_category_id', $hospitalCostCategoryId)
-                ->where('account_details', 'admit_id:' . $data['edited']->id)
-                ->sum('amount');
-        }
+        // Hospital cost total for this admit (all hospital-type categories)
+        $hospitalCategoryIds = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'hospital')
+            ->pluck('id');
 
-        $data['hospital_cost_total'] = $hospitalCostTotal;
+        $data['hospital_cost_total'] = Cost::where('branch_id', auth()->user()->branch_id)
+            ->whereIn('cost_category_id', $hospitalCategoryIds)
+            ->where('account_details', 'admit_id:' . $data['edited']->id)
+            ->sum('amount');
 
         return view('backend.pages.admits.edit', $data);
     }
@@ -371,10 +369,18 @@ class AdmitController extends Controller
         $hospitalCostTotal = 0;
         $hospitalCostLastReason = null;
         $hospitalCosts = collect();
-        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
-        if ($hospitalCostCategoryId) {
+        $hospitalCostCategoryName = null;
+
+        $hospitalCategories = CostCategory::where('branch_id', auth()->user()->branch_id)
+            ->where('type', 'hospital')
+            ->orderBy('name')
+            ->get();
+
+        if ($hospitalCategories->isNotEmpty()) {
+            $hospitalCategoryIds = $hospitalCategories->pluck('id');
+
             $hospitalCostsQuery = Cost::where('branch_id', auth()->user()->branch_id)
-                ->where('cost_category_id', $hospitalCostCategoryId)
+                ->whereIn('cost_category_id', $hospitalCategoryIds)
                 ->where('account_details', 'admit_id:' . $admit->id);
 
             $hospitalCostTotal = (clone $hospitalCostsQuery)->sum('amount');
@@ -383,6 +389,10 @@ class AdmitController extends Controller
 
             // Fetch all hospital costs for this admit, latest first, to show individually in UI
             $hospitalCosts = $hospitalCostsQuery->orderByDesc('id')->get();
+
+            // Default category name can be the first hospital-type category (optional)
+            $defaultHospitalCategoryId = optional($hospitalCategories->first())->id;
+            $hospitalCostCategoryName = optional($hospitalCategories->first())->name;
         }
 
         // Existing PC payment for this admit (if any)
@@ -409,6 +419,9 @@ class AdmitController extends Controller
             'hospital_cost_total' => $hospitalCostTotal,
             'hospital_cost_last_reason' => $hospitalCostLastReason,
             'hospital_costs' => $hospitalCosts,
+            'hospital_cost_category_name' => $hospitalCostCategoryName,
+            'hospital_categories' => $hospitalCategories ?? collect(),
+            'default_hospital_cost_category_id' => $defaultHospitalCategoryId ?? null,
             'pcPayment'     => $pcPayment,
         ]);
     }
@@ -616,18 +629,30 @@ class AdmitController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'reason' => 'nullable|string|max:255',
+            'cost_category_id' => 'nullable|exists:cost_categories,id',
         ]);
 
-        $hospitalCostCategoryId = Setting::get('admit_hospital_cost_category');
+        $branchId = auth()->user()->branch_id;
+        $selectedCategoryId = $request->input('cost_category_id');
+        $hospitalCategoryQuery = CostCategory::where('branch_id', $branchId)
+            ->where('type', 'hospital');
 
-        if (!$hospitalCostCategoryId) {
-            return RedirectHelper::routeError($this->index_route, 'Hospital cost category is not configured.');
+        if ($selectedCategoryId) {
+            $hospitalCategory = (clone $hospitalCategoryQuery)
+                ->where('id', $selectedCategoryId)
+                ->first();
+        } else {
+            $hospitalCategory = (clone $hospitalCategoryQuery)->first();
+        }
+
+        if (!$hospitalCategory) {
+            return RedirectHelper::routeError($this->index_route, 'Hospital cost category is not configured or is not of type Hospital.');
         }
 
         try {
             $cost = new Cost();
-            $cost->branch_id = auth()->user()->branch_id;
-            $cost->cost_category_id = $hospitalCostCategoryId;
+            $cost->branch_id = $branchId;
+            $cost->cost_category_id = $hospitalCategory->id;
             $cost->account_details = 'admit_id:' . $admit->id;
             $cost->payment_type = Cost::$paymentArray[0];
             $cost->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');

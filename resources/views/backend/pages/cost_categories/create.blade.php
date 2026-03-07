@@ -24,6 +24,15 @@
                                         <x-default.input-error name="name"></x-default.input-error>
                                     </div>
 
+                                    <div class="form-group mt-2">
+                                        <x-default.label for="type">Type</x-default.label>
+                                        <select name="type" id="type" class="form-control">
+                                            <option value="diagnostic" selected>Diagnostic</option>
+                                            <option value="hospital">Hospital</option>
+                                        </select>
+                                        <x-default.input-error name="type"></x-default.input-error>
+                                    </div>
+
                                     <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
 
                                 </fieldset>

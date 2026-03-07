@@ -29,12 +29,17 @@
                                                value="{{ request('end_date') }}">
                                     </div>
                                     <div class="col-md-3">
-                                        <label for="end_date">Category:</label>
-                                        <select class="form-control" name="cost_category_id" id="">
+                                        <label for="cost_category_id">Category:</label>
+                                        <select class="form-control" name="cost_category_id" id="cost_category_id">
                                             @foreach(\App\Models\CostCategory::where('branch_id',auth()->user()->branch_id)->get() as $item)
                                                 <option value="{{ $item->id }}">{{ $item->name }}</option>
                                             @endforeach
                                                 <option value="">PC</option>
+                                        </select>
+                                        <label for="type">Type:</label>
+                                        <select class="form-control" name="type" id="type">
+                                            <option value="diagnostic" {{ request('type', 'diagnostic') == 'diagnostic' ? 'selected' : '' }}>Diagnostic</option>
+                                            <option value="hospital" {{ request('type') == 'hospital' ? 'selected' : '' }}>Hospital</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3 d-flex align-items-end">
@@ -51,6 +56,13 @@
                                         <label for="start_date">Start Date:</label>
                                         <input type="date" name="start_date" id="start_date" class="form-control"
                                                value="{{ request('start_date') }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="type">Type:</label>
+                                        <select class="form-control" name="type" id="type">
+                                            <option value="diagnostic" {{ request('type', 'diagnostic') == 'diagnostic' ? 'selected' : '' }}>Diagnostic</option>
+                                            <option value="hospital" {{ request('type') == 'hospital' ? 'selected' : '' }}>Hospital</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label for="end_date">End Date:</label>
@@ -72,6 +84,13 @@
                                         <label for="start_date">Start Date:</label>
                                         <input type="date" name="start_date" id="start_date" class="form-control"
                                                value="{{ request('start_date') }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="type">Type:</label>
+                                        <select class="form-control" name="type" id="type">
+                                            <option value="diagnostic" {{ request('type', 'diagnostic') == 'diagnostic' ? 'selected' : '' }}>Diagnostic</option>
+                                            <option value="hospital" {{ request('type') == 'hospital' ? 'selected' : '' }}>Hospital</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <label for="end_date">End Date:</label>

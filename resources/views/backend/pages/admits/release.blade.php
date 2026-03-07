@@ -251,6 +251,9 @@
                                 <div class="border rounded-3 p-3 bg-white shadow-sm h-100 d-flex flex-column">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h5 class="mb-0"><i class="fas fa-clinic-medical me-1 text-danger"></i> Hospital Cost</h5>
+                                        @if(!empty($hospital_cost_category_name))
+                                            <div class="text-muted small">Category: {{ $hospital_cost_category_name }}</div>
+                                        @endif
                                         <span class="badge bg-light text-dark">Admit ID: {{ $admit->id }}</span>
                                     </div>
                                     <p class="mb-3 small text-muted">
@@ -273,6 +276,9 @@
                                                         <div class="d-flex align-items-center">
                                                             <div class="text-truncate">
                                                                 Reason: {{ $cost->reason ?: '-' }}
+                                                                @if($cost->category)
+                                                                    <span class="text-muted"> ({{ $cost->category->name }})</span>
+                                                                @endif
                                                             </div>
                                                             <div class="flex-grow-1 mx-1" style="border-bottom: 1px dotted #ccc;"></div>
                                                             <div class="fw-semibold whitespace-nowrap">
@@ -395,6 +401,25 @@
             <form method="POST" action="{{ route('admin.admits.hospital-cost', $admit->id) }}">
                 @csrf
                 <div class="modal-body">
+                    @if(isset($hospital_categories) && $hospital_categories->count())
+                        <div class="form-group mb-2">
+                            <label for="hospital_cost_category_id">Category</label>
+                            <select
+                                name="cost_category_id"
+                                id="hospital_cost_category_id"
+                                class="form-control"
+                            >
+                                @foreach($hospital_categories as $category)
+                                    <option
+                                        value="{{ $category->id }}"
+                                        @if(old('cost_category_id', $default_hospital_cost_category_id ?? null) == $category->id) selected @endif
+                                    >
+                                        {{ $category->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="form-group mb-2">
                         <label for="hospital_cost_amount">Amount</label>
                         <input

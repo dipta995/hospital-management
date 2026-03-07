@@ -24,6 +24,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Name</th>
+                                        <th>Type</th>
 
                                         <th>Action</th>
                                     </tr>
@@ -33,6 +34,7 @@
                                         <tr id="table-data{{ $item->id }}">
                                             <td>{{ $loop->index + 1 }}</td>
                                             <td>{{ $item->name }}</td>
+                                            <td>{{ ucfirst($item->type ?? 'diagnostic') }}</td>
 
                                             <td>
                                                 <a href="{{ route($pageHeader['edit_route'],$item->id) }}"

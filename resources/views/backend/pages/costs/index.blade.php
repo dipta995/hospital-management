@@ -171,21 +171,22 @@ function updateEmployeeAfterCost(employeeId) {
                 <form method="POST" action="{{ route('admin.costs.store') }}">
                     @csrf
                     <div class="modal-body">
-                        @php
-                            $hospitalCostCategoryId = \App\Models\Setting::get('admit_hospital_cost_category');
-                            $hospitalCategory = $hospitalCostCategoryId
-                                ? \App\Models\CostCategory::where('branch_id', auth()->user()->branch_id)
-                                    ->where('id', $hospitalCostCategoryId)
-                                    ->first()
-                                : null;
-                        @endphp
                         <div class="form-group mb-2">
                             <label>Category</label>
-                            @if($hospitalCategory)
-                                <input type="hidden" name="cost_category_id" value="{{ $hospitalCategory->id }}">
-                                <input type="text" class="form-control" value="{{ $hospitalCategory->name }}" readonly>
+                            @php
+                                $hospitalCategories = \App\Models\CostCategory::where('branch_id', auth()->user()->branch_id)
+                                    ->where('type', 'hospital')
+                                    ->orderBy('name')
+                                    ->get();
+                            @endphp
+                            @if($hospitalCategories->count())
+                                <select name="cost_category_id" class="form-control">
+                                    @foreach($hospitalCategories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
                             @else
-                                <input type="text" class="form-control" value="Hospital cost category not configured" readonly>
+                                <input type="text" class="form-control" value="No hospital cost categories configured" readonly>
                             @endif
                         </div>
                         <div class="form-group mb-2">

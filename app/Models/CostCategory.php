@@ -9,7 +9,7 @@ class CostCategory extends Model
 {
     use HasFactory;
     protected $table = 'cost_categories';
-    protected $fillable = ['branch_id','name'];
+    protected $fillable = ['branch_id', 'name', 'type'];
     public function costs()
     {
         return $this->hasMany(Cost::class);

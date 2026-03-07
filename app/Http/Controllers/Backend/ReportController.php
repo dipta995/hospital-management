@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\CostCategory;
 use App\Models\Cost;
 use App\Models\Invoice;
 use App\Models\InvoiceList;
@@ -508,13 +509,29 @@ class ReportController extends Controller
                 $query->where('creation_date', '<=', $request->end_date);
             }
         }
-        $costQuery = $query->where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'desc');
+
+        $branchId = auth()->user()->branch_id;
+        $query->where('branch_id', $branchId);
+
+        $type = $request->input('type', 'diagnostic');
+        if (in_array($type, ['diagnostic', 'hospital'])) {
+            $categoryIds = CostCategory::where('branch_id', $branchId)
+                ->where('type', $type)
+                ->pluck('id');
+
+            if ($categoryIds->isNotEmpty()) {
+                $query->whereIn('cost_category_id', $categoryIds);
+            } else {
+                // No categories of this type configured for the branch; force empty result
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $costQuery = $query->orderBy('id', 'desc');
 
         $data['datas'] = $costQuery->paginate(10);
 
-        $data['totalAmount'] = $query->where('branch_id', auth()->user()->branch_id)
-            ->sum('amount');
+        $data['totalAmount'] = $query->sum('amount');
         return view('backend.pages.reports.costs', $data);
     }
 
@@ -526,8 +543,22 @@ class ReportController extends Controller
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
         // Base query with eager loading
+        $branchId = auth()->user()->branch_id;
         $query = Cost::with('costCategory')
-            ->where('branch_id', auth()->user()->branch_id);
+            ->where('branch_id', $branchId);
+
+        $type = $request->input('type', 'diagnostic');
+        if (in_array($type, ['diagnostic', 'hospital'])) {
+            $categoryIds = CostCategory::where('branch_id', $branchId)
+                ->where('type', $type)
+                ->pluck('id');
+
+            if ($categoryIds->isNotEmpty()) {
+                $query->whereIn('cost_category_id', $categoryIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
 
         // Apply date filters
         if (!$request->filled('start_date') && !$request->filled('end_date')) {
@@ -583,8 +614,22 @@ class ReportController extends Controller
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
         // Base query with eager loading
+        $branchId = auth()->user()->branch_id;
         $query = Cost::with('costCategory')
-            ->where('branch_id', auth()->user()->branch_id);
+            ->where('branch_id', $branchId);
+
+        $type = $request->input('type', 'diagnostic');
+        if (in_array($type, ['diagnostic', 'hospital'])) {
+            $categoryIds = CostCategory::where('branch_id', $branchId)
+                ->where('type', $type)
+                ->pluck('id');
+
+            if ($categoryIds->isNotEmpty()) {
+                $query->whereIn('cost_category_id', $categoryIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
 
         // Apply date filters
         if (!$request->filled('start_date') && !$request->filled('end_date')) {
@@ -630,8 +675,22 @@ class ReportController extends Controller
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
 // Base query with eager loading
+        $branchId = auth()->user()->branch_id;
         $query = Cost::with('costCategory')
-            ->where('branch_id', auth()->user()->branch_id);
+            ->where('branch_id', $branchId);
+
+        $type = $request->input('type', 'diagnostic');
+        if (in_array($type, ['diagnostic', 'hospital'])) {
+            $categoryIds = CostCategory::where('branch_id', $branchId)
+                ->where('type', $type)
+                ->pluck('id');
+
+            if ($categoryIds->isNotEmpty()) {
+                $query->whereIn('cost_category_id', $categoryIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
 
 // Apply cost_category_id filter
         if ($request->filled('cost_category_id')) {

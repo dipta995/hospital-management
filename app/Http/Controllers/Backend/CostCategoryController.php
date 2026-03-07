@@ -75,12 +75,14 @@ class CostCategoryController extends Controller
         $this->checkOwnPermission('cost_categories.create');
         $rules = [
             'name' => 'required|max:200',
+            'type' => 'nullable|in:hospital,diagnostic',
         ];
         $request->validate($rules);
         try {
             $row = new CostCategory();
             $row->branch_id = auth()->user()->branch_id;
             $row->name = $request->name;
+            $row->type = $request->type ?: 'diagnostic';
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> CostCategory Created Successfully');
@@ -137,11 +139,13 @@ class CostCategoryController extends Controller
         $this->checkOwnPermission('cost_categories.edit');
             $request->validate([
                 'name' => 'required|max:200',
+                'type' => 'nullable|in:hospital,diagnostic',
             ]);
             try {
                 if($row = CostCategory::where('branch_id', auth()->user()->branch_id)
                     ->find($id)){
                 $row->name = $request->name;
+                $row->type = $request->type ?: 'diagnostic';
                     if ($row->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> CostCategory Created Successfully');
 
