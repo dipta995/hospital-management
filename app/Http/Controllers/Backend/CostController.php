@@ -260,7 +260,7 @@ class CostController extends Controller
                 $row = new Cost();
                 $row->branch_id = auth()->user()->branch_id;
                 // $row->admin_id = auth()->id();
-//            $row->cost_category_id = $item->cost_category_id;
+                $row->cost_category_id = Setting::get('diagnostic_refer_cost_category');
 //            if ($item->account_no) {
 //                $row->reason = "(Refer Paymen account-" . $item->account_no . ")";
 //            } else {

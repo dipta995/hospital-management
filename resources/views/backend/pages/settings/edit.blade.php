@@ -81,6 +81,16 @@
                                             @endforeach
                                         </select>
                                     </div>
+                                    <div class="form-group">
+                                        <label for="diagnostic_refer_cost_category">Diagnostic Refer Cost Category</label>
+                                        <select name="diagnostic_refer_cost_category" id="diagnostic_refer_cost_category" class="form-control">
+                                            <option value="">Choose</option>
+                                            @foreach(\App\Models\CostCategory::where('branch_id',auth()->user()->branch_id)->where('type', 'diagnostic')->get() as $item)
+                                                <option
+                                                    value="{{ $item->id }}" @selected(old('diagnostic_refer_cost_category', $edited['diagnostic_refer_cost_category'] ?? '') == $item->id)>{{ $item->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     {{-- Hospital Cost Category (Admit) removed: hospital costs now choose a hospital-type category directly at use time --}}
                                     <div class="form-group">
                                         <label for="pc_payment_sms">PC Payment SMS</label>

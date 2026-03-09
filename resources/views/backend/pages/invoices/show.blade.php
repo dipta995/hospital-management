@@ -39,6 +39,8 @@
                                                     @csrf
                                                     <div class="modal-body">
                                                         <input type="hidden" name="pc_payment" value="pc_payment">
+                                                        <input type="hidden" name="cost_category_id"
+                                                               value="{{ \App\Models\Setting::get('diagnostic_refer_cost_category') }}">
 
                                                         <div class="mb-3">
                                                             <label for="referName" class="form-label">Refer Name</label>
