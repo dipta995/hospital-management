@@ -228,6 +228,102 @@ function currentBalanceMonth()
     </div>';
 }
 
+function currentBalanceDayWise()
+{
+    $fromDate = request()->from_date;
+    $toDate = request()->to_date;
+    $branchId = auth()->user()->branch_id;
+
+    $start = $fromDate ? Carbon::parse($fromDate)->startOfDay() : Carbon::now('Asia/Dhaka')->startOfMonth();
+    $end = $toDate ? Carbon::parse($toDate)->endOfDay() : Carbon::now('Asia/Dhaka')->endOfMonth();
+
+    $rows = '';
+    $totalDiagnosticCollection = 0;
+    $totalHospitalCollection = 0;
+    $totalEarn = 0;
+    $totalCost = 0;
+    $totalBalance = 0;
+
+    for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+        $day = $date->toDateString();
+
+        $diagnosticCollection = InvoicePayment::with(['invoice'])
+            ->whereHas('invoice', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
+            ->whereDate('creation_date', $day)
+            ->sum('paid_amount');
+
+        $hospitalCollection = ReceptPayment::whereHas('admit', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
+            ->whereDate('creation_date', $day)
+            ->sum('paid_amount');
+
+        $earnAmount = Earn::where('branch_id', $branchId)
+            ->whereDate('date', $day)
+            ->sum('amount');
+
+        $costAmount = Cost::where('branch_id', $branchId)
+            ->whereDate('creation_date', $day)
+            ->sum('amount');
+
+        $dayBalance = $diagnosticCollection + $hospitalCollection + $earnAmount - $costAmount;
+
+        $totalDiagnosticCollection += $diagnosticCollection;
+        $totalHospitalCollection += $hospitalCollection;
+        $totalEarn += $earnAmount;
+        $totalCost += $costAmount;
+        $totalBalance += $dayBalance;
+
+        $rows .= '<tr>' .
+            '<td>' . $date->format('d M Y') . '</td>' .
+            '<td style="text-align:right;">৳ ' . number_format($diagnosticCollection, 2) . '</td>' .
+            '<td style="text-align:right;">৳ ' . number_format($hospitalCollection, 2) . '</td>' .
+            '<td style="text-align:right;">৳ ' . number_format($earnAmount, 2) . '</td>' .
+            '<td style="text-align:right;">৳ ' . number_format($costAmount, 2) . '</td>' .
+            '<td style="text-align:right;">৳ ' . number_format($dayBalance, 2) . '</td>' .
+            '</tr>';
+    }
+
+    $title = 'Day-wise Financial Summary';
+    if ($fromDate && $toDate) {
+        $title .= ' (' . Carbon::parse($fromDate)->format('d M Y') . ' to ' . Carbon::parse($toDate)->format('d M Y') . ')';
+    }
+
+    return '
+    <div class="border rounded p-3 bg-light">
+        <h5 class="mb-3 border-bottom pb-2">' . $title . '</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm mb-0" style="width:100%; font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-end">Diagnostic Collection</th>
+                        <th class="text-end">Hospital Collection</th>
+                        <th class="text-end">Earn</th>
+                        <th class="text-end">Cost</th>
+                        <th class="text-end">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>' .
+                    $rows .
+                '</tbody>
+                <tfoot>
+                    <tr>
+                        <th>Total</th>
+                        <th class="text-end">৳ ' . number_format($totalDiagnosticCollection, 2) . '</th>
+                        <th class="text-end">৳ ' . number_format($totalHospitalCollection, 2) . '</th>
+                        <th class="text-end">৳ ' . number_format($totalEarn, 2) . '</th>
+                        <th class="text-end">৳ ' . number_format($totalCost, 2) . '</th>
+                        <th class="text-end">৳ ' . number_format($totalBalance, 2) . '</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>';
+}
+
 
 
 function smsSent($branchId, $phoneNo, $message)

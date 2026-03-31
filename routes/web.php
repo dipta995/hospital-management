@@ -218,6 +218,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/reports/collections', [ReportController::class, 'collections'])->name('reports.collections');
     Route::get('/reports/recept-collections', [ReportController::class, 'hospitalCollections'])->name('reports.recept-collections');
     Route::get('/reports/balance', [ReportController::class, 'balance'])->name('reports.balance');
+    Route::get('/reports/balance-day-wise', [ReportController::class, 'balanceDayWise'])->name('reports.balance-day-wise');
     Route::get('/reports/categories', [ReportController::class, 'categories'])->name('reports.categories');
     Route::get('/reports/references', [ReportController::class, 'references'])->name('reports.references');
     Route::get('/reports/references/payment', [ReportController::class, 'referencesPayment'])->name('reports.references.payment');

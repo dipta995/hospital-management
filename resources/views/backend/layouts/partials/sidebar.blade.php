@@ -24,6 +24,7 @@
 
     <div class="scrollbar" data-simplebar>
 
+
         <ul class="navbar-nav" id="navbar-nav">
 
             <li class="menu-title">Menu</li>
@@ -1047,7 +1048,11 @@
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.reports.balance') }}">Balance</a>
                                 </li>
-                            @endif
+                               <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.reports.balance-day-wise') }}">Balance Day Wize</a>
+                                </li>
+                                @endif
                             @if ($userGuard->can('reports.show'))
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"

@@ -420,6 +420,24 @@ class ReportController extends Controller
         return view('backend.pages.reports.balance', $data);
     }
 
+    public function balanceDayWise(Request $request)
+    {
+        $this->checkOwnPermission('reports.index');
+        $data['pageHeader'] = [
+            'title' => "Balance Day Wise",
+            'sub_title' => "",
+            'plural_name' => "balances",
+            'singular_name' => "Category",
+            'base_url' => url('admin/balances/day-wise'),
+
+        ];
+        if ($request->query('pdf') == 'yes') {
+            return view('backend.pages.reports.balance-day-wise-pdf', $data);
+        }
+
+        return view('backend.pages.reports.balance-day-wise', $data);
+    }
+
     public function categories(Request $request)
     {
         $this->checkOwnPermission('reports.index');
