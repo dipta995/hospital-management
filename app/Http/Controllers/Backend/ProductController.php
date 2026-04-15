@@ -9,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -103,9 +104,14 @@ class ProductController extends Controller
                     }
                 },
             ],
+            'parameters' => 'nullable|array',
+            'parameters.*.parameter' => 'required_with:parameters.*.unit,parameters.*.reference_range|nullable|string|max:255',
+            'parameters.*.unit' => 'nullable|string|max:100',
+            'parameters.*.reference_range' => 'nullable|string|max:255',
         ];
         $request->validate($rules);
         try {
+            DB::beginTransaction();
 
             $row = new Product();
             $row->branch_id = auth()->user()->branch_id;
@@ -116,14 +122,17 @@ class ProductController extends Controller
             $row->description = $request->description;
             $row->reefer_fee = $request->reefer_fee ?? 0;
 
-            if ($row->save()) {
-                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Product Created Successfully');
-
-            } else {
+            if (!$row->save()) {
+                DB::rollBack();
                 return RedirectHelper::backWithInput();
             }
+
+            $this->syncProductParameters($row, $request->input('parameters', []));
+            DB::commit();
+
+            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Product Created Successfully');
         } catch (QueryException $e) {
-            return $e;
+            DB::rollBack();
             return RedirectHelper::backWithInputFromException();
         }
 
@@ -151,7 +160,7 @@ class ProductController extends Controller
     {
         $this->checkOwnPermission('products.edit');
         $data['pageHeader'] = $this->pageHeader;
-        if ($data['edited'] = Product::where('branch_id', auth()->user()->branch_id)
+        if ($data['edited'] = Product::with('parameters')->where('branch_id', auth()->user()->branch_id)
             ->find($id)) {
             return view('backend.pages.products.edit', $data);
         } else {
@@ -186,11 +195,17 @@ class ProductController extends Controller
                     }
                 },
             ],
+            'parameters' => 'nullable|array',
+            'parameters.*.parameter' => 'required_with:parameters.*.unit,parameters.*.reference_range|nullable|string|max:255',
+            'parameters.*.unit' => 'nullable|string|max:100',
+            'parameters.*.reference_range' => 'nullable|string|max:255',
         ]);
         try {
 //               return $request;
             if ($row = Product::where('branch_id', auth()->user()->branch_id)
                 ->find($id)) {
+
+                DB::beginTransaction();
 
 //                    $row->category_id = $request->category_id;
                 $row->name = $request->name;
@@ -199,19 +214,52 @@ class ProductController extends Controller
                 $row->description = $request->description;
                 $row->reefer_fee = $request->reefer_fee ?? 0;
 
-                if ($row->save()) {
-                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Product Created Successfully');
-
-                } else {
+                if (!$row->save()) {
+                    DB::rollBack();
                     return RedirectHelper::backWithInput();
                 }
+
+                $this->syncProductParameters($row, $request->input('parameters', []));
+                DB::commit();
+
+                return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Product Created Successfully');
             } else {
                 return RedirectHelper::routeError($this->index_route, '<strong>Sorry !!!</strong>Data not found');
 
             }
         } catch (QueryException $e) {
-            return $e;
+            DB::rollBack();
             return RedirectHelper::backWithInputFromException();
+        }
+    }
+
+    private function syncProductParameters(Product $product, array $parameters): void
+    {
+        $rows = [];
+
+        foreach ($parameters as $item) {
+            $parameter = trim((string)($item['parameter'] ?? ''));
+            $unit = trim((string)($item['unit'] ?? ''));
+            $referenceRange = trim((string)($item['reference_range'] ?? ''));
+
+            if ($parameter === '' && $unit === '' && $referenceRange === '') {
+                continue;
+            }
+
+            if ($parameter === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'parameter' => $parameter,
+                'unit' => $unit !== '' ? $unit : null,
+                'reference_range' => $referenceRange !== '' ? $referenceRange : null,
+            ];
+        }
+
+        $product->parameters()->delete();
+        if (!empty($rows)) {
+            $product->parameters()->createMany($rows);
         }
     }
 

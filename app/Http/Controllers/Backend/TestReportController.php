@@ -69,16 +69,14 @@ class TestReportController extends Controller
         // When an invoice is provided, always show that invoice's tests
         // on the left, and attach any matching templates from TestReportDemo.
         if ($invoiceId) {
-            $invoice = Invoice::with(['invoiceList.product.category'])
+            $invoice = Invoice::with(['invoiceList.product.category', 'invoiceList.product.parameters'])
                 ->where('branch_id', auth()->user()->branch_id)
                 ->find($invoiceId);
 
             $data['invoice'] = $invoice;
 
             if ($invoice) {
-                $allTemplates = TestReportDemo::all();
-
-                $data['reportDemo'] = $invoice->invoiceList->map(function ($item) use ($allTemplates) {
+                $data['reportDemo'] = $invoice->invoiceList->map(function ($item) {
                     $product = $item->product;
                     if (!$product) {
                         return null;
@@ -87,9 +85,21 @@ class TestReportController extends Controller
                     $name = $product->name; // e.g. "CBC(1002)"
                     $normalized = preg_replace('/\\s*\([^)]*\)$/', '', $name); // e.g. "CBC"
 
-                    // Prefer any existing saved report on the invoice item,
-                    // otherwise fall back to the product's default description.
-                    $baseReport = $item->test_report ?? $product->description ?? '';
+                    // Prefer any existing saved report on the invoice item.
+                    // If not available, build from product description + parameter table.
+                    $baseReport = trim((string) ($item->test_report ?? ''));
+                    if ($baseReport === '') {
+                        $description = trim((string) ($product->description ?? ''));
+                        $parameterTemplate = $this->buildParameterTemplate($product);
+
+                        if ($description !== '' && $parameterTemplate !== '') {
+                            $baseReport = $description . '<br><br>' . $parameterTemplate;
+                        } elseif ($parameterTemplate !== '') {
+                            $baseReport = $parameterTemplate;
+                        } else {
+                            $baseReport = $description;
+                        }
+                    }
 
                     $categoryName = optional($product->category)->name ?? 'Others';
 
@@ -113,6 +123,46 @@ class TestReportController extends Controller
             $data['edited'] = TestReportDemo::findOrFail(request()->query('testReport'));
         }
         return view('backend.pages.test_reports.create', $data);
+    }
+
+    private function buildParameterTemplate($product): string
+    {
+        if (!$product || !$product->relationLoaded('parameters')) {
+            return '';
+        }
+
+        $rowsHtml = '';
+        foreach ($product->parameters as $parameter) {
+            $name = e((string) ($parameter->parameter ?? ''));
+            $unit = e((string) ($parameter->unit ?? ''));
+            $referenceRange = e((string) ($parameter->reference_range ?? ''));
+
+            if ($name === '' && $unit === '' && $referenceRange === '') {
+                continue;
+            }
+
+            $rowsHtml .= '<tr>'
+                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($name !== '' ? $name : '-') . '</td>'
+                . '<td style="padding:6px;border:1px solid #d1d5db;">&nbsp;</td>'
+                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($unit !== '' ? $unit : '-') . '</td>'
+                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($referenceRange !== '' ? $referenceRange : '-') . '</td>'
+                . '</tr>';
+        }
+
+        if ($rowsHtml === '') {
+            return '';
+        }
+
+        return '<p><strong>Parameters</strong></p>'
+            . '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+            . '<thead><tr>'
+            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Parameter</th>'
+            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Result</th>'
+            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Unit</th>'
+            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Reference Range</th>'
+            . '</tr></thead>'
+            . '<tbody>' . $rowsHtml . '</tbody>'
+            . '</table>';
     }
 
     /**

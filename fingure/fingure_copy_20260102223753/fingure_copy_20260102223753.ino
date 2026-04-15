@@ -22,8 +22,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 WiFiManager wm; // manages WiFi credentials via web portal
 
 // ================= API =================
-const char* SEND_API = "https://alsunnah.dreammake-soft.com/fingerprint-send";
-const char* CHECK_API = "https://alsunnah.dreammake-soft.com/fingerprint-check";
+const char* SEND_API = "https://rebeka.dreammake-soft.com/fingerprint-send";
+const char* CHECK_API = "https://rebeka.dreammake-soft.com/fingerprint-check";
 
 // ================= FINGERPRINT =================
 HardwareSerial mySerial(2);
@@ -34,8 +34,8 @@ uint8_t enrollID = 1;
 bool enrollRequested = false;
 const int CONFIDENCE_THRESHOLD = 50;
 
-// Auto restart every 2 hours
-const unsigned long AUTO_RESTART_INTERVAL_MS = 2UL * 60UL * 60UL * 1000UL;
+// Auto restart every 3 hours
+const unsigned long AUTO_RESTART_INTERVAL_MS = 3UL * 60UL * 60UL * 1000UL;
 unsigned long lastRestartMillis = 0;
 
 // WiFi reconnect tracking

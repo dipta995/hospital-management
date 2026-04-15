@@ -18,4 +18,9 @@ class Product extends Model
     {
         return $this->belongsTo(Branch::class, 'branch_id', 'id');
     }
+
+    public function parameters()
+    {
+        return $this->hasMany(ProductParameter::class, 'product_id', 'id');
+    }
 }
