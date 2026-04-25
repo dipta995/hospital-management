@@ -12,6 +12,8 @@ class Attendance extends Model
     protected $fillable = [
         'employee_id',
         'fingerprint_data',
+        'mode',
+        'hour_slot',
         'date',
         'in_time',
         'out_time',

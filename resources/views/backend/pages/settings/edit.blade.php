@@ -210,6 +210,30 @@
                                             </option>
                                         </select>
                                     </div>
+
+                                    <hr>
+                                    <h5 class="mb-3" id="attendance-config">Attendance Configuration</h5>
+                                    <div class="form-group">
+                                        <label for="attendance_mode">Attendance Mode</label>
+                                        <select name="attendance_mode" id="attendance_mode" class="form-control">
+                                            <option value="standard" @selected(old('attendance_mode', $edited['attendance_mode'] ?? 'standard') == 'standard')>
+                                                Current Style (Daily IN/OUT)
+                                            </option>
+                                            <option value="hourly" @selected(old('attendance_mode', $edited['attendance_mode'] ?? 'standard') == 'hourly')>
+                                                Hourly Style (One row per hour)
+                                            </option>
+                                        </select>
+                                        <small class="text-muted">Choose how attendance device/API records are stored for this branch.</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="attendance_grace_minutes">Hourly Grace Minutes</label>
+                                        <input type="number" min="0" max="59" name="attendance_grace_minutes" id="attendance_grace_minutes"
+                                               value="{{ old('attendance_grace_minutes', $edited['attendance_grace_minutes'] ?? 0) }}"
+                                               placeholder="Suggested: 5 or 10 minutes"
+                                               class="form-control">
+                                        <small class="text-muted">Suggestion: use 5-10 minutes. Set 0 for strict hourly cutoff.</small>
+                                    </div>
                                     <div class="form-group">
                                         <label for="footer_invoice">Footer Invoice</label>
                                         <textarea name="footer_invoice" id="footer_invoice"

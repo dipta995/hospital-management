@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class FingerprintController extends Controller
 {
@@ -102,24 +102,29 @@ class FingerprintController extends Controller
         $employee = Employee::where('rfid', $fingerID)->first();
 
         if ($employee) {
-            // Use full datetime for in_time / out_time because columns are dateTime
             $dhakaNow = now()->setTimezone('Asia/Dhaka');
             $today    = $dhakaNow->toDateString();
+            $mode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
+            $isHourly = $mode === 'hourly';
 
-            $attendance = \App\Models\Attendance::where('employee_id', $employee->id)
+            $openAttendance = \App\Models\Attendance::where('employee_id', $employee->id)
                 ->where('date', $today)
+                ->where('mode', $isHourly ? 'hourly' : 'standard')
+                ->whereNull('out_time')
+                ->orderByDesc('id')
                 ->first();
 
-            if ($attendance) {
-                // Update only out_time (store full datetime value)
-                $attendance->out_time = $dhakaNow->toDateTimeString();
-                $attendance->save();
-                $message = 'Attendance OUT updated.';
+            if ($openAttendance) {
+                $openAttendance->out_time = $dhakaNow->toDateTimeString();
+                $openAttendance->save();
+                $attendance = $openAttendance;
+                $message = 'Attendance OUT marked.';
             } else {
-                // Create new attendance with in_time
                 $attendance = \App\Models\Attendance::create([
                     'employee_id' => $employee->id,
                     'fingerprint_data' => $fingerID,
+                    'mode' => $isHourly ? 'hourly' : 'standard',
+                    'hour_slot' => (int) $dhakaNow->format('G'),
                     'date' => $today,
                     'in_time' => $dhakaNow->toDateTimeString(),
                     'out_time' => null,

@@ -93,27 +93,47 @@
         <thead>
         <tr>
             <th style="width: 18%;">Date</th>
-            <th style="width: 10%;">Total Present</th>
-            <th style="width: 32%;">Employee</th>
-            <th style="width: 20%;">In Time</th>
-            <th style="width: 20%;">Out Time</th>
+            <th style="width: 22%;">Employee</th>
+            <th style="width: 10%;">Sessions</th>
+            <th style="width: 14%;">Total Time</th>
+            <th style="width: 36%;">IN/OUT Details</th>
         </tr>
         </thead>
         <tbody>
         @php use Carbon\Carbon; @endphp
         @forelse($groupedAttendances ?? [] as $date => $items)
+            @php
+                $employeeGroups = $items->groupBy('employee_id');
+            @endphp
             <tr class="date-row">
                 <td>{{ Carbon::parse($date)->format('d M Y') }}</td>
-                <td>{{ $items->count() }}</td>
+                <td>{{ $items->pluck('employee_id')->unique()->count() }} Employees</td>
                 <td colspan="3"></td>
             </tr>
-            @foreach($items as $attendance)
+            @foreach($employeeGroups as $employeeAttendances)
+                @php
+                    $sorted = $employeeAttendances->sortBy('in_time')->values();
+                    $totalSeconds = 0;
+                    foreach ($sorted as $row) {
+                        if ($row->in_time && $row->out_time) {
+                            $totalSeconds += Carbon::parse($row->out_time)->diffInSeconds(Carbon::parse($row->in_time));
+                        }
+                    }
+                    $totalDuration = sprintf('%02d:%02d', floor($totalSeconds / 3600), floor(($totalSeconds % 3600) / 60));
+                @endphp
                 <tr>
                     <td></td>
-                    <td></td>
-                    <td>{{ optional($attendance->employee)->name ?? '-' }}</td>
-                    <td>{{ $attendance->in_time ? Carbon::parse($attendance->in_time)->format('h:i:s A') : '-' }}</td>
-                    <td>{{ $attendance->out_time ? Carbon::parse($attendance->out_time)->format('h:i:s A') : '-' }}</td>
+                    <td>{{ optional($sorted->first()->employee)->name ?? '-' }}</td>
+                    <td>{{ $sorted->count() }}</td>
+                    <td>{{ $totalDuration }}</td>
+                    <td>
+                        @foreach($sorted as $session)
+                            <div>
+                                {{ $loop->iteration }}. IN {{ $session->in_time ? Carbon::parse($session->in_time)->format('h:i:s A') : '-' }}
+                                | OUT {{ $session->out_time ? Carbon::parse($session->out_time)->format('h:i:s A') : 'Open' }}
+                            </div>
+                        @endforeach
+                    </td>
                 </tr>
             @endforeach
         @empty

@@ -40,6 +40,7 @@ use App\Http\Controllers\Backend\TestReportController;
 use App\Http\Controllers\Backend\TestReportDemoController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\AdmitController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\BedCabinController;
@@ -242,10 +243,12 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/search-phone', [ApiController::class, 'searchUserPhone']);
     Route::post('/create-user-api', [ApiController::class, 'storeUser'])->name('users.store.api');
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
-    Route::get('/attendance', [\App\Http\Controllers\AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::put('/attendance/{attendance}/time', [AttendanceController::class, 'updateTime'])->name('attendance.update-time');
 
 });
 Route::get('/checkDevice', [SerialController::class, 'checkDevice']);
+Route::get('/attendance-api/{branch_id}/{rfid}', [ApiController::class, 'attendanceStore'])->name('attendance.api.store');
 
 
 
@@ -255,7 +258,7 @@ Route::get('/fingerprint-show', [FingerprintController::class, 'show'])->name('f
 Route::get('/fingerprint-check', [FingerprintController::class, 'check'])->name('fingerprint.check');
 
 // Attendance (mark in/out)
-Route::post('/attendance/mark', [\App\Http\Controllers\AttendanceController::class, 'mark']);
+Route::post('/attendance/mark', [AttendanceController::class, 'mark']);
 // AJAX route for RFID uniqueness check
 
 require __DIR__ . '/auth.php';

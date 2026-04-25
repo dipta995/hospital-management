@@ -24,6 +24,12 @@ class Setting extends Model
         );
     }
 
+    public static function getByBranch($branchId, $key, $default = null)
+    {
+        $setting = self::where('branch_id', $branchId)->where('key', $key)->first();
+        return $setting ? $setting->value : $default;
+    }
+
 
     public function branch()
     {

@@ -766,6 +766,35 @@
                     </div>
                 </li>
             @endif
+
+            @if ( $userGuard->can('employees.index') || $userGuard->can('settings.edit'))
+                <li class="nav-item">
+                    <a class="nav-link menu-arrow {{ Route::is('admin.attendance.index') || Route::is('admin.settings.edit') ? 'active' : 'collapsed' }}"
+                       href="#sidebarAttendance" data-bs-toggle="collapse" role="button"
+                       aria-expanded="false" aria-controls="sidebarAttendance">
+                                <span class="nav-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </span>
+                        <span class="nav-text"> Attendance </span>
+                    </a>
+                    <div
+                        class="{{ Route::is('admin.attendance.index') || Route::is('admin.settings.edit') ? 'active' : 'collapse' }}"
+                        id="sidebarAttendance">
+                        <ul class="nav sub-navbar-nav">
+                            @if ($userGuard->can('employees.index'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.attendance.index') }}">Summary</a>
+                                </li>
+                            @endif
+                            @if ($userGuard->can('settings.edit'))
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link" href="{{ route('admin.settings.edit', auth()->id()) }}#attendance-config">Settings</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+            @endif
             {{--   Earn's   --}}
             @if ( $userGuard->can('earns.index') || $userGuard->can('earns.create') || $userGuard->can('earns.edit') || $userGuard->can('earns.delete'))
                 <li class="nav-item">

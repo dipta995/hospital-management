@@ -12,6 +12,7 @@ use App\Models\PharmacySaleItem;
 use App\Models\Product;
 use App\Models\Reefer;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -125,26 +126,31 @@ class ApiController extends Controller
             ->where('rfid', $rfid)->first();
 
         if ($employee) {
-            // Create a new Attendance record
             $now = \Carbon\Carbon::now('Asia/Dhaka');
             $date = $now->toDateString();
-            $in_time = $now;
+            $mode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
+            $isHourly = $mode === 'hourly';
 
-            // Check if already marked today
-            $attendance = Attendance::where('employee_id', $employee->id)
+            $openAttendance = Attendance::where('employee_id', $employee->id)
                 ->where('date', $date)
+                ->where('mode', $isHourly ? 'hourly' : 'standard')
+                ->whereNull('out_time')
+                ->orderByDesc('id')
                 ->first();
 
-            if (!$attendance) {
+            if ($openAttendance) {
+                $openAttendance->out_time = $now;
+                $openAttendance->save();
+            } else {
                 $attendance = Attendance::create([
                     'employee_id' => $employee->id,
+                    'fingerprint_data' => (string) $rfid,
+                    'mode' => $isHourly ? 'hourly' : 'standard',
+                    'hour_slot' => (int) $now->format('G'),
                     'date' => $date,
-                    'in_time' => $in_time,
+                    'in_time' => $now,
                     'out_time' => null,
                 ]);
-            } else {
-                $attendance->out_time = $now;
-                $attendance->save();
             }
 
             // Return a success response (1) to ESP
