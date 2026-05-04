@@ -105,7 +105,48 @@ class AttendanceController extends Controller
                 ->stream("attendance-{$month}-{$year}.pdf");
         }
 
-        return view('backend.pages.attendance.index', compact('groupedAttendances', 'month', 'year', 'employeeId'));
+        $employees = Employee::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
+
+        return view('backend.pages.attendance.index', compact('groupedAttendances', 'month', 'year', 'employeeId', 'employees'));
+    }
+
+    /**
+     * Manually create an attendance record
+     * Route: POST /admin/attendance
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'date'        => 'required|date',
+            'in_time'     => 'required|date_format:H:i',
+            'out_time'    => 'nullable|date_format:H:i|after_or_equal:in_time',
+            'note'        => 'nullable|string|max:500',
+        ]);
+
+        $employee = Employee::findOrFail($data['employee_id']);
+
+        if ((int) $employee->branch_id !== (int) auth()->user()->branch_id) {
+            abort(403, 'You are not allowed to add attendance for this employee.');
+        }
+
+        $date       = Carbon::parse($data['date'])->toDateString();
+        $inDateTime = Carbon::parse($date . ' ' . $data['in_time'])->toDateTimeString();
+        $outDateTime = !empty($data['out_time'])
+            ? Carbon::parse($date . ' ' . $data['out_time'])->toDateTimeString()
+            : null;
+
+        Attendance::create([
+            'employee_id' => $employee->id,
+            'mode'        => 'standard',
+            'hour_slot'   => 0,
+            'date'        => $date,
+            'in_time'     => $inDateTime,
+            'out_time'    => $outDateTime,
+            'note'        => $data['note'] ?? null,
+        ]);
+
+        return back()->with('success', 'Attendance record added successfully.');
     }
 
     public function updateTime(Request $request, Attendance $attendance)
@@ -118,6 +159,7 @@ class AttendanceController extends Controller
             'date' => 'required|date',
             'in_time' => 'required|date_format:H:i',
             'out_time' => 'nullable|date_format:H:i|after_or_equal:in_time',
+            'note' => 'nullable|string|max:500',
         ]);
 
         $attendanceDate = Carbon::parse($data['date'])->toDateString();
@@ -133,6 +175,7 @@ class AttendanceController extends Controller
             'in_time' => $inDateTime,
             'out_time' => $outDateTime,
             'hour_slot' => $attendance->mode === 'hourly' ? (int) Carbon::parse($inDateTime)->format('G') : 0,
+            'note' => $data['note'] ?? null,
         ]);
 
         return back()->with('success', 'Attendance time updated successfully.');

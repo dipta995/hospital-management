@@ -12,6 +12,14 @@
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title">Attendance Summary</h4>
+                        @if(session('success'))
+                            <div class="alert alert-success">{{ session('success') }}</div>
+                        @endif
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
+                                + Add Attendance
+                            </button>
+                        </div>
                         <form method="get" class="row mb-3">
                             @if(!empty($employeeId))
                                 <input type="hidden" name="employee_id" value="{{ $employeeId }}" />
@@ -88,6 +96,7 @@
                                                             {{ $loop->iteration }}. IN: {{ $session->in_time ? Carbon::parse($session->in_time)->format('h:i:s A') : '-' }}
                                                             | OUT: {{ $session->out_time ? Carbon::parse($session->out_time)->format('h:i:s A') : 'Open' }}
                                                             | Mode: {{ ucfirst($session->mode ?? 'standard') }}
+                                                            @if($session->note) | Note: {{ $session->note }} @endif
                                                         </div>
                                                     @endforeach
                                                 </td>
@@ -124,7 +133,8 @@
                                                                        value="{{ old('out_time', $session->out_time ? Carbon::parse($session->out_time)->format('H:i') : '') }}">
                                                             </div>
                                                             <div class="col-md-3">
-                                                                <small class="text-muted">Edit this specific IN/OUT pair.</small>
+                                                                <label class="form-label">Note</label>
+                                                                <textarea name="note" class="form-control" rows="1" maxlength="500">{{ old('note', $session->note) }}</textarea>
                                                             </div>
                                                             <div class="col-md-2 text-end">
                                                                 <button type="submit" class="btn btn-success btn-sm">Save</button>
@@ -149,3 +159,49 @@
 @endsection
 @push('scripts')
 @endpush
+
+<!-- Add Attendance Modal -->
+<div class="modal fade" id="addAttendanceModal" tabindex="-1" aria-labelledby="addAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.attendance.store') }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAttendanceModalLabel">Add Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Employee</label>
+                        <select name="employee_id" class="form-select" required>
+                            <option value="">-- Select Employee --</option>
+                            @foreach($employees ?? [] as $emp)
+                                <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ now()->format('Y-m-d') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">In Time</label>
+                        <input type="time" name="in_time" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Out Time <small class="text-muted">(optional)</small></label>
+                        <input type="time" name="out_time" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Note <small class="text-muted">(optional)</small></label>
+                        <textarea name="note" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

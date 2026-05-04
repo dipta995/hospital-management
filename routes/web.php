@@ -244,6 +244,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::post('/create-user-api', [ApiController::class, 'storeUser'])->name('users.store.api');
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::put('/attendance/{attendance}/time', [AttendanceController::class, 'updateTime'])->name('attendance.update-time');
 
 });
