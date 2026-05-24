@@ -44,6 +44,13 @@
                     <span class="nav-text"> Setting </span>
                 </a>
             </li>
+            <li class="nav-item {{ Route::is('admin.subscriptions.*') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('admin.subscriptions.index') }}">
+                                   <span class="nav-icon">
+                <i class="fas fa-calendar-check"></i> </span>
+                    <span class="nav-text"> Subscription </span>
+                </a>
+            </li>
             @if ( $userGuard->can('customer_balances.index') || $userGuard->can('customer_balances.create') || $userGuard->can('customer_balances.edit') || $userGuard->can('customer_balances.delete'))
                 <li class="nav-item {{ Route::is('admin.customer_balances.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('admin.customer_balances.index') }}">

@@ -43,9 +43,11 @@ use App\Http\Controllers\Backend\AdmitController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\Backend\SubscriptionController;
 use App\Http\Controllers\Backend\BedCabinController;
 use App\Http\Controllers\Backend\CustomerBalanceController;
 use App\Http\Controllers\FingerprintController;
+use App\Http\Controllers\SubscriptionPublicController;
 use App\Http\Controllers\SerialController;
 use App\Models\DoctorSerial;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +65,11 @@ use App\Http\Controllers\Backend\PrescriptionController;
 |
 */
 Route::get('/serials/public/{uniqueCode}', [SerialController::class, 'indexPublic'])->name('doctor.serials.indexPublic');
+Route::get('/subscription/payment/{token}', [SubscriptionPublicController::class, 'show'])->name('subscription.payment.public');
+Route::post('/subscription/payment/{token}', [SubscriptionPublicController::class, 'store'])->name('subscription.payment.public.submit');
+Route::get('/subscription/payment-list/{token}', [SubscriptionPublicController::class, 'paymentList'])->name('subscription.payment.list.public');
+Route::post('/subscription/payment-list/{token}/approve/{requestRow}', [SubscriptionPublicController::class, 'approveFromList'])->name('subscription.payment.list.approve');
+Route::post('/subscription/payment-list/{token}/reject/{requestRow}', [SubscriptionPublicController::class, 'rejectFromList'])->name('subscription.payment.list.reject');
 Route::get('/serials/{uniqueCode}', [SerialController::class, 'index'])->name('doctor.serials.index');
 Route::get('/serials/list/{dr}/{branchId}', [SerialController::class, 'serialLists']);
 Route::get('/', function () {
@@ -108,7 +115,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin'], function () {
 });
 
 // Backend Start
-Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin'], function () {
+Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admin', 'subscription.access']], function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('home');
 //    Roles
@@ -123,6 +130,11 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'auth:admin
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('/settings', [SettingController::class, 'destroy'])->name('settings.destroy');
+
+    Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::post('/subscriptions/date', [SubscriptionController::class, 'updateDate'])->name('subscriptions.date.update');
+    Route::post('/subscriptions/requests/{id}/approve', [SubscriptionController::class, 'approveRequest'])->name('subscriptions.requests.approve');
+    Route::post('/subscriptions/requests/{id}/reject', [SubscriptionController::class, 'rejectRequest'])->name('subscriptions.requests.reject');
 
     //    Accounts
     Route::resource('branches', BranchController::class, ['names' => 'branches']);
