@@ -118,7 +118,7 @@
                                 Print PDF
                             </a> --}}
 
-                            <!-- Data Table -->
+                            <!-- Data Table (grouped by doctor for clarity) -->
                             <div class="table-responsive mt-3">
                                 <table class="table table-striped">
                                     <thead>
@@ -128,36 +128,93 @@
                                             <th>Date</th>
                                             <th>Patient Name</th>
                                             <th>Serial Number</th>
+                                            <th>ETA</th>
                                             <th>remarks</th>
+                                            <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($datas as $key => $item)
-                                            <tr id="table-data{{ $item->id }}">
-                                                <td>{{ $key + 1 }}</td>
-                                                <td>{{ $item->doctor->name }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($item->date)->format('Y-m-d') }}</td>
-                                                <td>{{ $item->patient_name }}</td>
-                                                <td>{{ $item->serial_number }}</td>
-                                                <td>{{ $item->remarks }}</td>
-                                                <td>
-                                                    <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
-                                                    <a class="badge bg-danger" href="javascript:void(0)" onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
+                                        @php $groups = $datas->groupBy('reefer_id'); $rowIndex = 0; @endphp
+                                        @forelse($groups as $reeferId => $group)
+                                            @php
+                                                $doctor = optional($group->first()->doctor);
+                                                $dateForGroup = optional($group->first())->date ?? now()->toDateString();
+                                                // compute next serial for display
+                                                $maxSerial = $group->map(function($g){ return (int) $g->serial_number; })->max();
+                                                $nextSerial = $maxSerial ? $maxSerial + 1 : 1;
+                                                $pendingCount = $group->where('status', 'Pending')->count();
+                                                $checking = $group->firstWhere('status', 'Checking');
+                                                $startTime = $doctor && $doctor->office_time ? \Carbon\Carbon::parse($doctor->office_time) : null;
+                                                $approxNextTime = null;
+                                                if ($startTime) {
+                                                    $minutesToAdd = ($nextSerial - 1) * 3;
+                                                    $approxNextTime = $startTime->copy()->addMinutes($minutesToAdd)->format('g:i A');
+                                                }
+                                            @endphp
+                                            <tr class="table-primary">
+                                                <td colspan="9" style="font-weight:700;">
+                                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                                                        <div>
+                                                            <i class="fas fa-user-md"></i> {{ $doctor->name ?? 'Unknown Doctor' }}
+                                                            <small class="text-muted"> &middot; {{ $group->count() }} total</small>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark">Next: #{{ $nextSerial }}</span>
+                                                            <span class="badge bg-info text-white">Pending: {{ $pendingCount }}</span>
+                                                            @if($approxNextTime)
+                                                                <span class="badge bg-success">Approx: {{ $approxNextTime }}</span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             </tr>
+
+                                            @foreach($group->sortBy(function($r){ return (int)$r->serial_number; }) as $item)
+                                                @php $rowIndex++; @endphp
+                                                <tr id="table-data{{ $item->id }}" @if(strtolower($item->status)=='checking') style="background:#fff3cd" @endif>
+                                                    <td>{{ $rowIndex }}</td>
+                                                    <td>{{ $doctor->name ?? '—' }}</td>
+                                                    <td>{{ \Carbon\Carbon::parse($item->date)->format('Y-m-d') }}</td>
+                                                    <td>{{ $item->patient_name }}</td>
+                                                    <td>{{ $item->serial_number }}</td>
+                                                    <td>
+                                                        @php
+                                                            $eta = null;
+                                                            if ($startTime) {
+                                                                $minutesToAdd = ((int)$item->serial_number - 1) * 3;
+                                                                $eta = $startTime->copy()->addMinutes($minutesToAdd)->format('g:i A');
+                                                            }
+                                                        @endphp
+                                                        {{ $eta ?? '—' }}
+                                                    </td>
+                                                    <td>{{ $item->remarks }}</td>
+                                                    <td>
+                                                        @php
+                                                            $status = strtolower($item->status ?? 'pending');
+                                                            $class = 'badge bg-secondary';
+                                                            if ($status === 'checking') $class = 'badge bg-warning';
+                                                            if ($status === 'complete') $class = 'badge bg-success';
+                                                            if ($status === 'rejected') $class = 'badge bg-danger';
+                                                        @endphp
+                                                        <span class="{{ $class }}">{{ $item->status }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="badge bg-info"><i class="fas fa-pen"></i></a>
+                                                        <a class="badge bg-danger" href="javascript:void(0)" onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
                                         @empty
                                             <tr>
-                                                <td colspan="7">No records found. <a href="{{ route($pageHeader['create_route']) }}" class="btn btn-info">Create</a></td>
+                                                <td colspan="9">No records found. <a href="{{ route($pageHeader['create_route']) }}" class="btn btn-info">Create</a></td>
                                             </tr>
                                         @endforelse
                                     </tbody>
                                 </table>
 
                                 <!-- Pagination Links -->
-{{--                                <div class="d-flex justify-content-end">--}}
-{{--                                    {!! $datas->links() !!}--}}
-{{--                                </div>--}}
+                                {{-- pagination omitted for grouped view --}}
                             </div>
                         </div>
                     </div>

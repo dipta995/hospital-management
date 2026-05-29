@@ -169,9 +169,9 @@ class DoctorSerialController extends Controller
         }
 
     }
-    public function generateSerialNumber($reeferId)
+    public function generateSerialNumber($reeferId, $forDate = null)
     {
-        $currentDate = Carbon::now('Asia/Dhaka')->toDateString();
+        $currentDate = $forDate ? Carbon::parse($forDate)->toDateString() : Carbon::now('Asia/Dhaka')->toDateString();
         $latestSerial = DoctorSerial::where('branch_id', auth()->user()->branch_id)
             ->where('reefer_id', $reeferId)
             ->whereDate('date', $currentDate)
@@ -186,6 +186,32 @@ class DoctorSerialController extends Controller
         }
 //        dd($serial);
         return $serial;
+    }
+
+    /**
+     * Return next serial and approximate time for a given doctor (reefer) via AJAX.
+     */
+    public function nextSerialAjax($reeferId)
+    {
+        $date = request()->query('date');
+        $serial = $this->generateSerialNumber($reeferId, $date);
+        $dr = Reefer::find($reeferId);
+
+        $approxTime = null;
+        if ($dr && $dr->office_time) {
+            try {
+                $startTime = Carbon::parse($dr->office_time);
+                $minutesToAdd = ($serial - 1) * 3; // keeps existing 3 min per serial assumption
+                $approxTime = $startTime->copy()->addMinutes($minutesToAdd)->format('g:i A');
+            } catch (\Exception $e) {
+                $approxTime = null;
+            }
+        }
+
+        return response()->json([
+            'serial' => $serial,
+            'approx_time' => $approxTime,
+        ]);
     }
 
     /**

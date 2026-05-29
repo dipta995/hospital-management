@@ -223,6 +223,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::post('labs/update-item/{invoiceItemId}', [LabController::class, 'updateItem'])->name('lab.update-item');
     Route::get('labs/reagent-delete/{reagent_track_id}', [LabController::class, 'DeleteReagetntTrack'])->name('lab.delete-reagetnt-track');
 
+    Route::get('doctor-serials/next-serial/{reefer}', [DoctorSerialController::class, 'nextSerialAjax'])->name('doctor_serials.next');
     Route::resource('doctor-serials', DoctorSerialController::class, ['names' => 'doctor_serials']);
     Route::resource('doctor-rooms', DoctorRoomController::class, ['names' => 'doctor_rooms']);
     Route::resource('prescriptions', PrescriptionController::class);
