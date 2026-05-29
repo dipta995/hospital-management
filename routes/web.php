@@ -182,6 +182,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('reefers/custom/sms',[ReeferController::class,'customSms'])->name('reefers.custom-sms');
     Route::get('reefers/custom/sms/send',[ReeferController::class,'customSmsSend'])->name('reefers.custom-sms-send');
     Route::resource('employees', EmployeeController::class, ['names' => 'employees']);
+    Route::get('admin/employees/salary-sheet/view', [EmployeeController::class, 'salarySheet'])->name('employees.salary-sheet');
     Route::post('admin/employees/salary/{id}', [EmployeeController::class, 'salary'])->name('employees.salary');
     Route::get('admin/employees/salary/delete/{id}', [EmployeeController::class, 'salaryDelete'])->name('employees.salary.delete');
     Route::resource('cost-categories', CostCategoryController::class, ['names' => 'cost_categories']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Cost;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
@@ -351,5 +352,212 @@ class EmployeeController extends Controller
         }
         $exists = $query->exists();
         return response()->json(['exists' => $exists]);
+    }
+
+    /**
+     * Display salary sheet with current and previous month details
+     * @return \Illuminate\Http\Response
+     */
+    public function salarySheet(Request $request)
+    {
+        $this->checkOwnPermission('employees.index');
+
+        // Get current and previous month/year
+        $currentMonth = $request->get('month', Carbon::now()->format('F'));
+        $currentYear = $request->get('year', Carbon::now()->format('Y'));
+        $includeDeductions = $request->get('include_deductions', '1') == '1';
+
+        // Calculate previous month
+        $monthDate = Carbon::createFromFormat('F Y', "$currentMonth $currentYear");
+        $previousMonth = $monthDate->copy()->subMonth()->format('F');
+        $previousYear = $monthDate->copy()->subMonth()->format('Y');
+
+        // Get all employees for the branch with their salaries and attendance
+        $employees = Employee::where('branch_id', auth()->user()->branch_id)
+            ->with([
+                'employeeSalaries' => function ($query) use ($currentMonth, $currentYear, $previousMonth, $previousYear) {
+                    $query->where(function ($q) use ($currentMonth, $currentYear, $previousMonth, $previousYear) {
+                        $q->where(function ($q2) use ($currentMonth, $currentYear) {
+                            $q2->where('month', $currentMonth)->where('year', $currentYear);
+                        })->orWhere(function ($q2) use ($previousMonth, $previousYear) {
+                            $q2->where('month', $previousMonth)->where('year', $previousYear);
+                        });
+                    });
+                }
+            ])
+            ->orderBy('name', 'ASC')
+            ->get();
+
+        // Calculate totals - costs are tracked through salary payments
+        $totalBaseSalary = $employees->sum('salary');
+        $totalDeductions = 0;
+        $totalHourlyDeductions = 0;
+        $totalHours = 0;
+        $totalDays = 0;
+
+        // Get date range for the month
+        $monthStart = $monthDate->copy()->startOfMonth()->toDateString();
+        $monthEnd = $monthDate->copy()->endOfMonth()->toDateString();
+        $daysInMonth = $monthDate->daysInMonth;
+        $expectedDaysPerMonth = ($daysInMonth / 7) * 5; // 5 working days per week
+
+        // Store attendance details for each employee
+        $employeeAttendanceDetails = [];
+
+        // Calculate deductions for each employee
+        foreach ($employees as $employee) {
+            // Calculate deductions from all salary payments made
+            $employeeSalaryPayments = EmployeeSalary::where('employee_id', $employee->id)
+                ->where('year', $currentYear)
+                ->sum('salary');
+
+            $totalDeductions += $employeeSalaryPayments;
+
+            // Calculate hourly-based deductions if using hourly mode
+            $attendanceMode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
+            $attendanceDetails = $this->getAttendanceDetails($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
+
+            $employeeAttendanceDetails[$employee->id] = $attendanceDetails;
+            $totalHours += $attendanceDetails['totalHours'];
+            $totalDays += $attendanceDetails['totalDays'];
+
+            if ($attendanceMode === 'hourly') {
+                $hourlyDeduction = $this->calculateHourlyDeduction($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
+                $totalHourlyDeductions += $hourlyDeduction;
+            }
+        }
+
+        $netTotal = $totalBaseSalary - $totalDeductions - $totalHourlyDeductions;
+
+        $data = [
+            'pageHeader' => $this->pageHeader,
+            'employees' => $employees,
+            'currentMonth' => $currentMonth,
+            'currentYear' => $currentYear,
+            'previousMonth' => $previousMonth,
+            'previousYear' => $previousYear,
+            'includeDeductions' => $includeDeductions,
+            'totalBaseSalary' => $totalBaseSalary,
+            'totalDeductions' => $totalDeductions,
+            'totalHourlyDeductions' => $totalHourlyDeductions,
+            'netTotal' => $netTotal,
+            'monthStart' => $monthStart,
+            'monthEnd' => $monthEnd,
+            'daysInMonth' => $daysInMonth,
+            'expectedDaysPerMonth' => $expectedDaysPerMonth,
+            'totalHours' => $totalHours,
+            'totalDays' => $totalDays,
+            'employeeAttendanceDetails' => $employeeAttendanceDetails,
+        ];
+
+        return view('backend.pages.employees.salary-sheet', $data);
+    }
+
+    /**
+     * Get attendance details for an employee in a month
+     * @param Employee $employee
+     * @param string $monthStart
+     * @param string $monthEnd
+     * @param string $currentMonth
+     * @param string $currentYear
+     * @return array
+     */
+    private function getAttendanceDetails($employee, $monthStart, $monthEnd, $currentMonth, $currentYear)
+    {
+        $monthDate = Carbon::createFromFormat('F Y', "$currentMonth $currentYear");
+        $daysInMonth = $monthDate->daysInMonth;
+        $expectedDaysPerMonth = ($daysInMonth / 7) * 5; // 5 working days per week
+
+        $attendanceRecords = Attendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [$monthStart, $monthEnd])
+            ->get();
+
+        $recordsByDate = $attendanceRecords->groupBy('date');
+        $totalHours = 0;
+        $totalDays = $recordsByDate->count();
+
+        $expectedHoursPerDay = 8;
+        foreach ($recordsByDate as $date => $records) {
+            $dayHours = 0;
+            foreach ($records as $record) {
+                if ($record->in_time && $record->out_time) {
+                    $inTime = Carbon::parse($record->in_time);
+                    $outTime = Carbon::parse($record->out_time);
+                    $minutes = $outTime->diffInMinutes($inTime, false);
+                    $dayHours += max(0, $minutes / 60);
+                }
+            }
+
+            if ($dayHours === 0) {
+                $dayHours = $expectedHoursPerDay;
+            }
+
+            $totalHours += $dayHours;
+        }
+
+        $totalHours = round($totalHours, 2);
+        $missingDays = max(0, $expectedDaysPerMonth - $totalDays);
+        $expectedTotalHours = $expectedDaysPerMonth * $expectedHoursPerDay;
+        $missingHours = max(0, $expectedTotalHours - $totalHours);
+
+        return [
+            'totalHours' => $totalHours,
+            'totalDays' => $totalDays,
+            'expectedDays' => $expectedDaysPerMonth,
+            'missingDays' => $missingDays,
+            'expectedHours' => $expectedTotalHours,
+            'missingHours' => $missingHours,
+            'recordCount' => $attendanceRecords->count(),
+        ];
+    }
+
+    /**
+     * Calculate hourly-based salary deduction for an employee
+     * @param Employee $employee
+     * @param string $monthStart
+     * @param string $monthEnd
+     * @param string $currentMonth
+     * @param string $currentYear
+     * @return float
+     */
+    private function calculateHourlyDeduction($employee, $monthStart, $monthEnd, $currentMonth, $currentYear)
+    {
+        // Get total days in the month
+        $daysInMonth = Carbon::createFromFormat('F Y', "$currentMonth $currentYear")->daysInMonth;
+
+        // Get attendance records for the month
+        $attendanceRecords = Attendance::where('employee_id', $employee->id)
+            ->whereBetween('date', [$monthStart, $monthEnd])
+            ->where('mode', 'hourly')
+            ->get();
+
+        // Count total hours attended
+        $totalHoursAttended = 0;
+        foreach ($attendanceRecords as $record) {
+            if ($record->in_time && $record->out_time) {
+                $inTime = Carbon::parse($record->in_time);
+                $outTime = Carbon::parse($record->out_time);
+                $minutes = $outTime->diffInMinutes($inTime, false);
+                $hours = max(0, $minutes / 60);
+                $totalHoursAttended += $hours;
+            }
+        }
+
+        // Calculate expected hours (e.g., 8 hours per day, 5 working days per week)
+        // Adjust this based on your company's working hours policy
+        $expectedHoursPerDay = 8;
+        $workingDaysPerWeek = 5;
+        $expectedHoursPerMonth = ($daysInMonth / 7) * $workingDaysPerWeek * $expectedHoursPerDay;
+
+        // Calculate missing hours
+        $missingHours = max(0, $expectedHoursPerMonth - $totalHoursAttended);
+
+        // Calculate hourly rate from monthly salary
+        $monthlyHourlyRate = $employee->salary / $expectedHoursPerMonth;
+
+        // Deduction for missing hours
+        $hourlyDeduction = $missingHours * $monthlyHourlyRate;
+
+        return $hourlyDeduction;
     }
 }

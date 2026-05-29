@@ -16,6 +16,9 @@
                         <div class="card-body">
                             <h4 class="card-title">{{ $pageHeader['title'] }}'s List
                                 <a href="{{ route('admin.attendance.index') }}" class="btn btn-primary btn-sm float-end">Attendance</a>
+                                <a href="{{ route('admin.employees.salary-sheet') }}" class="btn btn-success btn-sm float-end me-2">
+                                    <i class="fas fa-file-invoice-dollar"></i> Salary Sheet
+                                </a>
                             </h4>
                             <p class="card-description">
                             @include('backend.layouts.partials.message')

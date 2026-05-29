@@ -745,7 +745,7 @@
             {{--   Employee's   --}}
             @if ( $userGuard->can('employees.index') || $userGuard->can('employees.create') || $userGuard->can('employees.edit') || $userGuard->can('employees.delete'))
                 <li class="nav-item">
-                    <a class="nav-link menu-arrow {{ Route::is('admin.employees.create') || Route::is('admin.employees.index') ? 'active' : 'collapsed' }}"
+                    <a class="nav-link menu-arrow {{ Route::is('admin.employees.create') || Route::is('admin.employees.index') || Route::is('admin.employees.salary-sheet') ? 'active' : 'collapsed' }}"
                        href="#sidebarEmployee" data-bs-toggle="collapse" role="button"
                        aria-expanded="false" aria-controls="sidebarEmployee">
                                    <span class="nav-icon">
@@ -754,7 +754,7 @@
                         <span class="nav-text"> {{ __('language.employee') }} </span>
                     </a>
                     <div
-                        class="{{ Route::is('admin.employees.create') || Route::is('admin.employees.index') ? 'active' : 'collapse' }}"
+                        class="{{ Route::is('admin.employees.create') || Route::is('admin.employees.index') || Route::is('admin.employees.salary-sheet') ? 'active' : 'collapse' }}"
                         id="sidebarEmployee">
                         <ul class="nav sub-navbar-nav">
                             @if ($userGuard->can('employees.create'))
@@ -767,6 +767,10 @@
                                 <li class="sub-nav-item">
                                     <a class="sub-nav-link"
                                        href="{{ route('admin.employees.index') }}">{{ __('language.list') }}</a>
+                                </li>
+                                <li class="sub-nav-item">
+                                    <a class="sub-nav-link"
+                                       href="{{ route('admin.employees.salary-sheet') }}"><i class="fas fa-file-invoice-dollar"></i> Salary Sheet</a>
                                 </li>
                             @endif
                         </ul>
