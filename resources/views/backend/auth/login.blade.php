@@ -6,23 +6,88 @@
     <meta charset="utf-8">
     <meta name="csrf-token" content="{{ csrf_token() }}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Hospital Admin Login</title>
+    <title>Diagnostic General Hospital — Admin Login</title>
     <!-- plugins:css -->
     @include('backend.layouts.partials.style')
 
     <style>
         body.authentication-bg {
-            background: radial-gradient(circle at top left, #e0f2fe 0, #ecfeff 40%, #f9fafb 100%);
+            min-height: 100vh;
+            background: radial-gradient(circle at top left, #e2f5ff 0, #f7fbff 40%, #ffffff 100%);
+            background-image: radial-gradient(circle at top left, rgba(14, 165, 233, 0.14) 0%, transparent 26%),
+                              radial-gradient(circle at right bottom, rgba(15, 118, 110, 0.12) 0%, transparent 22%);
         }
 
         .auth-card {
-            border-radius: 20px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
-            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(14, 165, 233, 0.15);
+            overflow: hidden;
         }
 
         .auth-logo {
+            color: #066f68;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .auth-hero {
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.6rem;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.96), rgba(16, 185, 129, 0.95));
+            color: #ffffff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .auth-hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -10%;
+            width: 260px;
+            height: 260px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+        }
+
+        .auth-hero .hero-heading {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .auth-hero .hero-text {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1rem;
+        }
+
+        .auth-hero .hero-logo {
+            max-width: 160px;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .auth-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             color: #0f766e;
+            margin-bottom: 0.75rem;
+        }
+
+        .auth-brand .brand-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(14, 165, 233, 0.12);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f766e;
+            font-size: 1.2rem;
         }
 
         .auth-title {
@@ -31,14 +96,15 @@
         }
 
         .authentication-form .form-label {
-            font-weight: 500;
-            color: #374151;
+            font-weight: 600;
+            color: #334155;
         }
 
         .authentication-form .form-control {
             border-radius: 999px;
-            padding-left: 1rem;
-            padding-right: 1rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+            border: 1px solid rgba(148, 163, 184, 0.35);
         }
 
         .authentication-form .input-group .form-control {
@@ -53,13 +119,44 @@
 
         .authentication-form .btn-primary {
             border-radius: 999px;
-            background: linear-gradient(135deg, #0f766e, #0ea5e9);
+            background: linear-gradient(135deg, #0f766e, #22c55e);
             border: none;
+            box-shadow: 0 12px 22px rgba(34, 197, 94, 0.18);
+        }
+
+        .authentication-form .btn-primary:hover {
+            background: linear-gradient(135deg, #115e59, #16a34a);
         }
 
         .authentication-form .btn-primary:disabled {
-            opacity: 0.75;
+            opacity: 0.8;
             cursor: not-allowed;
+        }
+
+        .auth-card .card-body {
+            position: relative;
+        }
+
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 120px;
+            height: 120px;
+            background: rgba(14, 165, 233, 0.08);
+            border-bottom-left-radius: 120px;
+        }
+
+        .auth-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(34, 197, 94, 0.08);
+            border-top-right-radius: 100px;
         }
     </style>
 </head>
@@ -72,16 +169,11 @@
             <div class="col-xl-5">
                 <div class="card auth-card">
                     <div class="card-body px-3 py-5">
-                        <div class="mx-auto mb-4 text-center auth-logo">
-                            {{--                            <a href="{{ route('admin.home') }}" class="logo-dark">--}}
-                            {{--                                <img src="{{ asset('backend/assets/images/logo-sm.png') }}" height="30" class="me-1" alt="logo sm">--}}
-                            {{--                                <img src="{{ asset('backend/assets/images/logo-dark-full.png') }}" height="24" alt="logo dark">--}}
-                            {{--                            </a>--}}
-
-                            {{--                            <a href="{{ route('admin.home') }}" class="logo-light">--}}
-                            {{--                                <img src="{{ asset('backend/assets/images/logo-sm.png') }}" height="30" class="me-1" alt="logo sm">--}}
-                            {{--                                <img src="{{ asset('backend/assets/images/logo-dark-full.png') }}" height="24" alt="logo light">--}}
-                            {{--                            </a>--}}
+                        <div class="auth-hero text-center">
+                            <img src="{{ asset('backend/assets/images/logo-light-full.png') }}" alt="Diagnostic General Hospital" class="hero-logo">
+                            <div class="hero-heading">Diagnostic General Hospital</div>
+                            <div class="hero-text">Secure admin access for hospital management, billing, patients, and staff.</div>
+                            <div><i class="fas fa-hospital-symbol fa-2x"></i></div>
                         </div>
 
                         <h2 class="fw-bold text-center fs-18 auth-title">Admin Sign In</h2>

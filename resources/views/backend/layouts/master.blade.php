@@ -22,10 +22,17 @@
 
 @if($subscriptionMeta && !empty($subscriptionMeta['show_banner']))
     <div style="position: fixed; top: 0; left: 0; width: 100%; min-height: 60px; z-index: 1060; background: linear-gradient(90deg, #991b1b 0%, #dc2626 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; padding: 10px 18px; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35); border-bottom: 3px solid #7f1d1d;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; text-align: center; font-weight: 700; font-size: 22px; line-height: 1.35;">
-            <span>আপনার সাবস্ক্রিপশনের মেয়াদ</span>
-            <span style="display: inline-flex; align-items: center; justify-content: center; background: #fee2e2; color: #991b1b; padding: 8px 18px; border-radius: 999px; font-size: 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(127, 29, 29, 0.25); border: 2px solid #fecaca;">{{ $subscriptionMeta['end_date_pretty'] }}</span>
-            <span>তারিখে শেষ হবে। সেবা বন্ধ হওয়া এড়াতে দ্রুত পেমেন্ট সম্পন্ন করুন।</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; width: 100%; max-width: 1260px; flex-wrap: wrap; text-align: center;">
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; font-weight: 700; font-size: 20px; line-height: 1.35;">
+                <span>আপনার সাবস্ক্রিপশনের মেয়াদ</span>
+                <span style="display: inline-flex; align-items: center; justify-content: center; background: #fee2e2; color: #991b1b; padding: 8px 18px; border-radius: 999px; font-size: 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(127, 29, 29, 0.25); border: 2px solid #fecaca;">{{ $subscriptionMeta['end_date_pretty'] }}</span>
+                <span style="font-size: 0.96rem; color: rgba(255,255,255,0.95);">তারিখে শেষ হবে। সেবা বন্ধ হওয়া এড়াতে দ্রুত পেমেন্ট সম্পন্ন করুন।</span>
+            </div>
+            @if(!empty($subscriptionMeta['payment_url']))
+                <a href="{{ $subscriptionMeta['payment_url'] }}" style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; color: #dc2626; font-weight: 700; padding: 12px 20px; border-radius: 999px; text-decoration: none; box-shadow: 0 8px 18px rgba(255,255,255,0.24); transition: transform .15s ease;">
+                    পেমেন্ট করুন
+                </a>
+            @endif
         </div>
     </div>
 @endif
