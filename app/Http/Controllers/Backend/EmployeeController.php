@@ -419,6 +419,7 @@ class EmployeeController extends Controller
         $totalAbsenceDays = 0;
         $attendanceMode = Setting::getByBranch(auth()->user()->branch_id, 'attendance_mode', 'standard');
         $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
+        $canSummarizeAttendance = $this->hrSchemaService->canSummarizeAttendance();
 
         foreach ($employees as $employee) {
             $employeeSalaryPayments = EmployeeSalary::where('employee_id', $employee->id)
@@ -427,7 +428,7 @@ class EmployeeController extends Controller
 
             $totalDeductions += $employeeSalaryPayments;
 
-            if ($hrSchemaInstalled) {
+            if ($canSummarizeAttendance) {
                 $attendanceDetails = $this->attendanceSummaryService->summarize($employee, $currentMonth, $currentYear);
                 $attendanceDetails['absenceDeduction'] = $this->attendanceSummaryService->calculateAbsenceDeduction($employee, $attendanceDetails);
                 $attendanceDetails['hourlyDeduction'] = $attendanceMode === 'hourly'
@@ -483,6 +484,7 @@ class EmployeeController extends Controller
             'totalAbsenceDeductions' => $totalAbsenceDeductions,
             'attendanceMode' => $attendanceMode,
             'hrSchemaInstalled' => $hrSchemaInstalled,
+            'canSummarizeAttendance' => $canSummarizeAttendance,
         ];
 
         return view('backend.pages.employees.salary-sheet', $data);

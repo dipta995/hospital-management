@@ -89,7 +89,7 @@
 
     <h4 class="title">Attendance Sheet - {{ $month }} {{ $year }}</h4>
 
-    @if(!empty($hrSchemaInstalled) && !empty($employeeSummaries))
+    @if(!empty($canSummarizeAttendance) && !empty($employeeSummaries))
         <table style="margin-bottom: 12px;">
             <thead>
             <tr>

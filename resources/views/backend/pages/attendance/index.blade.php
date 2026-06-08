@@ -60,7 +60,7 @@
                             </div>
                         </form>
 
-                        @if(!empty($hrSchemaInstalled) && !empty($employeeSummaries))
+                        @if(!empty($canSummarizeAttendance) && !empty($employeeSummaries))
                             <div class="table-responsive mb-4">
                                 <h5 class="mb-3">Attendance Summary — {{ $month }} {{ $year }}</h5>
                                 <table class="table table-sm table-striped table-bordered">

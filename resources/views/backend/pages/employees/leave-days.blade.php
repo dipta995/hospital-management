@@ -4,14 +4,160 @@
 @endsection
 @push('styles')
     <style>
-        .stat-card { border-radius: 8px; padding: 16px; background: #f8f9fa; height: 100%; }
-        .stat-value { font-size: 1.5rem; font-weight: 700; }
-        .status-present { color: #27ae60; }
-        .status-off_day { color: #6c757d; }
-        .status-leave { color: #2980b9; }
-        .status-absence { color: #e74c3c; }
-        .calendar-day { font-size: 12px; padding: 6px; border: 1px solid #eee; min-height: 52px; }
-        .calendar-day .badge { font-size: 10px; }
+        .stat-card {
+            border-radius: 10px;
+            padding: 14px 16px;
+            background: #fff;
+            height: 100%;
+            border: 1px solid #e2e8f0;
+            border-left-width: 4px;
+        }
+        .stat-card.stat-present { border-left-color: #16a34a; }
+        .stat-card.stat-off { border-left-color: #64748b; }
+        .stat-card.stat-leave { border-left-color: #2563eb; }
+        .stat-card.stat-absence { border-left-color: #dc2626; }
+        .stat-card.stat-expected { border-left-color: #0f766e; }
+        .stat-card.stat-rate { border-left-color: #7c3aed; }
+        .stat-value { font-size: 1.45rem; font-weight: 700; }
+        .stat-present .stat-value { color: #16a34a; }
+        .stat-off .stat-value { color: #475569; }
+        .stat-leave .stat-value { color: #2563eb; }
+        .stat-absence .stat-value { color: #dc2626; }
+        .stat-expected .stat-value { color: #0f766e; }
+        .stat-rate .stat-value { color: #7c3aed; }
+
+        .calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .calendar-weekday {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            padding: 6px 0;
+            text-transform: uppercase;
+        }
+        .calendar-day {
+            font-size: 11px;
+            padding: 8px 4px;
+            border-radius: 10px;
+            min-height: 68px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            cursor: default;
+        }
+        .calendar-day:hover,
+        .calendar-day:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+            outline: none;
+        }
+        .calendar-day-empty {
+            min-height: 68px;
+            visibility: hidden;
+        }
+        .calendar-day .day-num {
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .calendar-day .day-label {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .calendar-day.status-present {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #14532d;
+        }
+        .calendar-day.status-present .day-label {
+            background: #16a34a;
+            color: #fff;
+        }
+
+        .calendar-day.status-absence {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #7f1d1d;
+        }
+        .calendar-day.status-absence .day-label {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .calendar-day.status-leave {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e3a8a;
+        }
+        .calendar-day.status-leave .day-label {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .calendar-day.status-off_day {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+        .calendar-day.status-off_day .day-label {
+            background: #64748b;
+            color: #fff;
+        }
+
+        .calendar-day.status-upcoming {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            border-style: dashed;
+            color: #94a3b8;
+        }
+        .calendar-day.status-upcoming .day-label {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .legend-present { background: #dcfce7; border-color: #86efac; color: #14532d; }
+        .legend-present .legend-dot { background: #16a34a; }
+        .legend-absence { background: #fee2e2; border-color: #fca5a5; color: #7f1d1d; }
+        .legend-absence .legend-dot { background: #dc2626; }
+        .legend-leave { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+        .legend-leave .legend-dot { background: #2563eb; }
+        .legend-off { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+        .legend-off .legend-dot { background: #64748b; }
+        .legend-upcoming { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+        .legend-upcoming .legend-dot { background: #cbd5e1; }
     </style>
 @endpush
 @section('admin-content')
@@ -60,13 +206,13 @@
                 </div>
             </div>
 
-            <div class="row mb-4">
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Expected Work Days</div><div class="stat-value">{{ $summary['expectedWorkingDays'] }}</div></div></div>
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Present</div><div class="stat-value status-present">{{ $summary['presentCount'] }}</div></div></div>
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Weekly Off</div><div class="stat-value status-off_day">{{ $summary['weeklyOffCount'] }}</div></div></div>
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Leave Days</div><div class="stat-value status-leave">{{ $summary['leaveCount'] }}</div></div></div>
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Absences</div><div class="stat-value status-absence">{{ $summary['absenceCount'] }}</div></div></div>
-                <div class="col-md-2"><div class="stat-card"><div class="text-muted small">Attendance Rate</div><div class="stat-value">{{ $summary['attendanceRate'] }}%</div></div></div>
+            <div class="row mb-4 g-3">
+                <div class="col-md-2"><div class="stat-card stat-expected"><div class="text-muted small">Expected Work Days</div><div class="stat-value">{{ $summary['expectedWorkingDays'] }}</div></div></div>
+                <div class="col-md-2"><div class="stat-card stat-present"><div class="text-muted small">Present</div><div class="stat-value">{{ $summary['presentCount'] }}</div></div></div>
+                <div class="col-md-2"><div class="stat-card stat-off"><div class="text-muted small">Weekly Off</div><div class="stat-value">{{ $summary['weeklyOffCount'] }}</div></div></div>
+                <div class="col-md-2"><div class="stat-card stat-leave"><div class="text-muted small">Leave Days</div><div class="stat-value">{{ $summary['leaveCount'] }}</div></div></div>
+                <div class="col-md-2"><div class="stat-card stat-absence"><div class="text-muted small">Absences</div><div class="stat-value">{{ $summary['absenceCount'] }}</div></div></div>
+                <div class="col-md-2"><div class="stat-card stat-rate"><div class="text-muted small">Attendance Rate</div><div class="stat-value">{{ $summary['attendanceRate'] }}%</div></div></div>
             </div>
 
             <div class="row">
@@ -147,20 +293,42 @@
                     <div class="card mb-3">
                         <div class="card-body">
                             <h5 class="card-title">Monthly Calendar</h5>
-                            <div class="row g-1">
+
+                            <div class="calendar-legend">
+                                <span class="legend-item legend-present"><span class="legend-dot"></span> Present</span>
+                                <span class="legend-item legend-absence"><span class="legend-dot"></span> Absent</span>
+                                <span class="legend-item legend-leave"><span class="legend-dot"></span> Leave</span>
+                                <span class="legend-item legend-off"><span class="legend-dot"></span> Weekly Off</span>
+                                <span class="legend-item legend-upcoming"><span class="legend-dot"></span> Upcoming</span>
+                            </div>
+
+                            @php
+                                $monthStart = \Carbon\Carbon::createFromFormat('F Y', "$month $year")->startOfMonth();
+                                $leadingEmpty = $monthStart->dayOfWeek;
+                                $statusLabels = [
+                                    'present' => 'Present',
+                                    'absence' => 'Absent',
+                                    'leave' => 'Leave',
+                                    'off_day' => 'Off',
+                                    'upcoming' => 'Soon',
+                                ];
+                            @endphp
+
+                            <div class="calendar-grid">
+                                @foreach(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $weekday)
+                                    <div class="calendar-weekday">{{ $weekday }}</div>
+                                @endforeach
+
+                                @for($i = 0; $i < $leadingEmpty; $i++)
+                                    <div class="calendar-day-empty"></div>
+                                @endfor
+
                                 @foreach($summary['dailyBreakdown'] as $day)
-                                    <div class="col-2 col-md-1">
-                                        <div class="calendar-day text-center">
-                                            <div><strong>{{ \Carbon\Carbon::parse($day['date'])->format('d') }}</strong></div>
-                                            <span class="badge bg-light text-dark">{{ substr($day['day_name'], 0, 3) }}</span>
-                                            <div class="status-{{ $day['status'] }} small">
-                                                @if($day['status'] === 'off_day') Off
-                                                @elseif($day['status'] === 'leave') Leave
-                                                @elseif($day['status'] === 'present') Present
-                                                @else Absent
-                                                @endif
-                                            </div>
-                                        </div>
+                                    <div class="calendar-day status-{{ $day['status'] }}"
+                                         tabindex="0"
+                                         title="{{ \Carbon\Carbon::parse($day['date'])->format('d M Y') }} — {{ $statusLabels[$day['status']] ?? ucfirst($day['status']) }}">
+                                        <div class="day-num">{{ \Carbon\Carbon::parse($day['date'])->format('d') }}</div>
+                                        <span class="day-label">{{ $statusLabels[$day['status']] ?? ucfirst($day['status']) }}</span>
                                     </div>
                                 @endforeach
                             </div>

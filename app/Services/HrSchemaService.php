@@ -29,6 +29,12 @@ class HrSchemaService
         return !in_array(false, $status, true);
     }
 
+    public function canSummarizeAttendance(): bool
+    {
+        return Schema::hasColumn('employees', 'weekly_off_days')
+            && Schema::hasColumn('employees', 'working_hours_per_day');
+    }
+
     public function install(): array
     {
         if ($this->isInstalled()) {

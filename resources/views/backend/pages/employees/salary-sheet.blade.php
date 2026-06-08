@@ -157,7 +157,7 @@
                         </div>
                     </div>
 
-                    @if(!empty($hrSchemaInstalled))
+                    @if(!empty($canSummarizeAttendance))
                     <div class="row mt-3">
                         <div class="col-md-3">
                             <div class="summary-card">
@@ -250,7 +250,7 @@
                                                 <th style="width: 15%">Employee Name</th>
                                                 <th style="width: 12%">Designation</th>
                                                 <th style="width: 8%">Present</th>
-                                                @if(!empty($hrSchemaInstalled))
+                                                @if(!empty($canSummarizeAttendance))
                                                     <th style="width: 6%">Off</th>
                                                     <th style="width: 6%">Leave</th>
                                                     <th style="width: 6%">Absent</th>
@@ -303,7 +303,7 @@
                                                     ];
 
                                                     $hourlyDeduction = $attendanceDetails['hourlyDeduction'] ?? 0;
-                                                    $absenceDeduction = ($includeDeductions && !empty($hrSchemaInstalled))
+                                                    $absenceDeduction = ($includeDeductions && !empty($canSummarizeAttendance))
                                                         ? ($attendanceDetails['absenceDeduction'] ?? 0)
                                                         : 0;
 
@@ -319,7 +319,7 @@
                                                     </td>
                                                     <td>{{ $employee->designation ?? 'N/A' }}</td>
                                                     <td>{{ $attendanceDetails['totalDays'] ?? 0 }}</td>
-                                                    @if(!empty($hrSchemaInstalled))
+                                                    @if(!empty($canSummarizeAttendance))
                                                         <td>{{ $attendanceDetails['weeklyOffCount'] ?? 0 }}</td>
                                                         <td>{{ $attendanceDetails['leaveCount'] ?? 0 }}</td>
                                                         <td class="deduction-amount">{{ $attendanceDetails['absenceCount'] ?? 0 }}</td>
@@ -361,7 +361,7 @@
                                                            class="btn btn-sm btn-warning" title="Edit">
                                                             <i class="fas fa-pencil"></i>
                                                         </a>
-                                                        @if(!empty($hrSchemaInstalled))
+                                                        @if(!empty($canSummarizeAttendance))
                                                             <a href="{{ route('admin.employees.leave-days.index', ['employee' => $employee->id, 'month' => $currentMonth, 'year' => $currentYear]) }}"
                                                                class="btn btn-sm btn-secondary" title="Leave & Off Days">
                                                                 <i class="fas fa-calendar-alt"></i>

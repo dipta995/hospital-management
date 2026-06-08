@@ -24,9 +24,11 @@ class EmployeeAttendanceSummaryService
     public function summarize(Employee $employee, string $month, string $year): array
     {
         $monthDate = Carbon::createFromFormat('F Y', "$month $year");
-        $monthStart = $monthDate->copy()->startOfMonth();
-        $monthEnd = $monthDate->copy()->endOfMonth();
+        $monthStart = $monthDate->copy()->startOfMonth()->startOfDay();
+        $monthEnd = $monthDate->copy()->endOfMonth()->startOfDay();
         $daysInMonth = $monthDate->daysInMonth;
+        $today = Carbon::now('Asia/Dhaka')->startOfDay();
+        $countUntil = $monthEnd->lt($today) ? $monthEnd : $today;
 
         $weeklyOffDays = $this->normalizeWeeklyOffDays($employee->weekly_off_days ?? []);
         $workingHoursPerDay = (float) ($employee->working_hours_per_day ?? 8);
@@ -35,32 +37,42 @@ class EmployeeAttendanceSummaryService
             ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get();
 
-        $recordsByDate = $attendanceRecords->groupBy(fn ($record) => Carbon::parse($record->date)->toDateString());
+        $recordsByDate = $attendanceRecords->groupBy(
+            fn ($record) => $this->normalizeDateKey($record->date)
+        );
 
-        $leaveRecords = EmployeeLeaveDay::where('employee_id', $employee->id)
-            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
-            ->get()
-            ->keyBy(fn ($leave) => Carbon::parse($leave->date)->toDateString());
+        $leaveRecords = collect();
+        if ($this->leaveTableExists()) {
+            $leaveRecords = EmployeeLeaveDay::where('employee_id', $employee->id)
+                ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->get()
+                ->keyBy(fn ($leave) => $this->normalizeDateKey($leave->date));
+        }
 
         $offDayDates = [];
         $leaveDayDates = [];
         $presentDayDates = [];
         $absenceDayDates = [];
+        $upcomingDayDates = [];
         $dailyBreakdown = [];
 
         $totalHours = 0;
         $weeklyOffCount = 0;
+        $weeklyOffCountElapsed = 0;
         $leaveCount = 0;
         $paidLeaveCount = 0;
         $unpaidLeaveCount = 0;
         $presentCount = 0;
         $absenceCount = 0;
         $incompleteSessions = 0;
+        $expectedWorkingDaysElapsed = 0;
 
         foreach (CarbonPeriod::create($monthStart, $monthEnd) as $day) {
             $dateKey = $day->toDateString();
             $dayName = self::WEEK_DAYS[$day->dayOfWeek];
             $isWeeklyOff = in_array($dayName, $weeklyOffDays, true);
+            $isFutureDay = $day->gt($countUntil);
+            $isElapsedDay = $day->lte($countUntil);
             $leave = $leaveRecords->get($dateKey);
             $dayRecords = $recordsByDate->get($dateKey, collect());
             $hasAttendance = $dayRecords->isNotEmpty();
@@ -74,11 +86,21 @@ class EmployeeAttendanceSummaryService
                 }
             }
 
-            $status = 'working';
             if ($isWeeklyOff) {
-                $status = 'off_day';
                 $weeklyOffCount++;
                 $offDayDates[] = $dateKey;
+                if ($isElapsedDay) {
+                    $weeklyOffCountElapsed++;
+                }
+            }
+
+            if ($isFutureDay) {
+                $status = 'upcoming';
+                $upcomingDayDates[] = $dateKey;
+            } elseif ($hasAttendance) {
+                $status = 'present';
+                $presentCount++;
+                $presentDayDates[] = $dateKey;
             } elseif ($leave) {
                 $status = 'leave';
                 $leaveCount++;
@@ -88,14 +110,16 @@ class EmployeeAttendanceSummaryService
                 } else {
                     $unpaidLeaveCount++;
                 }
-            } elseif ($hasAttendance) {
-                $status = 'present';
-                $presentCount++;
-                $presentDayDates[] = $dateKey;
+            } elseif ($isWeeklyOff) {
+                $status = 'off_day';
             } else {
                 $status = 'absence';
                 $absenceCount++;
                 $absenceDayDates[] = $dateKey;
+            }
+
+            if ($isElapsedDay && !$isWeeklyOff) {
+                $expectedWorkingDaysElapsed++;
             }
 
             $dailyBreakdown[] = [
@@ -111,11 +135,11 @@ class EmployeeAttendanceSummaryService
         }
 
         $expectedWorkingDays = max(0, $daysInMonth - $weeklyOffCount);
-        $attendanceRate = $expectedWorkingDays > 0
-            ? round(($presentCount / $expectedWorkingDays) * 100, 1)
+        $attendanceRate = $expectedWorkingDaysElapsed > 0
+            ? round(($presentCount / $expectedWorkingDaysElapsed) * 100, 1)
             : 0;
 
-        $expectedHours = $expectedWorkingDays * $workingHoursPerDay;
+        $expectedHours = $expectedWorkingDaysElapsed * $workingHoursPerDay;
         $missingHours = max(0, round($expectedHours - $totalHours, 2));
 
         $leaveUsedYtd = EmployeeLeaveDay::where('employee_id', $employee->id)
@@ -128,7 +152,9 @@ class EmployeeAttendanceSummaryService
         return [
             'daysInMonth' => $daysInMonth,
             'weeklyOffCount' => $weeklyOffCount,
-            'expectedWorkingDays' => $expectedWorkingDays,
+            'expectedWorkingDays' => $expectedWorkingDaysElapsed,
+            'expectedWorkingDaysFullMonth' => $expectedWorkingDays,
+            'upcomingDayCount' => count($upcomingDayDates),
             'presentCount' => $presentCount,
             'leaveCount' => $leaveCount,
             'paidLeaveCount' => $paidLeaveCount,
@@ -147,6 +173,7 @@ class EmployeeAttendanceSummaryService
             'leaveDayDates' => $leaveDayDates,
             'presentDayDates' => $presentDayDates,
             'absenceDayDates' => $absenceDayDates,
+            'upcomingDayDates' => $upcomingDayDates,
             'dailyBreakdown' => $dailyBreakdown,
             'leaveByType' => $this->groupLeaveByType($leaveRecords),
             // Legacy keys used by salary sheet
@@ -169,8 +196,8 @@ class EmployeeAttendanceSummaryService
 
     public function calculateAbsenceDeduction(Employee $employee, array $summary): float
     {
-        $expectedWorkingDays = $summary['expectedWorkingDays'] ?? 0;
-        $absenceCount = $summary['absenceCount'] ?? 0;
+        $absenceCount = (int) ($summary['absenceCount'] ?? 0);
+        $expectedWorkingDays = (int) ($summary['expectedWorkingDaysFullMonth'] ?? $summary['expectedWorkingDays'] ?? 0);
 
         if ($expectedWorkingDays <= 0 || $absenceCount <= 0 || !$employee->salary) {
             return 0;
@@ -199,16 +226,35 @@ class EmployeeAttendanceSummaryService
     {
         if (is_string($value)) {
             $decoded = json_decode($value, true);
-            $value = is_array($decoded) ? $decoded : [];
+            if (!is_array($decoded)) {
+                $decoded = array_map('trim', explode(',', $value));
+            }
+            $value = $decoded;
         }
 
         if (!is_array($value)) {
             return [];
         }
 
-        $valid = array_values(self::WEEK_DAYS);
+        $lookup = [];
+        foreach (self::WEEK_DAYS as $dayName) {
+            $lookup[strtolower($dayName)] = $dayName;
+        }
 
-        return array_values(array_unique(array_filter($value, fn ($day) => in_array($day, $valid, true))));
+        $normalized = [];
+        foreach ($value as $day) {
+            if (is_numeric($day) && isset(self::WEEK_DAYS[(int) $day])) {
+                $normalized[] = self::WEEK_DAYS[(int) $day];
+                continue;
+            }
+
+            $key = strtolower(trim((string) $day));
+            if (isset($lookup[$key])) {
+                $normalized[] = $lookup[$key];
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 
     private function calculateDayHours(Collection $dayRecords, float $defaultHours): float
@@ -228,6 +274,20 @@ class EmployeeAttendanceSummaryService
         }
 
         return $dayHours;
+    }
+
+    private function normalizeDateKey($date): string
+    {
+        return Carbon::parse($date)->toDateString();
+    }
+
+    private function leaveTableExists(): bool
+    {
+        try {
+            return \Illuminate\Support\Facades\Schema::hasTable('employee_leave_days');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function groupLeaveByType(Collection $leaveRecords): array

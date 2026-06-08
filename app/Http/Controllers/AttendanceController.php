@@ -103,9 +103,10 @@ class AttendanceController extends Controller
 
         $employees = Employee::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
         $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
+        $canSummarizeAttendance = $this->hrSchemaService->canSummarizeAttendance();
         $employeeSummaries = [];
 
-        if ($hrSchemaInstalled) {
+        if ($canSummarizeAttendance) {
             $summaryEmployees = $employeeId
                 ? $employees->where('id', (int) $employeeId)
                 : $employees;
@@ -121,6 +122,7 @@ class AttendanceController extends Controller
                 'employees' => $employees,
                 'employeeSummaries' => $employeeSummaries,
                 'hrSchemaInstalled' => $hrSchemaInstalled,
+                'canSummarizeAttendance' => $canSummarizeAttendance,
             ];
 
             return Pdf::loadView('backend.pages.attendance.sheet', $data)
@@ -134,7 +136,8 @@ class AttendanceController extends Controller
             'employeeId',
             'employees',
             'employeeSummaries',
-            'hrSchemaInstalled'
+            'hrSchemaInstalled',
+            'canSummarizeAttendance'
         ));
     }
 
