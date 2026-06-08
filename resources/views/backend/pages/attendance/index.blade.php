@@ -21,9 +21,17 @@
                             </button>
                         </div>
                         <form method="get" class="row mb-3">
-                            @if(!empty($employeeId))
-                                <input type="hidden" name="employee_id" value="{{ $employeeId }}" />
-                            @endif
+                            <div class="col-md-3">
+                                <label for="employee_id" class="form-label">Employee</label>
+                                <select class="form-select" name="employee_id" id="employee_id">
+                                    <option value="">All Employees</option>
+                                    @foreach($employees ?? [] as $emp)
+                                        <option value="{{ $emp->id }}" {{ (string)$employeeId === (string)$emp->id ? 'selected' : '' }}>
+                                            {{ $emp->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="col-md-3">
                                 <label for="month" class="form-label">Month</label>
                                 <select class="form-select" name="month" id="month">
@@ -47,10 +55,51 @@
                                     <option value="pdf" @if(request('export')=='pdf') selected @endif>Yes</option>
                                 </select>
                             </div>
-                            <div class="col-md-3 mt-4">
+                            <div class="col-md-3 d-flex align-items-end">
                                 <button type="submit" class="btn btn-info">Submit</button>
                             </div>
                         </form>
+
+                        @if(!empty($hrSchemaInstalled) && !empty($employeeSummaries))
+                            <div class="table-responsive mb-4">
+                                <h5 class="mb-3">Attendance Summary — {{ $month }} {{ $year }}</h5>
+                                <table class="table table-sm table-striped table-bordered">
+                                    <thead class="table-dark">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Expected</th>
+                                        <th>Present</th>
+                                        <th>Off Days</th>
+                                        <th>Leave</th>
+                                        <th>Absent</th>
+                                        <th>Hours</th>
+                                        <th>Rate</th>
+                                        <th>Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($employeeSummaries as $empId => $summary)
+                                        @php $emp = $employees->firstWhere('id', $empId); @endphp
+                                        <tr>
+                                            <td><strong>{{ $emp->name ?? 'N/A' }}</strong></td>
+                                            <td>{{ $summary['expectedWorkingDays'] }}</td>
+                                            <td class="text-success">{{ $summary['presentCount'] }}</td>
+                                            <td>{{ $summary['weeklyOffCount'] }}</td>
+                                            <td class="text-info">{{ $summary['leaveCount'] }}</td>
+                                            <td class="text-danger">{{ $summary['absenceCount'] }}</td>
+                                            <td>{{ number_format($summary['totalHours'], 2) }}</td>
+                                            <td>{{ $summary['attendanceRate'] }}%</td>
+                                            <td>
+                                                <a href="{{ route('admin.employees.leave-days.index', ['employee' => $empId, 'month' => $month, 'year' => $year]) }}"
+                                                   class="btn btn-sm btn-outline-primary">Manage</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>

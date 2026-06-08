@@ -157,6 +157,43 @@
                         </div>
                     </div>
 
+                    @if(!empty($hrSchemaInstalled))
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="summary-card">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Off Days</span>
+                                    <span class="summary-value text-secondary">{{ $totalOffDays }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-card">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Leave Days</span>
+                                    <span class="summary-value text-info">{{ $totalLeaveDays }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-card">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Absences</span>
+                                    <span class="summary-value deduction-amount">{{ $totalAbsenceDays }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="summary-card">
+                                <div class="summary-item">
+                                    <span class="summary-label">Absence Deductions</span>
+                                    <span class="summary-value deduction-amount">৳ {{ number_format($totalAbsenceDeductions, 2) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <!-- Summary Cards -->
                     <div class="row mt-4">
                         <div class="col-md-3">
@@ -182,7 +219,7 @@
                                 <div class="summary-item">
                                     <span class="summary-label">Total Deductions</span>
                                     <span class="summary-value deduction-amount">
-                                        ৳ {{ number_format($totalDeductions + $totalHourlyDeductions, 2) }}
+                                        ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0), 2) }}
                                     </span>
                                 </div>
                             </div>
@@ -212,8 +249,15 @@
                                                 <th style="width: 3%">#</th>
                                                 <th style="width: 15%">Employee Name</th>
                                                 <th style="width: 12%">Designation</th>
-                                                <th style="width: 10%">Work Days / Hours</th>
-                                                <th style="width: 10%">Base Salary</th>
+                                                <th style="width: 8%">Present</th>
+                                                @if(!empty($hrSchemaInstalled))
+                                                    <th style="width: 6%">Off</th>
+                                                    <th style="width: 6%">Leave</th>
+                                                    <th style="width: 6%">Absent</th>
+                                                    <th style="width: 6%">Rate</th>
+                                                @endif
+                                                <th style="width: 8%">Hours</th>
+                                                <th style="width: 9%">Base Salary</th>
                                                 @if($includeDeductions)
                                                     <th style="width: 12%">Deductions</th>
                                                     <th style="width: 12%">Net Salary</th>
@@ -250,37 +294,20 @@
                                                         'expectedHours' => 0,
                                                         'missingHours' => 0,
                                                         'recordCount' => 0,
+                                                        'weeklyOffCount' => 0,
+                                                        'leaveCount' => 0,
+                                                        'absenceCount' => 0,
+                                                        'attendanceRate' => 0,
+                                                        'absenceDeduction' => 0,
+                                                        'hourlyDeduction' => 0,
                                                     ];
 
-                                                    // Calculate hourly deductions if using hourly mode
-                                                    $hourlyDeduction = 0;
-                                                    $attendanceMode = App\Models\Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
-                                                    if ($attendanceMode === 'hourly') {
-                                                        $daysInMonth = Carbon\Carbon::createFromFormat('F Y', "$currentMonth $currentYear")->daysInMonth;
-                                                        $attendanceRecords = App\Models\Attendance::where('employee_id', $employee->id)
-                                                            ->whereBetween('date', [$monthStart, $monthEnd])
-                                                            ->where('mode', 'hourly')
-                                                            ->get();
+                                                    $hourlyDeduction = $attendanceDetails['hourlyDeduction'] ?? 0;
+                                                    $absenceDeduction = ($includeDeductions && !empty($hrSchemaInstalled))
+                                                        ? ($attendanceDetails['absenceDeduction'] ?? 0)
+                                                        : 0;
 
-                                                        $totalHoursAttended = 0;
-                                                        foreach ($attendanceRecords as $record) {
-                                                            if ($record->in_time && $record->out_time) {
-                                                                $inTime = Carbon\Carbon::parse($record->in_time);
-                                                                $outTime = Carbon\Carbon::parse($record->out_time);
-                                                                $hours = $outTime->diffInHours($inTime, false);
-                                                                $totalHoursAttended += max(0, $hours);
-                                                            }
-                                                        }
-
-                                                        $expectedHoursPerDay = 8;
-                                                        $workingDaysPerWeek = 5;
-                                                        $expectedHoursPerMonth = ($daysInMonth / 7) * $workingDaysPerWeek * $expectedHoursPerDay;
-                                                        $missingHours = max(0, $expectedHoursPerMonth - $totalHoursAttended);
-                                                        $monthlyHourlyRate = $expectedHoursPerMonth > 0 ? $baseSalary / $expectedHoursPerMonth : 0;
-                                                        $hourlyDeduction = $missingHours * $monthlyHourlyRate;
-                                                    }
-
-                                                    $totalDeductionsForEmployee = $salaryPaymentDeductions + $hourlyDeduction;
+                                                    $totalDeductionsForEmployee = $salaryPaymentDeductions + $hourlyDeduction + $absenceDeduction;
                                                     $netSalary = $baseSalary - $totalDeductionsForEmployee;
                                                     $paidAmount = $currentMonthPaid ? $currentMonthPaid->salary : 0;
                                                     $isPaid = $currentMonthPaid ? true : false;
@@ -291,9 +318,14 @@
                                                         <strong>{{ $employee->name }}</strong>
                                                     </td>
                                                     <td>{{ $employee->designation ?? 'N/A' }}</td>
-                                                    <td>
-                                                        {{ $attendanceDetails['totalDays'] }} days / {{ number_format($attendanceDetails['totalHours'], 2) }} hrs
-                                                    </td>
+                                                    <td>{{ $attendanceDetails['totalDays'] ?? 0 }}</td>
+                                                    @if(!empty($hrSchemaInstalled))
+                                                        <td>{{ $attendanceDetails['weeklyOffCount'] ?? 0 }}</td>
+                                                        <td>{{ $attendanceDetails['leaveCount'] ?? 0 }}</td>
+                                                        <td class="deduction-amount">{{ $attendanceDetails['absenceCount'] ?? 0 }}</td>
+                                                        <td>{{ $attendanceDetails['attendanceRate'] ?? 0 }}%</td>
+                                                    @endif
+                                                    <td>{{ number_format($attendanceDetails['totalHours'] ?? 0, 2) }}</td>
                                                     <td class="salary-amount">৳ {{ number_format($baseSalary, 2) }}</td>
 
                                                     @if($includeDeductions)
@@ -329,6 +361,12 @@
                                                            class="btn btn-sm btn-warning" title="Edit">
                                                             <i class="fas fa-pencil"></i>
                                                         </a>
+                                                        @if(!empty($hrSchemaInstalled))
+                                                            <a href="{{ route('admin.employees.leave-days.index', ['employee' => $employee->id, 'month' => $currentMonth, 'year' => $currentYear]) }}"
+                                                               class="btn btn-sm btn-secondary" title="Leave & Off Days">
+                                                                <i class="fas fa-calendar-alt"></i>
+                                                            </a>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @empty
@@ -364,9 +402,15 @@
                                                     <span class="deduction-amount">- ৳ {{ number_format($totalHourlyDeductions, 2) }}</span>
                                                 </p>
                                             @endif
+                                            @if(!empty($hrSchemaInstalled) && $totalAbsenceDeductions > 0)
+                                                <p class="mb-1">
+                                                    <strong>Absence Deductions:</strong>
+                                                    <span class="deduction-amount">- ৳ {{ number_format($totalAbsenceDeductions, 2) }}</span>
+                                                </p>
+                                            @endif
                                             <p class="mb-1">
                                                 <strong>Total Deductions:</strong>
-                                                <span class="deduction-amount">- ৳ {{ number_format($totalDeductions + $totalHourlyDeductions, 2) }}</span>
+                                                <span class="deduction-amount">- ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0), 2) }}</span>
                                             </p>
                                         @endif
                                         <p class="mb-0">

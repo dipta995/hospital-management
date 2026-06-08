@@ -4,10 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
 {
     use HasFactory;
+
+    protected $casts = [
+        'weekly_off_days' => 'array',
+        'working_hours_per_day' => 'decimal:2',
+        'annual_leave_quota' => 'integer',
+    ];
+
     public function employeeSalaries()
     {
         return $this->hasMany(EmployeeSalary::class, 'employee_id', 'id');
@@ -24,6 +32,16 @@ class Employee extends Model
     public function costs()
     {
         return $this->hasMany(Cost::class, 'employee_id', 'id');
+    }
+
+    public function leaveDays(): HasMany
+    {
+        return $this->hasMany(EmployeeLeaveDay::class, 'employee_id', 'id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'employee_id', 'id');
     }
 
     // // Virtual attribute to calculate remaining salary

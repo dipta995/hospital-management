@@ -44,6 +44,8 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Backend\ReceptController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\SubscriptionController;
+use App\Http\Controllers\Backend\SystemMaintenanceController;
+use App\Http\Controllers\Backend\EmployeeLeaveDayController;
 use App\Http\Controllers\Backend\BedCabinController;
 use App\Http\Controllers\Backend\CustomerBalanceController;
 use App\Http\Controllers\FingerprintController;
@@ -118,6 +120,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin'], function () {
 Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admin', 'subscription.access']], function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('home');
+    Route::post('/system/install-hr-schema', [SystemMaintenanceController::class, 'installHrSchema'])->name('system.install-hr-schema');
 //    Roles
     Route::resource('roles', RolesController::class, ['names' => 'roles']);
 //    Admins
@@ -181,6 +184,10 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::post('reefers/store-api', [ReeferController::class, 'storeApi'])->name('reefers.store.api');
     Route::get('reefers/custom/sms',[ReeferController::class,'customSms'])->name('reefers.custom-sms');
     Route::get('reefers/custom/sms/send',[ReeferController::class,'customSmsSend'])->name('reefers.custom-sms-send');
+    Route::get('employees/{employee}/leave-days', [EmployeeLeaveDayController::class, 'index'])->name('employees.leave-days.index');
+    Route::post('employees/{employee}/leave-days', [EmployeeLeaveDayController::class, 'store'])->name('employees.leave-days.store');
+    Route::delete('employees/{employee}/leave-days/{leaveDay}', [EmployeeLeaveDayController::class, 'destroy'])->name('employees.leave-days.destroy');
+    Route::put('employees/{employee}/schedule', [EmployeeLeaveDayController::class, 'updateSchedule'])->name('employees.schedule.update');
     Route::resource('employees', EmployeeController::class, ['names' => 'employees']);
     Route::get('admin/employees/salary-sheet/view', [EmployeeController::class, 'salarySheet'])->name('employees.salary-sheet');
     Route::post('admin/employees/salary/{id}', [EmployeeController::class, 'salary'])->name('employees.salary');

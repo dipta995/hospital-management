@@ -30,6 +30,13 @@ class Setting extends Model
         return $setting ? $setting->value : $default;
     }
 
+    public static function getGuest($key, $default = null, int $branchId = 1)
+    {
+        $setting = self::where('branch_id', $branchId)->where('key', $key)->first();
+
+        return $setting ? $setting->value : $default;
+    }
+
 
     public function branch()
     {

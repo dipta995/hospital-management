@@ -14,12 +14,19 @@
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="card-title">Payment</h4>
-                            <div class="row">
+                            <h4 class="card-title">Payment — {{ $singleData->name }}</h4>
+                            <div class="row mb-2">
                                 <div class="col-md-2">
                                     <a class="btn btn-info" data-bs-toggle="modal"
                                        data-bs-target="#referPaymentModal">Payment</a>
                                 </div>
+                                @if(!empty($hrSchemaInstalled))
+                                    <div class="col-md-3">
+                                        <a class="btn btn-outline-primary" href="{{ route('admin.employees.leave-days.index', $singleData->id) }}">
+                                            <i class="fas fa-calendar-alt"></i> Leave & Off Days
+                                        </a>
+                                    </div>
+                                @endif
 
                                 <!-- Bootstrap Modal -->
                                 <div class="modal fade" id="referPaymentModal" tabindex="-1"

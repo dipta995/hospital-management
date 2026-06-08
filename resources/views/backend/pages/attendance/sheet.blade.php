@@ -89,6 +89,38 @@
 
     <h4 class="title">Attendance Sheet - {{ $month }} {{ $year }}</h4>
 
+    @if(!empty($hrSchemaInstalled) && !empty($employeeSummaries))
+        <table style="margin-bottom: 12px;">
+            <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Expected</th>
+                <th>Present</th>
+                <th>Off</th>
+                <th>Leave</th>
+                <th>Absent</th>
+                <th>Hours</th>
+                <th>Rate</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach($employeeSummaries as $empId => $summary)
+                @php $emp = ($employees ?? collect())->firstWhere('id', $empId); @endphp
+                <tr>
+                    <td>{{ $emp->name ?? 'N/A' }}</td>
+                    <td>{{ $summary['expectedWorkingDays'] }}</td>
+                    <td>{{ $summary['presentCount'] }}</td>
+                    <td>{{ $summary['weeklyOffCount'] }}</td>
+                    <td>{{ $summary['leaveCount'] }}</td>
+                    <td>{{ $summary['absenceCount'] }}</td>
+                    <td>{{ number_format($summary['totalHours'], 2) }}</td>
+                    <td>{{ $summary['attendanceRate'] }}%</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    @endif
+
     <table>
         <thead>
         <tr>

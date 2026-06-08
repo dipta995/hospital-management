@@ -3,40 +3,35 @@
 @endphp
 <header class="topbar">
     <div class="container-fluid">
-        <div class="navbar-header">
-            <div class="d-flex align-items-center gap-5">
+        <div class="navbar-header topbar-navbar">
+            <div class="topbar-left d-flex align-items-center">
                 <!-- Menu Toggle Button -->
-                <div class="topbar-item">
+                <div class="topbar-item flex-shrink-0">
                     <button type="button" class="button-toggle-menu topbar-button">
                         <iconify-icon icon="solar:hamburger-menu-broken" class="fs-24 align-middle"></iconify-icon>
                     </button>
                 </div>
 
-              @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-dark"> Patient List </a>
-                    <a href="{{ route('admin.invoices.index') }}" class="btn btn-success"> Invoice List </a>
-                    <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary"> Admit List </a>
-                    <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning"> Recept List </a>
-                @endif
-                @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
-                    <a href="{{ route('admin.labs.index') }}" class="btn btn-primary"> My Lab </a>
-                @endif
-                @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
-                    <a href="{{ route('admin.costs.create') }}" class="btn btn-dark"> Add Cost's </a>
-                @endif
+                <div class="topbar-quick-links d-flex align-items-center flex-wrap">
+                    @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-dark btn-sm">Patient List</a>
+                        <a href="{{ route('admin.invoices.index') }}" class="btn btn-success btn-sm">Invoice List</a>
+                        <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary btn-sm">Admit List</a>
+                        <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning btn-sm">Recept List</a>
+                    @endif
+                    @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
+                        <a href="{{ route('admin.labs.index') }}" class="btn btn-primary btn-sm">My Lab</a>
+                    @endif
+                    @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
+                        <a href="{{ route('admin.costs.create') }}" class="btn btn-dark btn-sm">Add Cost's</a>
+                    @endif
+                </div>
             </div>
 
-            <div class="d-flex align-items-center gap-1">
-                <span class="badge bg-danger">
-
+            <div class="topbar-right d-flex align-items-center">
+                <span class="badge bg-danger topbar-sms-badge">
                     {{ \App\Models\SmsBalance::where('branch_id',auth()->user()->branch_id)->first()->balance ?? 0 }} Point's
                 </span>
-                <!-- Quick Menu & Calculator trigger (replaces fullscreen button) -->
-                <div class="topbar-item d-none d-lg-flex">
-                    <button type="button" class="topbar-button" id="openQuickNavModalIcon" title="Quick Menu">
-                        <iconify-icon icon="solar:menu-dots-broken" class="fs-24 align-middle"></iconify-icon>
-                    </button>
-                </div>
   <!-- Category -->
                 <div class="dropdown topbar-item d-none d-lg-flex">
                     <button type="button" class="topbar-button" data-toggle="fullscreen">
@@ -121,29 +116,18 @@
                     </button>
                 </div>
 
-                <!-- User -->
-                <div class="dropdown topbar-item">
-                    <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown"
-                       aria-haspopup="true" aria-expanded="false">
-                                        <span class="d-flex align-items-center">
-                                             <img class="rounded-circle" width="32"
-                                                  src="{{ asset('backend/assets/images/users/avatar-1.jpg') }}"
-                                                  alt="avatar-3">
-                                        </span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end">
-                        <!-- item-->
-                        <h6 class="dropdown-header">Welcome {{ auth()->user()->name }}!</h6>
-
-
-                        <div class="dropdown-divider my-1"></div>
-
-                        <a class="dropdown-item text-danger" href="{{ route('admin.logout.submit') }}">
-                            <i class="bx bx-log-out fs-18 align-middle me-1"></i><span
-                                class="align-middle">Logout</span>
-                        </a>
+                <div class="topbar-user-chip" title="Logged in as {{ $userGuard->name }}">
+                    <i class="fas fa-user-shield"></i>
+                    <div class="topbar-user-text">
+                        <span class="topbar-user-label">Logged in as</span>
+                        <strong class="topbar-user-name">{{ $userGuard->name }}</strong>
                     </div>
                 </div>
+
+                <a href="{{ route('admin.logout.submit') }}" class="btn btn-outline-danger btn-sm topbar-logout-btn" title="Logout">
+                    <i class="bx bx-log-out"></i>
+                    <span class="d-none d-xl-inline">Logout</span>
+                </a>
             </div>
         </div>
     </div>
@@ -152,6 +136,110 @@
 
 
 <style>
+    .topbar-navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        min-height: 64px;
+    }
+
+    .topbar-left {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 8px;
+    }
+
+    .topbar-quick-links {
+        gap: 6px;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        padding-bottom: 2px;
+    }
+
+    .topbar-quick-links .btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .topbar-right {
+        flex: 0 0 auto;
+        gap: 6px;
+        margin-left: auto;
+        padding-left: 8px;
+    }
+
+    .topbar-sms-badge {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .topbar-logout-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .topbar-user-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #ecfeff 0%, #f0fdf4 100%);
+        border: 1px solid rgba(14, 116, 144, 0.18);
+        color: #0f766e;
+        flex-shrink: 0;
+        max-width: 220px;
+    }
+
+    .topbar-user-chip > i {
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+
+    .topbar-user-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+        min-width: 0;
+    }
+
+    .topbar-user-label {
+        font-size: 0.68rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .topbar-user-name {
+        font-size: 0.92rem;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    @media (max-width: 1400px) {
+        .topbar-quick-links .btn {
+            font-size: 0.78rem;
+            padding: 0.28rem 0.55rem;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .topbar-navbar {
+            flex-wrap: wrap;
+        }
+
+        .topbar-right {
+            width: 100%;
+            justify-content: flex-end;
+            padding-top: 4px;
+        }
+    }
+
     .quick-calc {
         background: #0f172a;
         border-radius: 12px;
@@ -348,67 +436,6 @@
             }
         });
 
-        // Quick menu modal
-        function openQuickNav() {
-            $('#quickNavModal').fadeIn().addClass('show').css('display', 'block');
-        }
-
-        function closeQuickNav() {
-            $('#quickNavModal').fadeOut().removeClass('show').css('display', 'none');
-        }
-
-        $('#openQuickNavModal, #openQuickNavModalIcon').on('click', function () {
-            openQuickNav();
-        });
-
-        $('.close-quicknav').on('click', function () {
-            closeQuickNav();
-        });
-
-        $('#quickNavModal').on('click', function (e) {
-            if ($(e.target).is('#quickNavModal')) {
-                closeQuickNav();
-            }
-        });
-
-        // Calculator logic
-        let calcExpression = '';
-        const $calcDisplay = $('#quickCalcDisplay');
-
-        function updateCalcDisplay() {
-            $calcDisplay.val(calcExpression || '0');
-        }
-
-        $('.quick-calc-btn').on('click', function () {
-            const value = $(this).data('value');
-
-            if (value === 'C') {
-                calcExpression = '';
-            } else if (value === 'DEL') {
-                calcExpression = calcExpression.slice(0, -1);
-            } else if (value === '=') {
-                if (!calcExpression) {
-                    return;
-                }
-                try {
-                    // Allow only safe characters
-                    const safeExpr = calcExpression.replace(/[^0-9+\-*/.()]/g, '');
-                    // eslint-disable-next-line no-eval
-                    const result = eval(safeExpr);
-                    calcExpression = (result !== undefined && result !== null) ? result.toString() : '';
-                } catch (e) {
-                    calcExpression = '';
-                    $calcDisplay.val('Error');
-                    return;
-                }
-            } else {
-                calcExpression += value.toString();
-            }
-
-            updateCalcDisplay();
-        });
-
-        updateCalcDisplay();
     });
 </script>
 <script>

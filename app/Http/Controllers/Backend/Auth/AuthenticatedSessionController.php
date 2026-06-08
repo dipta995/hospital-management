@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Admin;
+use App\Models\Setting;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class AuthenticatedSessionController extends Controller
         if (Auth::guard('admin')->check() == 'true') {
             return redirect('/admin');
         }
-        return view('backend.auth.login');
+        return view('backend.auth.login', $this->authPageData('Admin Login'));
     }
 
     /**
@@ -79,8 +80,17 @@ return $e;
 
     public function change(Request $request)
     {
-       return view('backend.auth.change');
+       return view('backend.auth.change', $this->authPageData('Change Password'));
     }
+    private function authPageData(string $pageTitle): array
+    {
+        return [
+            'pageTitle' => $pageTitle,
+            'softwareName' => 'Hospital Management Software',
+            'companyName' => Setting::getGuest('company_name'),
+        ];
+    }
+
     public function changePw(Request $request)
     {
         $id = Auth::guard('admin')->id();

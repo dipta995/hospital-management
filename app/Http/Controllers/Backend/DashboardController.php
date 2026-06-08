@@ -11,15 +11,19 @@ use App\Models\InvoicePayment;
 use App\Models\ReceptPayment;
 use App\Models\Setting;
 use App\Models\Transaction;
+use App\Services\HrSchemaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(HrSchemaService $hrSchemaService)
     {
         $nowDhaka = Carbon::now('Asia/Dhaka');
         $branchId = auth()->user()->branch_id;
+        $data['hrSchemaStatus'] = $hrSchemaService->getStatus();
+        $data['hrSchemaInstalled'] = $hrSchemaService->isInstalled();
+        $data['isSuperAdmin'] = auth('admin')->check() && auth('admin')->user()->hasRole('Super Admin');
 
         // Today's collection (invoice payments + recept payments + earns)
         $data['todaysInvoiceCollection'] = InvoicePayment::where('branch_id', $branchId)
@@ -71,6 +75,6 @@ class DashboardController extends Controller
             ->sum('amount');
 
 
-        return view('backend.pages.dashboards.index',$data);
+        return view('backend.pages.dashboards.index', $data);
     }
 }

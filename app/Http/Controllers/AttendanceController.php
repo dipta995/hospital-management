@@ -5,12 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Setting;
+use App\Services\EmployeeAttendanceSummaryService;
+use App\Services\HrSchemaService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
+    public function __construct(
+        private EmployeeAttendanceSummaryService $summaryService,
+        private HrSchemaService $hrSchemaService
+    ) {
+    }
+
     /**
      * Store or update attendance based on fingerprint and RFID match
      * Route: POST /attendance/mark
@@ -93,21 +101,41 @@ class AttendanceController extends Controller
         $attendances = $query->orderBy('date', 'desc')->get();
         $groupedAttendances = $attendances->groupBy('date');
 
+        $employees = Employee::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
+        $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
+        $employeeSummaries = [];
+
+        if ($hrSchemaInstalled) {
+            $summaryEmployees = $employeeId
+                ? $employees->where('id', (int) $employeeId)
+                : $employees;
+            $employeeSummaries = $this->summaryService->summarizeMany($summaryEmployees, $month, (string) $year);
+        }
+
         if ($export === 'pdf') {
             $data = [
                 'groupedAttendances' => $groupedAttendances,
                 'month' => $month,
                 'year' => $year,
                 'employeeId' => $employeeId,
+                'employees' => $employees,
+                'employeeSummaries' => $employeeSummaries,
+                'hrSchemaInstalled' => $hrSchemaInstalled,
             ];
 
             return Pdf::loadView('backend.pages.attendance.sheet', $data)
                 ->stream("attendance-{$month}-{$year}.pdf");
         }
 
-        $employees = Employee::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
-
-        return view('backend.pages.attendance.index', compact('groupedAttendances', 'month', 'year', 'employeeId', 'employees'));
+        return view('backend.pages.attendance.index', compact(
+            'groupedAttendances',
+            'month',
+            'year',
+            'employeeId',
+            'employees',
+            'employeeSummaries',
+            'hrSchemaInstalled'
+        ));
     }
 
     /**

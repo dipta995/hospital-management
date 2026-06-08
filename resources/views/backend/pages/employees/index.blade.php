@@ -143,6 +143,9 @@
                                                                 <a href="{{ route('admin.employees.show',$item->id) }}"
                                                                     class="badge bg-info"><i class="fas fa-eye"></i></a>
                                                                 <a href="{{ route('admin.attendance.index', ['employee_id' => $item->id]) }}" class="badge bg-warning" title="Attendance Record"><i class="fas fa-calendar-check"></i></a>
+                                                                @if(!empty($hrSchemaInstalled))
+                                                                    <a href="{{ route('admin.employees.leave-days.index', $item->id) }}" class="badge bg-secondary" title="Leave & Off Days"><i class="fas fa-calendar-alt"></i></a>
+                                                                @endif
                                                                 <a class="badge bg-danger" href="javascript:void(0)"
                                                                     onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
                                                           </td>

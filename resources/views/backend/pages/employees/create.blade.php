@@ -64,6 +64,8 @@
                                              @enderror
                                     </div>
 
+                                    @include('backend.pages.employees.partials.schedule-fields')
+
                                     <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
 
                                 </fieldset>

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
+  <defs>
+    <style>
+      .title { font: 700 30px Arial, sans-serif; fill: #111827; }
+      .label { font: 600 18px Arial, sans-serif; fill: #111827; }
+      .small { font: 15px Arial, sans-serif; fill: #374151; }
+      .pin { font: 600 14px Arial, sans-serif; fill: #111827; }
+      .box { fill: #f9fafb; stroke: #111827; stroke-width: 3; rx: 8; }
+      .module { fill: #ffffff; stroke: #111827; stroke-width: 2.5; rx: 8; }
+      .note { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; rx: 8; }
+      .wire-red { stroke: #dc2626; stroke-width: 5; fill: none; }
+      .wire-black { stroke: #111827; stroke-width: 5; fill: none; }
+      .wire-blue { stroke: #2563eb; stroke-width: 5; fill: none; }
+      .wire-green { stroke: #16a34a; stroke-width: 5; fill: none; }
+      .wire-yellow { stroke: #ca8a04; stroke-width: 5; fill: none; }
+      .wire-purple { stroke: #7c3aed; stroke-width: 5; fill: none; }
+      .wire-gray { stroke: #6b7280; stroke-width: 5; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="820" fill="#f3f4f6"/>
+  <text x="40" y="54" class="title">ESP32 Fingerprint Attendance Wiring Diagram</text>
+  <text x="40" y="84" class="small">Based on fingure_copy_20260102223753.ino</text>
+
+  <!-- ESP32 -->
+  <rect x="440" y="135" width="320" height="540" class="box"/>
+  <text x="535" y="175" class="label">ESP32 DevKit</text>
+  <text x="470" y="218" class="pin">3V3</text>
+  <circle cx="525" cy="213" r="6" fill="#dc2626"/>
+  <text x="470" y="258" class="pin">GND</text>
+  <circle cx="525" cy="253" r="6" fill="#111827"/>
+  <text x="470" y="318" class="pin">GPIO16 RX2</text>
+  <circle cx="590" cy="313" r="6" fill="#2563eb"/>
+  <text x="470" y="358" class="pin">GPIO17 TX2</text>
+  <circle cx="590" cy="353" r="6" fill="#16a34a"/>
+  <text x="470" y="438" class="pin">GPIO21 SDA</text>
+  <circle cx="590" cy="433" r="6" fill="#7c3aed"/>
+  <text x="470" y="478" class="pin">GPIO22 SCL</text>
+  <circle cx="590" cy="473" r="6" fill="#ca8a04"/>
+  <text x="470" y="558" class="pin">GPIO26 BTN</text>
+  <circle cx="590" cy="553" r="6" fill="#6b7280"/>
+  <text x="470" y="618" class="pin">GPIO25 BUZZER</text>
+  <circle cx="610" cy="613" r="6" fill="#2563eb"/>
+
+  <!-- Fingerprint sensor -->
+  <rect x="65" y="165" width="270" height="220" class="module"/>
+  <text x="105" y="204" class="label">Fingerprint Sensor</text>
+  <text x="95" y="250" class="pin">VCC</text>
+  <circle cx="165" cy="245" r="6" fill="#dc2626"/>
+  <text x="95" y="290" class="pin">GND</text>
+  <circle cx="165" cy="285" r="6" fill="#111827"/>
+  <text x="95" y="330" class="pin">TX</text>
+  <circle cx="165" cy="325" r="6" fill="#2563eb"/>
+  <text x="95" y="370" class="pin">RX</text>
+  <circle cx="165" cy="365" r="6" fill="#16a34a"/>
+
+  <!-- OLED -->
+  <rect x="865" y="170" width="270" height="220" class="module"/>
+  <text x="920" y="209" class="label">OLED SSD1306</text>
+  <text x="910" y="255" class="pin">VCC</text>
+  <circle cx="975" cy="250" r="6" fill="#dc2626"/>
+  <text x="910" y="295" class="pin">GND</text>
+  <circle cx="975" cy="290" r="6" fill="#111827"/>
+  <text x="910" y="335" class="pin">SDA</text>
+  <circle cx="975" cy="330" r="6" fill="#7c3aed"/>
+  <text x="910" y="375" class="pin">SCL</text>
+  <circle cx="975" cy="370" r="6" fill="#ca8a04"/>
+
+  <!-- Button -->
+  <rect x="865" y="475" width="270" height="115" class="module"/>
+  <text x="935" y="514" class="label">Push Button</text>
+  <text x="910" y="555" class="pin">Leg 1</text>
+  <circle cx="975" cy="550" r="6" fill="#6b7280"/>
+  <text x="910" y="580" class="pin">Leg 2</text>
+  <circle cx="975" cy="575" r="6" fill="#111827"/>
+
+  <!-- Buzzer -->
+  <rect x="70" y="520" width="270" height="120" class="module"/>
+  <text x="150" y="559" class="label">Buzzer</text>
+  <text x="105" y="600" class="pin">+</text>
+  <circle cx="165" cy="595" r="6" fill="#2563eb"/>
+  <text x="105" y="625" class="pin">-</text>
+  <circle cx="165" cy="620" r="6" fill="#111827"/>
+
+  <!-- Wires fingerprint -->
+  <path class="wire-red" d="M165 245 C270 245, 330 213, 525 213"/>
+  <path class="wire-black" d="M165 285 C275 285, 335 253, 525 253"/>
+  <path class="wire-blue" d="M165 325 C275 325, 365 313, 590 313"/>
+  <path class="wire-green" d="M165 365 C275 365, 365 353, 590 353"/>
+
+  <!-- Wires OLED -->
+  <path class="wire-red" d="M975 250 C865 250, 760 213, 525 213"/>
+  <path class="wire-black" d="M975 290 C860 290, 760 253, 525 253"/>
+  <path class="wire-purple" d="M975 330 C850 330, 760 433, 590 433"/>
+  <path class="wire-yellow" d="M975 370 C850 370, 760 473, 590 473"/>
+
+  <!-- Wires button -->
+  <path class="wire-gray" d="M975 550 C850 550, 735 553, 590 553"/>
+  <path class="wire-black" d="M975 575 C850 575, 735 253, 525 253"/>
+
+  <!-- Wires buzzer -->
+  <path class="wire-blue" d="M165 595 C300 595, 410 613, 610 613"/>
+  <path class="wire-black" d="M165 620 C300 620, 370 253, 525 253"/>
+
+  <!-- Legend -->
+  <rect x="40" y="700" width="1120" height="88" class="note"/>
+  <text x="60" y="730" class="label">Important soldering notes</text>
+  <text x="60" y="758" class="small">1. Fingerprint TX goes to ESP32 RX2 GPIO16. Fingerprint RX goes to ESP32 TX2 GPIO17.</text>
+  <text x="60" y="782" class="small">2. Button uses INPUT_PULLUP in code, so connect button between GPIO26 and GND only.</text>
+</svg>

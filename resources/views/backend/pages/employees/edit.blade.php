@@ -66,7 +66,9 @@
                                              @enderror
                                     </div>
 
-                                    <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
+                                    @include('backend.pages.employees.partials.schedule-fields', ['edited' => $edited])
+
+                                    <x-default.button class="float-end mt-2 btn-success">Update</x-default.button>
 
                                 </fieldset>
                             </form>

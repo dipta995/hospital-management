@@ -9,6 +9,8 @@ use App\Models\Cost;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\Setting;
+use App\Services\EmployeeAttendanceSummaryService;
+use App\Services\HrSchemaService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -18,15 +20,10 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeController extends Controller
 {
-    public $pageHeader;
-    public $index_route = "admin.employees.index";
-    public $create_route = "admin.employees.create";
-    public $store_route = "admin.employees.store";
-    public $edit_route = "admin.employees.edit";
-    public $update_route = "admin.employees.update";
-
-    public function __construct()
-    {
+    public function __construct(
+        private EmployeeAttendanceSummaryService $attendanceSummaryService,
+        private HrSchemaService $hrSchemaService
+    ) {
         $this->checkGuard();
         Paginator::useBootstrapFive();
         $this->pageHeader = [
@@ -40,9 +37,15 @@ class EmployeeController extends Controller
             'edit_route' => $this->edit_route,
             'update_route' => $this->update_route,
             'base_url' => url('admin/employees'),
-
         ];
     }
+
+    public $pageHeader;
+    public $index_route = "admin.employees.index";
+    public $create_route = "admin.employees.create";
+    public $store_route = "admin.employees.store";
+    public $edit_route = "admin.employees.edit";
+    public $update_route = "admin.employees.update";
 
     /**
      * Display a listing of the resource.
@@ -67,6 +70,7 @@ class EmployeeController extends Controller
             return $employee;
         });
         $data['datas'] = $employees;
+        $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
 
 //        For Salary sheet only
         $emp = EmployeeSalary::with('employee')
@@ -94,6 +98,8 @@ class EmployeeController extends Controller
     {
         $this->checkOwnPermission('employees.create');
         $data['pageHeader'] = $this->pageHeader;
+        $data['weekDays'] = EmployeeAttendanceSummaryService::WEEK_DAYS;
+        $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
         return view('backend.pages.employees.create', $data);
     }
 
@@ -122,6 +128,7 @@ class EmployeeController extends Controller
             $row->phone = $request->phone;
             $row->salary = $request->salary;
             $row->rfid = $request->rfid;
+            $this->applyScheduleFields($row, $request);
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Employee Created Successfully');
@@ -147,6 +154,7 @@ class EmployeeController extends Controller
         $data['pageHeader'] = $this->pageHeader;
         $data['singleData'] = Employee::where('branch_id', auth()->user()->branch_id)
             ->with('employeeSalaries')->find($id);
+        $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
         return view('backend.pages.employees.show', $data);
     }
 
@@ -162,6 +170,8 @@ class EmployeeController extends Controller
         $data['pageHeader'] = $this->pageHeader;
         if ($data['edited'] = Employee::where('branch_id', auth()->user()->branch_id)
             ->find($id)) {
+            $data['weekDays'] = EmployeeAttendanceSummaryService::WEEK_DAYS;
+            $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
             return view('backend.pages.employees.edit', $data);
         } else {
             return RedirectHelper::backWithInputFromException();
@@ -192,9 +202,10 @@ class EmployeeController extends Controller
                 $row->phone = $request->phone;
                 $row->salary = $request->salary;
                 $row->rfid = $request->rfid;
+                $this->applyScheduleFields($row, $request);
 
                 if ($row->save()) {
-                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Employee Created Successfully');
+                    return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Employee Updated Successfully');
 
                 } else {
                     return RedirectHelper::backWithInput();
@@ -401,33 +412,51 @@ class EmployeeController extends Controller
         $daysInMonth = $monthDate->daysInMonth;
         $expectedDaysPerMonth = ($daysInMonth / 7) * 5; // 5 working days per week
 
-        // Store attendance details for each employee
         $employeeAttendanceDetails = [];
+        $totalAbsenceDeductions = 0;
+        $totalOffDays = 0;
+        $totalLeaveDays = 0;
+        $totalAbsenceDays = 0;
+        $attendanceMode = Setting::getByBranch(auth()->user()->branch_id, 'attendance_mode', 'standard');
+        $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
 
-        // Calculate deductions for each employee
         foreach ($employees as $employee) {
-            // Calculate deductions from all salary payments made
             $employeeSalaryPayments = EmployeeSalary::where('employee_id', $employee->id)
                 ->where('year', $currentYear)
                 ->sum('salary');
 
             $totalDeductions += $employeeSalaryPayments;
 
-            // Calculate hourly-based deductions if using hourly mode
-            $attendanceMode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
-            $attendanceDetails = $this->getAttendanceDetails($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
+            if ($hrSchemaInstalled) {
+                $attendanceDetails = $this->attendanceSummaryService->summarize($employee, $currentMonth, $currentYear);
+                $attendanceDetails['absenceDeduction'] = $this->attendanceSummaryService->calculateAbsenceDeduction($employee, $attendanceDetails);
+                $attendanceDetails['hourlyDeduction'] = $attendanceMode === 'hourly'
+                    ? $this->attendanceSummaryService->calculateHourlyDeduction($employee, $attendanceDetails)
+                    : 0;
+            } else {
+                $attendanceDetails = $this->getAttendanceDetails($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
+                $attendanceDetails['absenceDeduction'] = 0;
+                $attendanceDetails['hourlyDeduction'] = 0;
+                $attendanceDetails['weeklyOffCount'] = 0;
+                $attendanceDetails['leaveCount'] = 0;
+                $attendanceDetails['absenceCount'] = $attendanceDetails['missingDays'] ?? 0;
+                $attendanceDetails['attendanceRate'] = 0;
+            }
 
             $employeeAttendanceDetails[$employee->id] = $attendanceDetails;
             $totalHours += $attendanceDetails['totalHours'];
             $totalDays += $attendanceDetails['totalDays'];
+            $totalOffDays += $attendanceDetails['weeklyOffCount'] ?? 0;
+            $totalLeaveDays += $attendanceDetails['leaveCount'] ?? 0;
+            $totalAbsenceDays += $attendanceDetails['absenceCount'] ?? 0;
 
-            if ($attendanceMode === 'hourly') {
-                $hourlyDeduction = $this->calculateHourlyDeduction($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
-                $totalHourlyDeductions += $hourlyDeduction;
+            if ($includeDeductions) {
+                $totalAbsenceDeductions += $attendanceDetails['absenceDeduction'] ?? 0;
+                $totalHourlyDeductions += $attendanceDetails['hourlyDeduction'] ?? 0;
             }
         }
 
-        $netTotal = $totalBaseSalary - $totalDeductions - $totalHourlyDeductions;
+        $netTotal = $totalBaseSalary - $totalDeductions - $totalHourlyDeductions - ($includeDeductions ? $totalAbsenceDeductions : 0);
 
         $data = [
             'pageHeader' => $this->pageHeader,
@@ -448,9 +477,28 @@ class EmployeeController extends Controller
             'totalHours' => $totalHours,
             'totalDays' => $totalDays,
             'employeeAttendanceDetails' => $employeeAttendanceDetails,
+            'totalOffDays' => $totalOffDays,
+            'totalLeaveDays' => $totalLeaveDays,
+            'totalAbsenceDays' => $totalAbsenceDays,
+            'totalAbsenceDeductions' => $totalAbsenceDeductions,
+            'attendanceMode' => $attendanceMode,
+            'hrSchemaInstalled' => $hrSchemaInstalled,
         ];
 
         return view('backend.pages.employees.salary-sheet', $data);
+    }
+
+    private function applyScheduleFields(Employee $employee, Request $request): void
+    {
+        if (!$this->hrSchemaService->isInstalled()) {
+            return;
+        }
+
+        $employee->weekly_off_days = $this->attendanceSummaryService->normalizeWeeklyOffDays(
+            $request->input('weekly_off_days', [])
+        );
+        $employee->working_hours_per_day = $request->input('working_hours_per_day', 8);
+        $employee->annual_leave_quota = $request->input('annual_leave_quota', 12);
     }
 
     /**

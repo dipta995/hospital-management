@@ -22,8 +22,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 WiFiManager wm; // manages WiFi credentials via web portal
 
 // ================= API =================
-const char* SEND_API = "https://rebeka.dreammake-soft.com/fingerprint-send";
-const char* CHECK_API = "https://rebeka.dreammake-soft.com/fingerprint-check";
+const char* SEND_API = "https://bho.dreammake-soft.com/fingerprint-send";
+const char* CHECK_API = "https://bho.dreammake-soft.com/fingerprint-check";
 
 // ================= FINGERPRINT =================
 HardwareSerial mySerial(2);

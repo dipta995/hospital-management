@@ -25,6 +25,46 @@
     <div class="main-panel">
         @include('backend.layouts.partials.message')
         <div class="content-wrapper">
+            @if(!empty($isSuperAdmin))
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                                    <div>
+                                        <h5 class="card-title mb-1">
+                                            <i class="fas fa-database text-warning"></i> HR Schedule Database Setup
+                                        </h5>
+                                        <p class="text-muted mb-2 small">
+                                            Super Admin only. Installs employee off-day, leave-day, and attendance summary columns/tables.
+                                        </p>
+                                        <ul class="small mb-0">
+                                            <li>Employee weekly off days column: <strong>{{ !empty($hrSchemaStatus['weekly_off_days']) ? 'Installed' : 'Missing' }}</strong></li>
+                                            <li>Working hours per day column: <strong>{{ !empty($hrSchemaStatus['working_hours_per_day']) ? 'Installed' : 'Missing' }}</strong></li>
+                                            <li>Annual leave quota column: <strong>{{ !empty($hrSchemaStatus['annual_leave_quota']) ? 'Installed' : 'Missing' }}</strong></li>
+                                            <li>Employee leave days table: <strong>{{ !empty($hrSchemaStatus['employee_leave_days_table']) ? 'Installed' : 'Missing' }}</strong></li>
+                                        </ul>
+                                    </div>
+                                    <div class="text-end">
+                                        @if(!empty($hrSchemaInstalled))
+                                            <span class="badge bg-success mb-2 d-inline-block">Schema Ready</span>
+                                        @else
+                                            <form method="post" action="{{ route('admin.system.install-hr-schema') }}"
+                                                  onsubmit="return confirm('Install HR schedule database schema now?')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-warning">
+                                                    <i class="fas fa-cogs"></i> Install HR Schema
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if ($userGuard->can('dashboards.view'))
             <div class="row">
                 <h4>Collection Summery</h4>
