@@ -91,6 +91,201 @@
             font-weight: 700;
             font-size: 16px;
         }
+
+        .print-only {
+            display: none;
+        }
+
+        .salary-table-scroll-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: #ecfeff;
+            border: 1px solid #99f6e4;
+            color: #0f766e;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .salary-table-scroll-top {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 6px;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            background: #f8fafc;
+            height: 18px;
+        }
+
+        .salary-table-scroll-top::-webkit-scrollbar {
+            height: 14px;
+        }
+
+        .salary-table-scroll-top::-webkit-scrollbar-thumb {
+            background: #0f766e;
+            border-radius: 999px;
+        }
+
+        .salary-table-scroll-top::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 999px;
+        }
+
+        #salary-table-scroll-top-inner {
+            height: 1px;
+        }
+
+        .salary-table-wrapper .table-responsive {
+            overflow-x: auto;
+        }
+
+        .salary-table-wrapper .table-responsive::-webkit-scrollbar {
+            height: 14px;
+        }
+
+        .salary-table-wrapper .table-responsive::-webkit-scrollbar-thumb {
+            background: #64748b;
+            border-radius: 999px;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+
+            body,
+            html {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .topbar,
+            .main-nav,
+            .footer,
+            footer,
+            .offcanvas,
+            .no-print,
+            .print-hide,
+            .salary-table-scroll-top,
+            .salary-table-scroll-hint {
+                display: none !important;
+            }
+
+            html,
+            body,
+            .wrapper {
+                overflow: visible !important;
+            }
+
+            .wrapper,
+            .page-content,
+            .main-panel,
+            .content-wrapper,
+            .row,
+            .col-lg-12,
+            #salary-sheet-print {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .salary-header {
+                background: #0f766e !important;
+                color: #fff !important;
+                border-radius: 0 !important;
+                padding: 12px 14px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .summary-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                padding: 10px !important;
+                margin-bottom: 8px !important;
+                break-inside: avoid;
+            }
+
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            .card-body {
+                padding: 0 !important;
+            }
+
+            .table-responsive {
+                overflow: visible !important;
+                width: 100% !important;
+            }
+
+            .salary-table {
+                width: 100% !important;
+                table-layout: fixed !important;
+                font-size: 9px !important;
+                border-collapse: collapse !important;
+            }
+
+            .salary-table th,
+            .salary-table td {
+                padding: 4px 3px !important;
+                border: 1px solid #ccc !important;
+                word-wrap: break-word !important;
+                overflow-wrap: anywhere !important;
+                white-space: normal !important;
+                vertical-align: top !important;
+            }
+
+            .salary-table thead {
+                background: #f1f3f5 !important;
+            }
+
+            .salary-table tbody tr {
+                break-inside: avoid;
+            }
+
+            .badge-paid,
+            .badge-unpaid {
+                background: transparent !important;
+                color: #000 !important;
+                border: 1px solid #999 !important;
+                padding: 1px 4px !important;
+                font-size: 8px !important;
+            }
+
+            .salary-amount,
+            .deduction-amount,
+            .net-amount {
+                color: #000 !important;
+                font-size: 9px !important;
+            }
+
+            .print-summary-row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .print-summary-row .summary-card {
+                flex: 1 1 22% !important;
+                min-width: 120px !important;
+            }
+        }
     </style>
 @endpush
 
@@ -98,15 +293,20 @@
     <div class="main-panel">
         <div class="content-wrapper">
             <div class="row">
-                <div class="col-lg-12">
+                <div class="col-lg-12" id="salary-sheet-print">
+                    <div class="print-only mb-2">
+                        <h3 class="mb-1">{{ \App\Models\Setting::get('company_name', 'Hospital Management Software') }}</h3>
+                        <p class="mb-0">Employee Salary Sheet — {{ $currentMonth }} {{ $currentYear }}</p>
+                    </div>
+
                     <!-- Header -->
                     <div class="salary-header">
-                        <h2 class="mb-2">📊 Salary Sheet</h2>
+                        <h2 class="mb-2">Salary Sheet</h2>
                         <p class="mb-0">{{ $currentMonth }} {{ $currentYear }}</p>
                     </div>
 
                     <!-- Filters -->
-                    <div class="card">
+                    <div class="card no-print">
                         <div class="card-body salary-filters">
                             <form method="get" class="row g-3">
                                 <div class="col-md-3">
@@ -158,7 +358,7 @@
                     </div>
 
                     @if(!empty($canSummarizeAttendance))
-                    <div class="row mt-3">
+                    <div class="row mt-3 print-summary-row">
                         <div class="col-md-3">
                             <div class="summary-card">
                                 <div class="summary-item">
@@ -195,7 +395,7 @@
                     @endif
 
                     <!-- Summary Cards -->
-                    <div class="row mt-4">
+                    <div class="row mt-4 print-summary-row">
                         <div class="col-md-3">
                             <div class="summary-card">
                                 <div class="summary-item">
@@ -242,8 +442,18 @@
                             <h5 class="card-title mb-4">Detailed Salary Breakdown</h5>
 
                             @if($employees->count() > 0)
-                                <div class="table-responsive">
-                                    <table class="table salary-table">
+                                <div class="salary-table-scroll-hint no-print">
+                                    <i class="fas fa-arrows-left-right"></i>
+                                    <span>Table is wide — use the scrollbar above or below to view all columns.</span>
+                                </div>
+
+                                <div class="salary-table-wrapper">
+                                    <div class="salary-table-scroll-top no-print" id="salary-table-scroll-top">
+                                        <div id="salary-table-scroll-top-inner"></div>
+                                    </div>
+
+                                    <div class="table-responsive" id="salary-table-scroll-main">
+                                    <table class="table salary-table" id="salary-sheet-table">
                                         <thead>
                                             <tr>
                                                 <th style="width: 3%">#</th>
@@ -265,7 +475,7 @@
                                                     <th style="width: 12%">Payable</th>
                                                 @endif
                                                 <th style="width: 8%">Status</th>
-                                                <th style="width: 8%">Action</th>
+                                                <th style="width: 8%" class="print-hide">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -352,7 +562,7 @@
                                                             </span>
                                                         @endif
                                                     </td>
-                                                    <td>
+                                                    <td class="print-hide">
                                                         <a href="{{ route('admin.employees.show', $employee->id) }}"
                                                            class="btn btn-sm btn-info" title="View Details">
                                                             <i class="fas fa-eye"></i>
@@ -379,6 +589,7 @@
                                             @endforelse
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
 
                                 <!-- Footer Summary -->
@@ -448,6 +659,49 @@
             document.getElementById('include_deductions').addEventListener('change', function() {
                 document.querySelector('form').submit();
             });
+
+            (function () {
+                const topScroller = document.getElementById('salary-table-scroll-top');
+                const topInner = document.getElementById('salary-table-scroll-top-inner');
+                const mainScroller = document.getElementById('salary-table-scroll-main');
+                const table = document.getElementById('salary-sheet-table');
+
+                if (!topScroller || !topInner || !mainScroller || !table) {
+                    return;
+                }
+
+                let syncing = false;
+
+                function syncWidths() {
+                    topInner.style.width = table.scrollWidth + 'px';
+                }
+
+                function syncFromTop() {
+                    if (syncing) return;
+                    syncing = true;
+                    mainScroller.scrollLeft = topScroller.scrollLeft;
+                    syncing = false;
+                }
+
+                function syncFromMain() {
+                    if (syncing) return;
+                    syncing = true;
+                    topScroller.scrollLeft = mainScroller.scrollLeft;
+                    syncing = false;
+                }
+
+                topScroller.addEventListener('scroll', syncFromTop);
+                mainScroller.addEventListener('scroll', syncFromMain);
+                window.addEventListener('resize', syncWidths);
+                window.addEventListener('load', syncWidths);
+
+                syncWidths();
+
+                if (typeof ResizeObserver !== 'undefined') {
+                    const observer = new ResizeObserver(syncWidths);
+                    observer.observe(table);
+                }
+            })();
         </script>
     @endpush
 @endsection

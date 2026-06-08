@@ -151,10 +151,23 @@ class EmployeeController extends Controller
      */
     public function show($id)
     {
+        $this->checkOwnPermission('employees.index');
+
+        $employee = Employee::where('branch_id', auth()->user()->branch_id)
+            ->with('employeeSalaries')
+            ->find($id);
+
+        if (!$employee) {
+            return RedirectHelper::routeError(
+                $this->index_route,
+                '<strong>Sorry!</strong> Employee not found for this branch.'
+            );
+        }
+
         $data['pageHeader'] = $this->pageHeader;
-        $data['singleData'] = Employee::where('branch_id', auth()->user()->branch_id)
-            ->with('employeeSalaries')->find($id);
+        $data['singleData'] = $employee;
         $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
+
         return view('backend.pages.employees.show', $data);
     }
 
