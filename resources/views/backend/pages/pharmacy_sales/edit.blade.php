@@ -3,71 +3,81 @@
     Edit {{ $pageHeader['title'] }}
 @endsection
 @push('styles')
+    @include('backend.layouts.partials.crud-styles')
+    @include('backend.layouts.partials.pharmacy-styles')
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 @endpush
 @section('admin-content')
-<div class="main-panel">
-    <div class="content-wrapper">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h4 class="card-title mb-0">Edit {{ $pageHeader['title'] }}</h4>
-                            <a href="{{ route('admin.pharmacy_sales.pdf-preview', $sale->id) }}" target="_blank" class="btn btn-sm btn-primary">Invoice</a>
-                        </div>
-                        @include('backend.layouts.partials.message')
+<div class="crud-page pharm-page container-fluid py-3">
+    @include('backend.layouts.partials.crud-form-hero', [
+        'formTitle' => 'Edit Pharmacy Sale',
+        'formSubtitle' => 'Invoice #' . ($sale->invoice_no ?? $sale->id),
+        'formIcon' => 'fa-cash-register',
+    ])
 
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Customer</h4>
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ route('admin.pharmacy_sales.pdf-preview', $sale->id) }}" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i> Invoice</a>
+    </div>
+
+    @include('backend.layouts.partials.message')
+
+    <div class="pharm-pos-grid">
+        <div>
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-user"></i> Customer</div>
+                <div class="pharm-pos-panel-body">
+                    <div class="row g-2">
+                        <div class="col-md-5 position-relative">
+                            <label class="form-label">Search Name / Phone</label>
+                            <input type="text" id="customer_search" class="form-control" placeholder="Type to search...">
+                            <ul class="list-group pharm-suggestion" id="customer_suggestion"></ul>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#customerModal"><i class="fas fa-user-plus"></i> New</button>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Selected Customer</label>
+                            <input type="text" id="customer_name" class="form-control bg-light" value="{{ optional($customer)->name }}" readonly>
+                            <input type="hidden" id="customer_id" value="{{ $sale->customer_id }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-user-md"></i> Referring Doctor</div>
+                <div class="pharm-pos-panel-body">
+                    <label for="dr_refer_name" class="form-label">Doctor
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 openDoctorModal" data-target-input="dr_refer_name">+ Add</button>
+                    </label>
+                    <input type="text" id="dr_refer_name" class="form-control" value="{{ optional($sale->doctor)->name }}">
+                    <input type="hidden" id="dr_refer_id" value="{{ $sale->dr_refer_id }}">
+                </div>
+            </div>
+
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-pills"></i> Products</div>
+                <div class="pharm-pos-panel-body">
                         <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label>Search (Name / Phone)</label>
-                                <input type="text" id="customer_search" class="form-control" placeholder="Type name or phone">
-                                <ul class="list-group" id="customer_suggestion" style="position:absolute; z-index:1000; width:100%; display:none;"></ul>
-                            </div>
                             <div class="col-md-3">
-                                <label>&nbsp;</label>
-                                <button type="button" class="btn btn-primary form-control" data-bs-toggle="modal" data-bs-target="#customerModal">Add New Customer</button>
-                            </div>
-                            <div class="col-md-5">
-                                <label>Selected Customer</label>
-                                <input type="text" id="customer_name" class="form-control" value="{{ optional($customer)->name }}" readonly>
-                                <input type="hidden" id="customer_id" value="{{ $sale->customer_id }}">
-                            </div>
-                        </div>
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Doctor</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="dr_refer_name">Dr Name
-                                    <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
-                                </label>
-                                <input type="text" id="dr_refer_name" class="form-control" value="{{ optional($sale->doctor)->name }}">
-                                <input type="hidden" id="dr_refer_id" value="{{ $sale->dr_refer_id }}">
-                            </div>
-                        </div>
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Products</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-5">
-                                <label for="product_name">Product</label>
-                                <input type="text" id="product_name" class="form-control" placeholder="Type product name / generic / barcode">
+                                <label class="form-label">Product</label>
+                                <input type="text" id="product_name" class="form-control" placeholder="Name / generic / barcode">
                                 <input type="hidden" id="pharmacy_product_id">
                             </div>
                             <div class="col-md-2">
-                                <label for="product_qty">Qty</label>
+                                <label class="form-label">Qty</label>
                                 <input type="number" id="product_qty" class="form-control" value="1" min="1">
                             </div>
                             <div class="col-md-2">
-                                <label for="product_price">Unit Price</label>
+                                <label class="form-label">Unit Price</label>
                                 <input type="number" id="product_price" class="form-control" step="0.01">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" class="btn btn-success w-100" id="add-product">Add</button>
+                                <button type="button" class="btn btn-outline-success w-100" id="add-product"><i class="fas fa-plus"></i> Add</button>
                             </div>
                         </div>
 
-                        <table class="table table-bordered" id="sale-products">
+                        <table class="table table-bordered pharm-table mt-2" id="sale-products">
                             <thead>
                             <tr>
                                 <th>#</th>
@@ -84,47 +94,51 @@
                             </tbody>
                         </table>
 
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Payment</h4>
-                        <div class="row mb-3">
+                </div>
+            </div>
+
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-money-bill-wave"></i> Payment</div>
+                <div class="pharm-pos-panel-body">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-3">
-                                <label>Sale Date</label>
+                                <label class="form-label">Sale Date</label>
                                 <input type="date" id="sale_date" class="form-control" value="{{ $sale->sale_date }}">
                             </div>
                             <div class="col-md-3">
-                                <label>Subtotal</label>
-                                <input type="number" id="subtotal" class="form-control" readonly>
+                                <label class="form-label">Subtotal</label>
+                                <input type="number" id="subtotal" class="form-control bg-light" readonly>
                             </div>
                             <div class="col-md-3">
-                                <label>Invoice Discount</label>
+                                <label class="form-label">Invoice Discount</label>
                                 <input type="number" id="discount_amount" class="form-control" value="{{ $sale->discount_amount }}" step="0.01">
                             </div>
                             <div class="col-md-3">
-                                <label>Total</label>
-                                <input type="number" id="total_amount" class="form-control" value="{{ $sale->total_amount }}" readonly>
+                                <label class="form-label">Total</label>
+                                <input type="number" id="total_amount" class="form-control bg-light" value="{{ $sale->total_amount }}" readonly>
                             </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Paid</label>
+                            <div class="col-md-3">
+                                <label class="form-label">Paid</label>
                                 <input type="number" id="paid_amount" class="form-control" value="{{ $sale->paid_amount }}" step="0.01">
                             </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Due</label>
-                                <input type="number" id="due_amount" class="form-control" value="{{ $sale->due_amount }}" readonly>
+                            <div class="col-md-3">
+                                <label class="form-label">Due</label>
+                                <input type="number" id="due_amount" class="form-control bg-light" value="{{ $sale->due_amount }}" readonly>
                             </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Payment Method</label>
+                            <div class="col-md-3">
+                                <label class="form-label">Payment Method</label>
                                 <input type="text" id="payment_method" class="form-control" value="{{ $sale->payment_method }}">
                             </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Note</label>
+                            <div class="col-md-3">
+                                <label class="form-label">Note</label>
                                 <input type="text" id="note" class="form-control" value="{{ $sale->note }}">
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between mt-3">
-                            <a href="{{ route('admin.pharmacy_sales.pdf-preview', $sale->id) }}" target="_blank" class="btn btn-sm btn-primary">Invoice</a>
-                            <button type="button" class="btn btn-success" id="update-sale">Update Sale</button>
+                        <div class="crud-form-actions border-0 pt-0">
+                            <a href="{{ route('admin.pharmacy_sales.index') }}" class="btn-crud-cancel">Cancel</a>
+                            <button type="button" class="btn btn-crud-submit" id="update-sale">Update Sale</button>
                         </div>
-                    </div>
                 </div>
             </div>
         </div>

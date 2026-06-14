@@ -10,7 +10,6 @@ use App\Models\Prescription;
 use App\Models\Drug;
 use App\Models\Product;
 use App\Models\Reefer;
-use App\Models\TestReport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
@@ -30,7 +29,7 @@ class PrescriptionController extends Controller
         $this->checkGuard();
         Paginator::useBootstrapFive();
         $this->pageHeader = [
-            'title' => "Prescription",
+            'title' => "Prescriptions",
             'sub_title' => "",
             'plural_name' => "prescriptions",
             'singular_name' => "Prescription",
@@ -39,77 +38,134 @@ class PrescriptionController extends Controller
             'store_route' => $this->store_route,
             'edit_route' => $this->edit_route,
             'update_route' => $this->update_route,
+            'show_route' => 'admin.prescriptions.show',
+            'delete_route' => 'admin.prescriptions.destroy',
             'base_url' => url('admin/prescriptions'),
-
         ];
-
-
     }
 
-
-    public function index()
+    private function linkedReefer(): ?Reefer
     {
-        $pageHeader = [
-            'title' => 'Prescriptions',
-            'create_route' => 'admin.prescriptions.create',
-            'create_route' => 'admin.prescriptions.create',
-            'store_route' => 'admin.prescriptions.store',
-            'update_route' => 'admin.prescriptions.update',
-            'show_route' => 'admin.prescriptions.show', // Add this line
-            'edit_route' => 'admin.prescriptions.edit', // Ensure this is also defined
-            'delete_route' => 'admin.prescriptions.destroy', // Ensure this is also defined
-        ];
-        $doctorRefferId = (Reefer::where('admin_id', auth()->id())->first())->id;
-        $prescriptions = Prescription::with('doctor')->latest()
-            ->where('reefer_id', $doctorRefferId)
-            ->paginate(10);
+        return Reefer::where('branch_id', auth()->user()->branch_id)
+            ->where('admin_id', auth()->id())
+            ->first();
+    }
 
-        return view('backend.pages.prescriptions.index', compact('prescriptions', 'pageHeader'));
+    public function index(Request $request)
+    {
+        $this->checkOwnPermission('prescriptions.index');
+
+        $branchId = auth()->user()->branch_id;
+        $linkedDoctor = $this->linkedReefer();
+
+        $query = Prescription::with(['doctor', 'invoice'])
+            ->where('branch_id', $branchId)
+            ->latest();
+
+        if ($linkedDoctor) {
+            $query->where('reefer_id', $linkedDoctor->id);
+        } elseif ($request->filled('doctor_id')) {
+            $query->where('reefer_id', $request->doctor_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('diagnosis', 'like', "%{$search}%")
+                    ->orWhere('investigation', 'like', "%{$search}%")
+                    ->orWhereHas('invoice', fn ($inv) => $inv->where('patient_name', 'like', "%{$search}%"))
+                    ->orWhereHas('doctor', fn ($doc) => $doc->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $prescriptions = $query->paginate(15)->withQueryString();
+
+        $doctors = Reefer::where('branch_id', $branchId)
+            ->where('type', Reefer::$typeArray[0])
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('backend.pages.prescriptions.index', [
+            'prescriptions' => $prescriptions,
+            'pageHeader' => $this->pageHeader,
+            'doctors' => $doctors,
+            'linkedDoctor' => $linkedDoctor,
+        ]);
     }
 
     public function create()
     {
         $this->checkOwnPermission('prescriptions.create');
 
-        $data['pageHeader'] = $this->pageHeader;
-        $data['doctorId'] = (Reefer::where('admin_id', auth()->id())->first())->id;
+        $linkedDoctor = $this->linkedReefer();
         $branchId = auth()->user()->branch_id;
 
-        $data['products'] = Product::where('branch_id', $branchId) // Always filter by branch
-        ->get(['name', 'price', 'id']);
-
-        return view('backend.pages.prescriptions.create', $data);
+        return view('backend.pages.prescriptions.create', [
+            'pageHeader' => $this->pageHeader,
+            'doctorId' => $linkedDoctor?->id,
+            'doctors' => Reefer::where('branch_id', $branchId)
+                ->where('type', Reefer::$typeArray[0])
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'products' => Product::where('branch_id', $branchId)
+                ->orderBy('name')
+                ->get(['name', 'price', 'id']),
+        ]);
     }
 
     public function store(Request $request)
     {
+        $this->checkOwnPermission('prescriptions.create');
+
+        $linkedDoctor = $this->linkedReefer();
+        $doctorId = $request->input('doctor') ?: $linkedDoctor?->id;
+
+        if (!$doctorId) {
+            return RedirectHelper::backWithInputFromException('<strong>Error!</strong> Please select a doctor or link your account to a doctor profile.');
+        }
 
         $request->validate([
+            'doctor' => 'nullable|exists:reefers,id',
+            'patient_name' => 'required|string|max:200',
+            'patient_age_year' => 'required',
+            'patient_gender' => 'required|string|max:20',
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'exists:products,id',
+            'discount' => 'nullable|numeric|min:0|max:30',
             'investigation' => 'nullable|string',
             'diagnosis' => 'nullable|string',
             'note' => 'nullable|string|max:190',
         ]);
-//
-//        try {
+
+        $doctorId = (int) $doctorId;
         $totalAmount = 0;
-        foreach ($request->product_ids as $item) {
-            $test = Product::find($item);
-            $totalAmount += $test->price;
+        $products = Product::where('branch_id', auth()->user()->branch_id)
+            ->whereIn('id', $request->product_ids)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($request->product_ids as $productId) {
+            if (!$products->has($productId)) {
+                return RedirectHelper::backWithInputFromException('<strong>Error!</strong> Invalid test selected.');
+            }
+            $totalAmount += (float) $products[$productId]->price;
         }
-        $discountOnlyTotal = ($totalAmount * $request->discount) / 100;
-        $discountedAmount = ($totalAmount - ($totalAmount * $request->discount) / 100);
-//            Invoice by doctor
+
+        $discountPercent = (float) ($request->discount ?? 0);
+        $discountOnlyTotal = ($totalAmount * $discountPercent) / 100;
+        $discountedAmount = $totalAmount - $discountOnlyTotal;
+
         $row = new Invoice();
         $row->branch_id = auth()->user()->branch_id;
         $row->patient_no = self::getNextPatientNo();
-        $row->dr_refer_id = $request->doctor;
-        $row->refer_id = $request->doctor;
+        $row->dr_refer_id = $doctorId;
+        $row->refer_id = $doctorId;
         $row->admin_id = auth()->id();
         $row->invoice_number = self::generateInvoiceNumber();
         $row->discount_by = auth()->user()->name;
         $row->total_amount = $discountedAmount;
         $row->discount_amount = $discountOnlyTotal;
-        $row->refer_fee_total = self::refferAmount($request->doctor, ($discountedAmount + $discountOnlyTotal), $discountOnlyTotal);
+        $row->refer_fee_total = self::refferAmount($doctorId, ($discountedAmount + $discountOnlyTotal), $discountOnlyTotal);
         $row->refer_fee_total_agent = 0.00;
         $row->delivery_at = Carbon::now('Asia/Dhaka');
         $row->payment_type = 'Cash';
@@ -121,73 +177,89 @@ class PrescriptionController extends Controller
         $row->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
         $row->save();
 
-        foreach ($request->product_ids as $product) {
-            $test = Product::find($product);
+        foreach ($request->product_ids as $productId) {
+            $test = $products[$productId];
             InvoiceList::create([
                 'branch_id' => auth()->user()->branch_id,
                 'invoice_id' => $row->id,
-//                        'admin_id' => auth()->id(),
                 'product_id' => $test->id,
                 'price' => $test->price,
                 'refer_fee' => $test->refer_fee,
             ]);
         }
-//            Invoice by doctor
-
 
         $prescription = Prescription::create([
             'branch_id' => auth()->user()->branch_id,
             'invoice_id' => $row->id,
-            'reefer_id' => $request->doctor,
+            'reefer_id' => $doctorId,
             'investigation' => $request->investigation,
             'diagnosis' => $request->diagnosis,
         ]);
 
-        if ($request->drug_name) {
+        if ($request->filled('drug_name')) {
             foreach ($request->drug_name as $index => $name) {
-                $drug = new Drug();
-                $drug->prescription_id = $prescription->id;
-                $drug->name = $request->drug_name[$index];
-                $drug->rule = $request->drug_rule[$index];
-                $drug->time = $request->drug_time[$index];
-                $drug->note = $request->drug_note[$index];
-                $drug->duration = $request->drug_duration[$index];
-
-                $drug->save();
+                if (trim((string) $name) === '') {
+                    continue;
+                }
+                Drug::create([
+                    'prescription_id' => $prescription->id,
+                    'name' => $name,
+                    'rule' => $request->drug_rule[$index] ?? null,
+                    'time' => $request->drug_time[$index] ?? null,
+                    'note' => $request->drug_note[$index] ?? null,
+                    'duration' => $request->drug_duration[$index] ?? null,
+                ]);
             }
         }
 
-        return RedirectHelper::routeSuccess('admin.prescriptions.index', '<strong>Success!</strong> Prescription created successfully!');
-//        } catch (\Exception $e) {
-//            return RedirectHelper::backWithInputFromException($e);
-//        }
+        return RedirectHelper::routeSuccess($this->index_route, '<strong>Success!</strong> Prescription created successfully!');
     }
 
     public function show($id)
     {
         $this->checkOwnPermission('prescriptions.index');
 
-        $data['pageHeader'] = $this->pageHeader;
-        if ($data['prescription'] = Prescription::with('drugs', 'doctor', 'invoice')->find($id)) {
-            $data['tests'] = InvoiceList::where('invoice_id', $data['prescription']->invoice_id)->get();
-            return view('backend.pages.prescriptions.show', $data);
-        } else {
-            return RedirectHelper::backWithInputFromException('<strong>Sorry!!! </strong> No Data Found.');
+        $prescription = Prescription::with('drugs', 'doctor', 'invoice')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
+
+        if (!$prescription) {
+            return RedirectHelper::backWithInputFromException('<strong>Sorry!</strong> No prescription found.');
         }
 
+        $linkedDoctor = $this->linkedReefer();
+        if ($linkedDoctor && (int) $prescription->reefer_id !== (int) $linkedDoctor->id) {
+            return RedirectHelper::backWithInputFromException('<strong>Sorry!</strong> You cannot view this prescription.');
+        }
+
+        $tests = InvoiceList::with('product')
+            ->where('invoice_id', $prescription->invoice_id)
+            ->get();
+
+        return view('backend.pages.prescriptions.show', [
+            'pageHeader' => $this->pageHeader,
+            'prescription' => $prescription,
+            'tests' => $tests,
+        ]);
     }
 
     public function edit($id)
     {
         $this->checkOwnPermission('prescriptions.edit');
 
-        $data['prescription'] = Prescription::with('drugs')->findOrFail($id);
-        $data['reefers'] = Reefer::where('branch_id', auth()->user()->branch_id)
-            ->where('type', Reefer::$typeArray[0])
-            ->get(['id', 'name']);
-        $data['pageHeader'] = $this->pageHeader;
+        $prescription = Prescription::with('drugs', 'doctor', 'invoice')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
 
-        return view('backend.pages.prescriptions.edit', $data);
+        return view('backend.pages.prescriptions.edit', [
+            'prescription' => $prescription,
+            'reefers' => Reefer::where('branch_id', auth()->user()->branch_id)
+                ->where('type', Reefer::$typeArray[0])
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'pageHeader' => $this->pageHeader,
+            'linkedDoctor' => $this->linkedReefer(),
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -198,12 +270,14 @@ class PrescriptionController extends Controller
             'reefer_id' => 'required|exists:reefers,id',
             'investigation' => 'nullable|string',
             'diagnosis' => 'nullable|string',
-            'drug_name' => 'required|array',
-            'drug_name.*' => 'required|string',
+            'drug_name' => 'nullable|array',
+            'drug_name.*' => 'nullable|string|max:255',
         ]);
 
         try {
-            $prescription = Prescription::findOrFail($id);
+            $prescription = Prescription::where('branch_id', auth()->user()->branch_id)
+                ->findOrFail($id);
+
             $prescription->reefer_id = $request->reefer_id;
             $prescription->investigation = $request->investigation;
             $prescription->diagnosis = $request->diagnosis;
@@ -211,21 +285,25 @@ class PrescriptionController extends Controller
 
             Drug::where('prescription_id', $id)->delete();
 
-            foreach ($request->drug_name as $index => $name) {
-                $drug = new Drug();
-                $drug->prescription_id = $id;
-                $drug->name = $request->drug_name[$index];
-                $drug->rule = $request->drug_rule[$index];
-                $drug->time = $request->drug_time[$index];
-                $drug->note = $request->drug_note[$index];
-                $drug->duration = $request->drug_duration[$index];
-
-                $drug->save();
+            if ($request->filled('drug_name')) {
+                foreach ($request->drug_name as $index => $name) {
+                    if (trim((string) $name) === '') {
+                        continue;
+                    }
+                    Drug::create([
+                        'prescription_id' => $id,
+                        'name' => $name,
+                        'rule' => $request->drug_rule[$index] ?? null,
+                        'time' => $request->drug_time[$index] ?? null,
+                        'note' => $request->drug_note[$index] ?? null,
+                        'duration' => $request->drug_duration[$index] ?? null,
+                    ]);
+                }
             }
 
-            return RedirectHelper::routeSuccess('admin.prescriptions.index', '<strong>Success!</strong> Prescription updated successfully!');
+            return RedirectHelper::routeSuccess($this->index_route, '<strong>Success!</strong> Prescription updated successfully!');
         } catch (QueryException $e) {
-            return RedirectHelper::backWithInputFromException($e);
+            return RedirectHelper::backWithInputFromException();
         }
     }
 
@@ -234,14 +312,15 @@ class PrescriptionController extends Controller
         $this->checkOwnPermission('prescriptions.delete');
 
         try {
-            $prescription = Prescription::findOrFail($id);
+            $prescription = Prescription::where('branch_id', auth()->user()->branch_id)
+                ->findOrFail($id);
+            Drug::where('prescription_id', $prescription->id)->delete();
             $prescription->delete();
 
-            return RedirectHelper::routeSuccess('admin.prescriptions.index', '<strong>Success!</strong> Prescription deleted successfully!');
+            return RedirectHelper::routeSuccess($this->index_route, '<strong>Success!</strong> Prescription deleted successfully!');
         } catch (\Exception $e) {
-            return RedirectHelper::backWithInputFromException($e);
+            return RedirectHelper::backWithInputFromException();
         }
-
     }
 
     public function generateInvoiceNumber()
@@ -251,28 +330,30 @@ class PrescriptionController extends Controller
             ->whereMonth('creation_date', Carbon::now('Asia/Dhaka')->month)
             ->latest('invoice_number')
             ->first();
-//dd($latestInvoice);
+
         if ($latestInvoice) {
-            $lastNumber = (int)substr($latestInvoice->invoice_number, 4);
-            $invoiceNumber = 'INV-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $invoiceNumber = 'INV-0001';
+            $lastNumber = (int) substr($latestInvoice->invoice_number, 4);
+            return 'INV-' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         }
-        return $invoiceNumber;
+
+        return 'INV-0001';
     }
 
     public function refferAmount($refferId, $totalAmount, $discount)
     {
         $ref = Reefer::find($refferId);
-//        dd(round((($ref->percent*$totalAmount)/100)-$discount));
-        return round((($ref->percent * $totalAmount) / 100) - $discount) > 0 ? round((($ref->percent * $totalAmount) / 100) - $discount) : 0;
+        if (!$ref) {
+            return 0;
+        }
+
+        return round((($ref->percent * $totalAmount) / 100) - $discount) > 0
+            ? round((($ref->percent * $totalAmount) / 100) - $discount)
+            : 0;
     }
 
     public function getNextPatientNo()
     {
-        $latestPatientNo = Invoice::where('branch_id',auth()->user()->branch_id)->max('patient_no');
+        $latestPatientNo = Invoice::where('branch_id', auth()->user()->branch_id)->max('patient_no');
         return $latestPatientNo ? $latestPatientNo + 1 : 1;
     }
-
-
 }

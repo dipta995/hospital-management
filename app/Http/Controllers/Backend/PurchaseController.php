@@ -71,9 +71,11 @@ class PurchaseController extends Controller
     public function create()
     {
         $this->checkOwnPermission('purchases.create');
+        $branchId = auth()->user()->branch_id;
         $data['pageHeader'] = $this->pageHeader;
-        $data['items'] = Item::where('branch_id', auth()->user()->branch_id)->get();
-        $data['suppliers'] = Supplier::where('branch_id', auth()->user()->branch_id)->get();
+        $data['items'] = Item::where('branch_id', $branchId)->orderBy('name')->get();
+        $data['suppliers'] = Supplier::where('branch_id', $branchId)->orderBy('name')->get();
+
         return view('backend.pages.purchases.create', $data);
     }
 
@@ -85,71 +87,85 @@ class PurchaseController extends Controller
      */
     public function store(Request $request)
     {
-//        return $request;
         $branchId = auth()->user()->branch_id;
         $this->checkOwnPermission('purchases.create');
-        $rules = [
-            'supplier_id' => 'required',
-            'purchase_date' => 'required|date',
-            'total_cost' => 'required|numeric|min:0',
-            'paid_amount' => 'required|numeric|min:0',
-            'due_amount' => 'required|numeric|min:0',
-            'items' => 'required|array|min:1',
 
-        ];
-        $request->validate($rules);
+        $items = $this->normalizePurchaseItems($request->input('items', []));
+
+        $request->validate([
+            'supplier_id' => 'required|integer',
+            'purchase_date' => 'required|date',
+            'paid_amount' => 'required|numeric|min:0',
+            'payment_method' => 'required|string',
+        ]);
+
+        if (empty($items)) {
+            return $this->purchaseJsonError($request, 'Add at least one item with quantity and price.');
+        }
+
+        $totalCost = round(collect($items)->sum('total_amount'), 2);
+        $paidAmount = round((float) $request->paid_amount, 2);
+        $dueAmount = max($totalCost - $paidAmount, 0);
+
         try {
             DB::beginTransaction();
+
             $purchase = Purchase::create([
                 'branch_id' => $branchId,
-                'supplier_id' => $request['supplier_id'],
-                'purchase_date' => $request['purchase_date'],
-                'total_cost' => $request['total_cost'],
-                'due_amount' => $request['due_amount'],
+                'supplier_id' => $request->supplier_id,
+                'purchase_date' => $request->purchase_date,
+                'total_cost' => $totalCost,
+                'due_amount' => $dueAmount,
             ]);
 
-            $payment = Payment::create([
-                'branch_id' => $branchId,
-                'purchase_id' => $purchase->id,
-                'amount' => $request['paid_amount'],
-                'payment_date' => $request->date ?? Carbon::now('Asia/Dhaka')->format('Y-m-d'),
-                'payment_method' => $request['payment_method'],
-            ]);
+            $payment = null;
+            if ($paidAmount > 0) {
+                $payment = Payment::create([
+                    'branch_id' => $branchId,
+                    'purchase_id' => $purchase->id,
+                    'amount' => $paidAmount,
+                    'payment_date' => $request->purchase_date,
+                    'payment_method' => $request->payment_method,
+                ]);
+            }
 
-            foreach ($request['items'] as $item) {
+            foreach ($items as $item) {
                 PurchaseItem::create([
                     'branch_id' => $branchId,
                     'item_id' => $item['item_id'],
-                    'supplier_id' => $request['supplier_id'],
+                    'supplier_id' => $request->supplier_id,
                     'purchase_id' => $purchase->id,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'discount_amount' => $item['discount_amount'],
-                    'total_amount' => ($item['unit_price'] * $item['quantity']),
+                    'total_amount' => $item['total_amount'],
                     'expiry_date' => $item['expiry_date'],
                 ]);
             }
-            $cost = new Cost();
-            $cost->branch_id = auth()->user()->branch_id;
-            $cost->cost_category_id = Setting::get('purchase_category');
-            $cost->reason = 'Purchase';
-            $cost->amount = $request['paid_amount'];
-            $cost->invoice_id = null;
-            $cost->payment_id = $payment->id;
-            $cost->refer_id = null;
-            $cost->account_details = null;
-            $cost->account_type = null;
-            $cost->payment_type = $request['payment_method'];
-            $cost->creation_date = $request->date ?? Carbon::now('Asia/Dhaka')->format('Y-m-d');
-            $cost->save();
+
+            if ($payment && $paidAmount > 0) {
+                Cost::create([
+                    'branch_id' => $branchId,
+                    'cost_category_id' => Setting::get('purchase_category'),
+                    'reason' => 'Purchase',
+                    'amount' => $paidAmount,
+                    'invoice_id' => null,
+                    'payment_id' => $payment->id,
+                    'refer_id' => null,
+                    'account_details' => null,
+                    'account_type' => null,
+                    'payment_type' => $request->payment_method,
+                    'creation_date' => $request->purchase_date,
+                ]);
+            }
 
             DB::commit();
 
-            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Purchase Created Successfully');
+            return $this->purchaseJsonSuccess($request, 'Purchase created successfully.');
         } catch (QueryException $e) {
             DB::rollBack();
-//            dd($e);
-            return RedirectHelper::backWithInputFromException($e);
+
+            return $this->purchaseJsonError($request, 'Something went wrong while saving the purchase.');
         }
     }
 
@@ -179,14 +195,14 @@ class PurchaseController extends Controller
         $this->checkOwnPermission('purchases.edit');
         $data['pageHeader'] = $this->pageHeader;
 
-        // Retrieve the purchase and associated items
-        $data['purchase'] = Purchase::with('purchaseItems', 'supplier')
+        $data['purchase'] = Purchase::with(['purchaseItems.item', 'supplier'])
+            ->withSum('purchasePaid', 'amount')
             ->where('branch_id', auth()->user()->branch_id)
             ->findOrFail($id);
 
-        // Get all available items and suppliers for the form
-        $data['items'] = Item::where('branch_id', auth()->user()->branch_id)->get();
-        $data['suppliers'] = Supplier::where('branch_id', auth()->user()->branch_id)->get();
+        $data['purchaseItems'] = $data['purchase']->purchaseItems;
+        $data['items'] = Item::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
+        $data['suppliers'] = Supplier::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
 
         return view('backend.pages.purchases.edit', $data);
     }
@@ -201,47 +217,56 @@ class PurchaseController extends Controller
     public function update(Request $request, $id)
     {
         $this->checkOwnPermission('purchases.edit');
-        $rules = [
-            'supplier_id' => 'required',
+        $branchId = auth()->user()->branch_id;
+        $items = $this->normalizePurchaseItems($request->input('items', []));
+
+        $request->validate([
+            'supplier_id' => 'required|integer',
             'purchase_date' => 'required|date',
-            'total_cost' => 'required|numeric|min:0',
-//            'paid_amount' => 'required|numeric|min:0',
-            'due_amount' => 'required|numeric|min:0',
-            'items' => 'required|array|min:1',
-        ];
-        $request->validate($rules);
+        ]);
+
+        if (empty($items)) {
+            return $this->purchaseJsonError($request, 'Add at least one item with quantity and price.');
+        }
 
         try {
-            // Retrieve the existing purchase
-            $purchase = Purchase::findOrFail($id);
+            $purchase = Purchase::where('branch_id', $branchId)->findOrFail($id);
+            $totalCost = round(collect($items)->sum('total_amount'), 2);
+            $paidAmount = (float) ($purchase->purchase_paid_sum_amount ?? Payment::where('purchase_id', $purchase->id)->sum('amount'));
+            $dueAmount = max($totalCost - $paidAmount, 0);
 
-            // Update the purchase details
+            DB::beginTransaction();
+
             $purchase->update([
-                'supplier_id' => $request['supplier_id'],
-                'purchase_date' => $request['purchase_date'],
-                'total_cost' => $request['total_cost'],
-//                'paid_amount' => $request['paid_amount'],
-                'due_amount' => $request['due_amount'],
+                'supplier_id' => $request->supplier_id,
+                'purchase_date' => $request->purchase_date,
+                'total_cost' => $totalCost,
+                'due_amount' => $dueAmount,
             ]);
 
-            // Update the items associated with this purchase
-            foreach ($request['items'] as $item) {
-                PurchaseItem::updateOrCreate(
-                    ['purchase_id' => $purchase->id, 'item_id' => $item['item_id']],
-                    [
-                        'branch_id' => auth()->user()->branch_id,
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
-                        'discount_amount' => $item['discount_amount'],
-                        'total_amount' => ($item['unit_price'] * $item['quantity']),
-                        'expiry_date' => $item['expiry_date'],
-                    ]
-                );
+            PurchaseItem::where('purchase_id', $purchase->id)->delete();
+
+            foreach ($items as $item) {
+                PurchaseItem::create([
+                    'branch_id' => $branchId,
+                    'item_id' => $item['item_id'],
+                    'supplier_id' => $request->supplier_id,
+                    'purchase_id' => $purchase->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'discount_amount' => $item['discount_amount'],
+                    'total_amount' => $item['total_amount'],
+                    'expiry_date' => $item['expiry_date'],
+                ]);
             }
 
-            return RedirectHelper::routeSuccess($this->index_route, '<strong>Success!</strong> Purchase Updated Successfully');
+            DB::commit();
+
+            return $this->purchaseJsonSuccess($request, 'Purchase updated successfully.');
         } catch (QueryException $e) {
-            return RedirectHelper::backWithInputFromException();
+            DB::rollBack();
+
+            return $this->purchaseJsonError($request, 'Something went wrong while updating the purchase.');
         }
     }
 
@@ -311,12 +336,77 @@ class PurchaseController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function items()
+    public function items(Request $request)
     {
         $this->checkOwnPermission('purchases.index');
+        $branchId = auth()->user()->branch_id;
+        $search = $request->get('search');
+        $expiryFilter = $request->get('expiry', 'all');
+        $stockFilter = $request->get('stock', 'in_stock');
+        $today = Carbon::today();
+
+        $query = PurchaseItem::with(['item', 'supplier', 'purchase'])
+            ->where('branch_id', $branchId);
+
+        if ($stockFilter === 'in_stock') {
+            $query->whereRaw('(quantity - COALESCE(quantity_spend, 0)) > 0');
+        } elseif ($stockFilter === 'depleted') {
+            $query->whereRaw('(quantity - COALESCE(quantity_spend, 0)) <= 0');
+        }
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('item', function ($itemQ) use ($search) {
+                    $itemQ->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                })->orWhereHas('supplier', function ($supQ) use ($search) {
+                    $supQ->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        if ($expiryFilter === 'expired') {
+            $query->whereNotNull('expiry_date')->whereDate('expiry_date', '<', $today);
+        } elseif ($expiryFilter === 'unexpired') {
+            $query->where(function ($q) use ($today) {
+                $q->whereNull('expiry_date')->orWhereDate('expiry_date', '>=', $today);
+            });
+        } elseif ($expiryFilter === 'soon') {
+            $query->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '>=', $today)
+                ->whereDate('expiry_date', '<=', $today->copy()->addDays(7));
+        } elseif ($expiryFilter === 'low') {
+            $query->whereRaw('quantity > 0 AND (quantity_spend / quantity) >= 0.9');
+        }
+
         $data['pageHeader'] = $this->pageHeader;
-        $data['datas'] = PurchaseItem::where('branch_id', auth()->user()->branch_id)
-            ->latest()->paginate(20);
+        $data['datas'] = $query
+            ->orderByRaw('CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('expiry_date')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(function ($row) {
+                $row->remaining = max((int) $row->quantity - (int) $row->quantity_spend, 0);
+                $row->used_pct = $row->quantity > 0
+                    ? (int) round(((int) $row->quantity_spend / (int) $row->quantity) * 100)
+                    : 0;
+                return $row;
+            });
+
+        $base = PurchaseItem::where('branch_id', $branchId);
+        $inStockSql = '(quantity - COALESCE(quantity_spend, 0)) > 0';
+
+        $data['stats'] = [
+            'total_lines' => (clone $base)->count(),
+            'in_stock' => (clone $base)->whereRaw($inStockSql)->count(),
+            'expired' => (clone $base)->whereRaw($inStockSql)->whereNotNull('expiry_date')->whereDate('expiry_date', '<', $today)->count(),
+            'expiring_soon' => (clone $base)->whereRaw($inStockSql)->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '>=', $today)
+                ->whereDate('expiry_date', '<=', $today->copy()->addDays(7))
+                ->count(),
+        ];
+
         return view('backend.pages.purchases.items', $data);
     }
 
@@ -324,28 +414,78 @@ class PurchaseController extends Controller
     {
         $this->checkOwnPermission('purchases.edit');
         $data['pageHeader'] = $this->pageHeader;
-        $data['edited'] = PurchaseItem::with('item', 'purchase')->findOrFail($id);
-
+        $data['edited'] = PurchaseItem::with(['item', 'supplier', 'purchase'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
 
         return view('backend.pages.purchases.edit-item', $data);
     }
 
     public function updateItem(Request $request, $id)
     {
-        if ($row = PurchaseItem::find($id)) {
-            $row->quantity = $request->quantity;
-            $row->quantity_spend = $request->quantity_spend;
-            $row->save();
-            return RedirectHelper::routeSuccess('admin.items.purchases', '<strong>Success!</strong> Purchase Deleted Successfully');
+        $this->checkOwnPermission('purchases.edit');
 
-        } else {
+        $request->validate([
+            'quantity' => 'required|integer|min:0',
+            'quantity_spend' => 'required|integer|min:0',
+        ]);
+
+        $row = PurchaseItem::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+        if ($request->quantity_spend > $request->quantity) {
             return RedirectHelper::backWithInputFromException();
-
         }
 
+        $row->quantity = $request->quantity;
+        $row->quantity_spend = $request->quantity_spend;
 
-        return view('backend.pages.purchases.edit-item', $data);
+        if ($row->save()) {
+            return RedirectHelper::routeSuccess('admin.items.purchases', '<strong>Success!</strong> Stock item updated successfully.');
+        }
+
+        return RedirectHelper::backWithInputFromException();
     }
 
+    private function normalizePurchaseItems(array $rawItems): array
+    {
+        return collect($rawItems)
+            ->filter(fn ($item) => !empty($item['item_id']))
+            ->map(function ($item) {
+                $qty = (float) ($item['quantity'] ?? 0);
+                $price = (float) ($item['unit_price'] ?? 0);
+                $discount = (float) ($item['discount_amount'] ?? 0);
 
+                return [
+                    'item_id' => (int) $item['item_id'],
+                    'quantity' => $qty,
+                    'unit_price' => $price,
+                    'discount_amount' => $discount,
+                    'total_amount' => max(($qty * $price) - $discount, 0),
+                    'expiry_date' => !empty($item['expiry_date']) ? $item['expiry_date'] : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function purchaseJsonSuccess(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'redirect' => route($this->index_route),
+            ]);
+        }
+
+        return RedirectHelper::routeSuccess($this->index_route, '<strong>Success!</strong> ' . $message);
+    }
+
+    private function purchaseJsonError(Request $request, string $message, int $status = 422)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], $status);
+        }
+
+        return RedirectHelper::backWithInputFromException();
+    }
 }

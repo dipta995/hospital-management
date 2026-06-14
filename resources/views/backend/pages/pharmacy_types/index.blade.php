@@ -1,70 +1,32 @@
 @extends('backend.layouts.master')
-@section('title')
-    List of {{ $pageHeader['title'] }}'s
-@endsection
+@section('title') {{ $pageHeader['title'] }} @endsection
 @push('styles')
-
+    @include('backend.layouts.partials.crud-styles')
+    @include('backend.layouts.partials.pharmacy-styles')
 @endpush
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-
-                <div class="col-lg-12 grid-margin stretch-card">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
-                            <p class="card-description">
-                                @include('backend.layouts.partials.message')
-                            </p>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Name</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @forelse($datas as $item)
-                                        <tr id="table-data{{ $item->id }}">
-                                            <td>{{ $loop->index + 1 }}</td>
-                                            <td>{{ $item->name }}</td>
-                                            <td>
-                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                   class="badge bg-info"><i class="fas fa-pen"></i></a>
-                                                <a class="badge bg-danger" href="javascript:void(0)"
-                                                   onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i
-                                                        class="fas fa-trash"></i></a>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <td>No record Found <a href="{{ route($pageHeader['create_route']) }}"
-                                                                   class="btn btn-info">Create</a></td>
-                                        </tr>
-                                    @endforelse
-
-                                    </tbody>
-                                </table>
-                                <div class="d-flex justify-content-end">
-                                    {!! $datas->links() !!}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+    @php $userGuard = Auth::guard('admin')->user(); $perm = 'pharmacy_types'; @endphp
+    <div class="crud-page pharm-page container-fluid py-3">
+        @include('backend.layouts.partials.crud-hero', ['heroTitle' => $pageHeader['title'], 'heroSubtitle' => 'Product types', 'heroIcon' => 'fa-shapes', 'heroCreateRoute' => $userGuard->can("{$perm}.create") ? $pageHeader['create_route'] : null, 'heroCreateLabel' => 'Add Type'])
+        <div class="crud-card">
+            @include('backend.layouts.partials.message')
+            <div class="crud-table-wrap"><div class="table-responsive">
+                <table class="table crud-table table-hover mb-0">
+                    <thead><tr><th>#</th><th>Name</th><th class="text-end">Action</th></tr></thead>
+                    <tbody>
+                    @forelse($datas as $item)
+                        <tr id="table-data{{ $item->id }}">
+                            <td>{{ $loop->iteration }}</td><td><strong>{{ $item->name }}</strong></td>
+                            <td class="text-end"><div class="crud-action-group justify-content-end">
+                                @if($userGuard->can("{$perm}.edit"))<a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="crud-btn-icon crud-btn-edit"><i class="fas fa-pen"></i></a>@endif
+                                @if($userGuard->can("{$perm}.delete"))<a href="javascript:void(0)" class="crud-btn-icon crud-btn-delete" onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>@endif
+                            </div></td>
+                        </tr>
+                    @empty<tr><td colspan="3" class="crud-empty">No records.</td></tr>@endforelse
+                    </tbody>
+                </table>
+            </div></div>
+            <div class="d-flex justify-content-end mt-3">{!! $datas->links() !!}</div>
         </div>
     </div>
-    <!-- main-panel ends -->
 @endsection
-
-@push('scripts')
-
-@endpush

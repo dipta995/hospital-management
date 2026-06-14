@@ -4,14 +4,6 @@
     <h1 class="auth-form-title">Admin Sign In</h1>
     <p class="auth-form-subtitle">Enter your credentials to access the dashboard.</p>
 
-    @if(session('error'))
-        <div class="alert alert-danger py-2">{{ session('error') }}</div>
-    @endif
-
-    @if(session('success'))
-        <div class="alert alert-success py-2">{{ session('success') }}</div>
-    @endif
-
     <form method="post" action="{{ route('admin.login.submit') }}" class="authentication-form" id="login-form">
         @csrf
 

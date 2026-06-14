@@ -1,221 +1,139 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-    <title>{{ $pageHeader['title'] }} - Day Wise Balance</title>
-</head>
-<body>
-<div class="container">
+@extends('backend.layouts.report-pdf-layout')
 
-    <!-- Header -->
-    <div class="card-body">
+@section('pdf-title')
+    Day-wise Balance Report
+@endsection
 
-        <div class="header"
-             style="display: table; width: 100%; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px;">
-            <div style="display: table-cell; width: 40%; vertical-align: middle;">
-                <img src="{{ public_path('images/'.\App\Models\Setting::get('logo')) }}" alt="Logo" style="height: 80px;">
-            </div>
-            <div style="display: table-cell; width: 60%; text-align: left; vertical-align: middle; color:#000;">
-                <h1 style="margin: 0; font-size: 24px;">{{ \App\Models\Setting::get('company_name') }}</h1>
-                <p style="margin: 0; font-size: 12px;">{!! \App\Models\Setting::get('address') !!}</p>
-                <p style="margin: 0; font-size: 12px;">Mobile: {{ \App\Models\Setting::get('phone_one') }}, {{ \App\Models\Setting::get('phone_two') }}</p>
-                <p style="margin: 0; font-size: 12px;">Email: {{ \App\Models\Setting::get('email') }}</p>
-            </div>
-        </div>
+@section('pdf-subtitle')
+    Daily breakdown: Diagnostic + Hospital collection + Earn − Cost = Balance
+@endsection
 
-        <!-- Title and Print Button -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h4 style="font-size: 22px; font-weight: bold; text-align: center; margin: 0 auto;">
-                Day Wise Balance
-            </h4>
-            <button onclick="window.print()" class="btn btn-primary" style="font-size:14px;">Print</button>
-        </div>
+@section('pdf-period')
+    @if(request('from_date') || request('to_date'))
+        {{ request('from_date') ?: 'Start of month' }} → {{ request('to_date') ?: 'End of month' }}
+    @else
+        Current month
+    @endif
+@endsection
 
-        @php
-            $branchId = auth()->user()->branch_id;
-            $fromDate = request('from_date');
-            $toDate = request('to_date');
+@section('pdf-actions')
+    <button onclick="window.print()" class="rpdf-btn">Print / Save as PDF</button>
+@endsection
 
-            $start = $fromDate ? \Carbon\Carbon::parse($fromDate)->startOfDay() : \Carbon\Carbon::now('Asia/Dhaka')->startOfMonth();
-            $end = $toDate ? \Carbon\Carbon::parse($toDate)->endOfDay() : \Carbon\Carbon::now('Asia/Dhaka')->endOfMonth();
+@section('content')
+    @php
+        $branchId = auth()->user()->branch_id;
+        $fromDate = request('from_date');
+        $toDate = request('to_date');
 
-            $rows = [];
-            $totalDiagnostic = 0;
-            $totalHospital = 0;
-            $totalEarn = 0;
-            $totalCost = 0;
-            $totalBalance = 0;
+        $start = $fromDate ? \Carbon\Carbon::parse($fromDate)->startOfDay() : \Carbon\Carbon::now('Asia/Dhaka')->startOfMonth();
+        $end = $toDate ? \Carbon\Carbon::parse($toDate)->endOfDay() : \Carbon\Carbon::now('Asia/Dhaka')->endOfMonth();
 
-            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                $day = $date->toDateString();
+        $rows = [];
+        $totalDiagnostic = 0;
+        $totalHospital = 0;
+        $totalEarn = 0;
+        $totalCost = 0;
+        $totalBalance = 0;
 
-                $diagnostic = \App\Models\InvoicePayment::with(['invoice'])
-                    ->whereHas('invoice', function ($q) use ($branchId) {
-                        $q->where('branch_id', $branchId);
-                    })
-                    ->whereDate('creation_date', $day)
-                    ->sum('paid_amount');
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+            $day = $date->toDateString();
 
-                $hospital = \App\Models\ReceptPayment::whereHas('admit', function ($q) use ($branchId) {
-                        $q->where('branch_id', $branchId);
-                    })
-                    ->whereDate('creation_date', $day)
-                    ->sum('paid_amount');
+            $diagnostic = \App\Models\InvoicePayment::with(['invoice'])
+                ->whereHas('invoice', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                })
+                ->whereDate('creation_date', $day)
+                ->sum('paid_amount');
 
-                $earn = \App\Models\Earn::where('branch_id', $branchId)
-                    ->whereDate('date', $day)
-                    ->sum('amount');
+            $hospital = \App\Models\ReceptPayment::whereHas('admit', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                })
+                ->whereDate('creation_date', $day)
+                ->sum('paid_amount');
 
-                $cost = \App\Models\Cost::where('branch_id', $branchId)
-                    ->whereDate('creation_date', $day)
-                    ->sum('amount');
+            $earn = \App\Models\Earn::where('branch_id', $branchId)
+                ->whereDate('date', $day)
+                ->sum('amount');
 
-                $balance = $diagnostic + $hospital + $earn - $cost;
+            $cost = \App\Models\Cost::where('branch_id', $branchId)
+                ->whereDate('creation_date', $day)
+                ->sum('amount');
 
-                $rows[] = [
-                    'date' => $date->format('d M Y'),
-                    'diagnostic' => $diagnostic,
-                    'hospital' => $hospital,
-                    'earn' => $earn,
-                    'cost' => $cost,
-                    'balance' => $balance,
-                ];
+            $balance = $diagnostic + $hospital + $earn - $cost;
 
-                $totalDiagnostic += $diagnostic;
-                $totalHospital += $hospital;
-                $totalEarn += $earn;
-                $totalCost += $cost;
-                $totalBalance += $balance;
-            }
-        @endphp
+            $rows[] = [
+                'date' => $date->format('d M Y'),
+                'diagnostic' => $diagnostic,
+                'hospital' => $hospital,
+                'earn' => $earn,
+                'cost' => $cost,
+                'balance' => $balance,
+            ];
 
-        <!-- Day-wise Financial Summary -->
-        <div class="table-responsive" style="margin-top: 10px;">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Date</th>
-                    <th class="text-end">Diagnostic Collection</th>
-                    <th class="text-end">Hospital Collection</th>
-                    <th class="text-end">Earn</th>
-                    <th class="text-end">Cost</th>
-                    <th class="text-end">Balance</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($rows as $row)
-                    <tr>
-                        <td>{{ $row['date'] }}</td>
-                        <td class="text-end">৳ {{ number_format($row['diagnostic'], 2) }}</td>
-                        <td class="text-end">৳ {{ number_format($row['hospital'], 2) }}</td>
-                        <td class="text-end">৳ {{ number_format($row['earn'], 2) }}</td>
-                        <td class="text-end">৳ {{ number_format($row['cost'], 2) }}</td>
-                        <td class="text-end">৳ {{ number_format($row['balance'], 2) }}</td>
-                    </tr>
-                @endforeach
-                </tbody>
-                <tfoot>
-                <tr>
-                    <th>Total</th>
-                    <th class="text-end">৳ {{ number_format($totalDiagnostic, 2) }}</th>
-                    <th class="text-end">৳ {{ number_format($totalHospital, 2) }}</th>
-                    <th class="text-end">৳ {{ number_format($totalEarn, 2) }}</th>
-                    <th class="text-end">৳ {{ number_format($totalCost, 2) }}</th>
-                    <th class="text-end">৳ {{ number_format($totalBalance, 2) }}</th>
-                </tr>
-                </tfoot>
-            </table>
-        </div>
-
-    </div>
-</div>
-
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: Arial, sans-serif;
-        line-height: 1.5;
-        color: #212529;
-        background-color: #fff;
-    }
-
-    .container {
-        width: 95%;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .container {
-        width: 99%;
-        margin: 0 auto;
-        padding: 10px;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        font-size: 12px;
-    }
-
-    table th, table td {
-        border: 1px solid #ddd;
-        padding: 6px 8px;
-    }
-
-    table th {
-        background-color: #f8f9fa;
-        font-weight: bold;
-    }
-
-    .text-end {
-        text-align: right;
-    }
-
-    .btn {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        display: inline-block;
-        text-decoration: none;
-        text-align: center;
-        font-size: 12px;
-    }
-
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-    }
-
-    @media print {
-        .btn {
-            display: none;
+            $totalDiagnostic += $diagnostic;
+            $totalHospital += $hospital;
+            $totalEarn += $earn;
+            $totalCost += $cost;
+            $totalBalance += $balance;
         }
 
-        body {
-            margin: 0;
-        }
+        $fmt = fn ($n) => number_format((float) $n, 2);
+    @endphp
 
-        .container {
-            padding: 0;
-            width: 100%;
-        }
+    <table class="rpdf-kpi-table">
+        <tr>
+            <td>
+                <div class="rpdf-kpi-label">Diagnostic</div>
+                <div class="rpdf-kpi-value">৳ {{ $fmt($totalDiagnostic) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Hospital</div>
+                <div class="rpdf-kpi-value">৳ {{ $fmt($totalHospital) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Earn</div>
+                <div class="rpdf-kpi-value success">৳ {{ $fmt($totalEarn) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Cost</div>
+                <div class="rpdf-kpi-value danger">৳ {{ $fmt($totalCost) }}</div>
+            </td>
+        </tr>
+    </table>
 
-        .card-body {
-            margin: 0;
-            border: none;
-            box-shadow: none;
-        }
-    }
-</style>
-
-</body>
-</html>
+    <table class="rpdf-table">
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th class="text-end">Diagnostic</th>
+            <th class="text-end">Hospital</th>
+            <th class="text-end">Earn</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Balance</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($rows as $row)
+            <tr>
+                <td>{{ $row['date'] }}</td>
+                <td class="text-end">৳ {{ $fmt($row['diagnostic']) }}</td>
+                <td class="text-end">৳ {{ $fmt($row['hospital']) }}</td>
+                <td class="text-end">৳ {{ $fmt($row['earn']) }}</td>
+                <td class="text-end">৳ {{ $fmt($row['cost']) }}</td>
+                <td class="text-end fw-bold">৳ {{ $fmt($row['balance']) }}</td>
+            </tr>
+        @endforeach
+        </tbody>
+        <tfoot>
+        <tr class="rpdf-row-total">
+            <th>Period Total</th>
+            <th class="text-end">৳ {{ $fmt($totalDiagnostic) }}</th>
+            <th class="text-end">৳ {{ $fmt($totalHospital) }}</th>
+            <th class="text-end">৳ {{ $fmt($totalEarn) }}</th>
+            <th class="text-end">৳ {{ $fmt($totalCost) }}</th>
+            <th class="text-end">৳ {{ $fmt($totalBalance) }}</th>
+        </tr>
+        </tfoot>
+    </table>
+@endsection

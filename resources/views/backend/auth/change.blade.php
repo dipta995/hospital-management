@@ -14,14 +14,6 @@
         </div>
     @endif
 
-    @if (session('success'))
-        <div class="alert alert-success py-2">{{ session('success') }}</div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger py-2">{{ session('error') }}</div>
-    @endif
-
     <form action="{{ route('admin.change-pw') }}" method="POST">
         @csrf
 

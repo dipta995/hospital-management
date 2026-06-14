@@ -3,69 +3,37 @@
     Edit {{ $pageHeader['title'] }}
 @endsection
 @push('styles')
+    @include('backend.layouts.partials.invoice-styles')
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
     <style>
-        #ordered-products tfoot td {
-            vertical-align: middle;
-        }
-
-        #ordered-products tfoot td input,
-        #ordered-products tfoot td span {
-            width: 100%;
-        }
-
-        #ordered-products tfoot td:nth-child(1),
-        #ordered-products tfoot td:nth-child(2) {
-            width: 30%; /* Left column (inputs) */
-        }
-
-        #ordered-products tfoot td:nth-child(3),
-        #ordered-products tfoot td:nth-child(4) {
-            width: 70%; /* Right column (summary) */
-        }
-
-        #ordered-products tfoot td input {
-            width: 100%;
-            padding: 10px;
-        }
-
-        #ordered-products tfoot {
-            text-align: left;
-        }
-
-        #discount-percent-row,
-        #discount-taka-row {
-            display: contents;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #discount-percent-row input,
-        #discount-taka-row input {
-            width: 60%;
-            margin-right: 10px;
-        }
-        #ordered-products tr th,td{
-            padding: 5px !important;
-        }
+        #ordered-products tfoot td { vertical-align: middle; }
+        #discount-percent-row, #discount-taka-row { display: contents; }
     </style>
 @endpush
+
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">Modify  <strong>{{ $edited->name }}'s</strong> Information</h4>
-                            @include('backend.layouts.partials.message')
-
-                            <fieldset>
-
-                                <h4 class="card-title bg-info p-1 mt-3 mb-3">Patient Details</h4>
-                                <div class="row">
+    <div class="inv-page container-fluid py-3">
+        <div class="inv-hero">
+            <div class="inv-hero-inner">
+                <div class="inv-hero-left">
+                    <div class="inv-hero-icon"><i class="fas fa-file-pen"></i></div>
+                    <div>
+                        <h1 class="inv-hero-title">Edit Invoice</h1>
+                        <p class="inv-hero-sub">#{{ $edited->invoice_number }} — {{ $edited->patient_name }}</p>
+                    </div>
+                </div>
+                <div class="inv-hero-actions">
+                    <a href="{{ route($pageHeader['index_route']) }}" class="inv-btn-glass"><i class="fas fa-arrow-left"></i> Back</a>
+                </div>
+            </div>
+        </div>
+        @include('backend.layouts.partials.message')
+        <div class="inv-form-layout">
+            <div class="inv-form-main">
+                <fieldset>
+                    <div class="inv-section">
+                        <div class="inv-section-head"><i class="fas fa-user-injured"></i> Patient Details</div>
+                        <div class="inv-section-body"><div class="row g-3">
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <x-default.label required="true" for="invoice_number">Invoice No</x-default.label>
@@ -147,9 +115,13 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <h4 class="card-title bg-info p-1 mt-3 mb-3">Test's</h4>
-                                <div class="row">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inv-section">
+                    <div class="inv-section-head"><i class="fas fa-flask"></i> Add Tests</div>
+                    <div class="inv-section-body"><div class="row g-3">
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <x-default.label required="true" for="name">Name</x-default.label>
@@ -172,13 +144,17 @@
                                             <x-default.input-error name="reefer_fee"></x-default.input-error>
                                         </div>
                                     </div>
-                                    <div class="col-md-12">
-                                        <x-default.button class="float-end mt-2 btn-success" id="add-product">Add</x-default.button>
-                                    </div>
-                                </div>
-                                <h4 class="card-title bg-info p-1 mt-3 mb-3">Invoice Details</h4>
+                            <div class="col-12 text-end">
+                                <button type="button" class="inv-add-test-btn" id="add-product"><i class="fas fa-plus"></i> Add Test</button>
+                            </div>
+                        </div></div>
+                </div>
 
-                                <table id="ordered-products" class="table table-bordered">
+                <div class="inv-section">
+                    <div class="inv-section-head"><i class="fas fa-receipt"></i> Invoice Details</div>
+                    <div class="inv-section-body">
+                        <div class="inv-table-wrap"><div class="table-responsive">
+                                <table id="ordered-products" class="table inv-table table-bordered mb-0">
                                     <thead>
                                     <tr>
                                         <th>#</th>
@@ -251,21 +227,27 @@
                                         </td>
                                     </tr>
                                     </tfoot>
-                                </table>
-
-
-
-                                <x-default.button class="float-end mt-2 btn-success btn-store-data">Update</x-default.button>
-
-                            </fieldset>
-                        </div>
+                                </table></div></div>
                     </div>
+                </div>
+                </fieldset>
+            </div>
+
+            <div class="inv-summary-sticky">
+                <div class="inv-summary-card">
+                    <h5><i class="fas fa-calculator"></i> Payment Summary</h5>
+                    <div class="inv-summary-body">
+                    <div class="inv-summary-row"><span>Tests</span><span class="val" id="side-test-count">0</span></div>
+                    <div class="inv-summary-row"><span>Subtotal</span><span class="val">৳ <span id="side-subtotal">0.00</span></span></div>
+                    <div class="inv-summary-row"><span>Discount</span><span class="val">− ৳ <span id="side-discount">0.00</span></span></div>
+                    <div class="inv-summary-row paid"><span>Paid</span><span class="val">৳ <span id="side-paid">0.00</span></span></div>
+                    <div class="inv-summary-row due"><span>Due</span><span class="val">৳ <span id="side-due">0.00</span></span></div>
+                    <div class="inv-summary-row total"><span>Final</span><span class="val">৳ <span id="side-final">{{ number_format($edited->total_amount, 2) }}</span></span></div>
+                    </div>
+                    <button type="button" class="inv-summary-submit btn-store-data"><i class="fas fa-save me-1"></i> Update Invoice</button>
                 </div>
             </div>
         </div>
-        <!-- content-wrapper ends -->
-
-        <!-- partial -->
     </div>
 @endsection
 
@@ -456,6 +438,12 @@
                 $("#due-amount").text(dueAmount.toFixed(2));
                 $("#final-amount").text(finalAmount.toFixed(2));
                 $("#final-refer").text(referFeeTotal.toFixed(2));
+                $("#side-test-count").text(selectedProducts.length);
+                $("#side-subtotal, #subtotal").text(subtotal.toFixed(2));
+                $("#side-discount").text(discountAmount.toFixed(2));
+                $("#side-paid").text(paidAmount.toFixed(2));
+                $("#side-due").text(dueAmount.toFixed(2));
+                $("#side-final").text(finalAmount.toFixed(2));
             }
 
             // Handle removal of products from the table

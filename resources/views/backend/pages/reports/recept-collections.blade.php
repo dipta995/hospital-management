@@ -1,125 +1,142 @@
 @extends('backend.layouts.master')
 @section('title')
-    List of {{ $pageHeader['title'] }}'s
+    {{ $pageHeader['title'] }}
 @endsection
 @push('styles')
-
+    @include('backend.layouts.partials.report-styles')
 @endpush
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
+    @php
+        $fmt = fn ($n) => number_format((float) $n, 2);
+        $periodLabel = request('start_date') || request('end_date')
+            ? (request('start_date') ?: '…') . ' → ' . (request('end_date') ?: '…')
+            : 'Today (' . now()->format('d M Y') . ')';
+        $gross = ($overall_total_amount ?? 0) + ($overall_total_discount ?? 0);
+    @endphp
 
-                <div class="col-lg-12 grid-margin stretch-card">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
-                            <form action="" method="GET" class="mb-4">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" name="start_date" id="start_date" class="form-control"
-                                               value="{{ request('start_date') }}">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" name="end_date" id="end_date" class="form-control"
-                                               value="{{ request('end_date') }}">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="end_date">Export (PDF)</label>
-                                        <select class="form-control" name="export" id="">
-                                            <option value="">No</option>
-                                            <option value="pdf">PDF</option>
-{{--                                            <option value="csv">CSV</option>--}}
-                                        </select>
-                                    </div>
+    <div class="inv-page container-fluid py-3">
+        @include('backend.layouts.partials.report-hero', [
+            'reportTitle' => 'Hospital Collections',
+            'reportSubtitle' => 'Payments received when patients are discharged (admit release)',
+            'reportIcon' => 'fa-hospital',
+            'resetRoute' => route('admin.reports.recept-collections'),
+        ])
 
-                                    <div class="col-md-3 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-primary">Filter</button>
-                                        <a href="" class="btn btn-secondary ms-2">Reset</a>
-                                    </div>
-                                </div>
-                            </form>
-{{--                            <p class="text-end"><span--}}
-{{--                                    class="bg-info text-white p-1 ">Collection : <span>{{ $total_collection-$total_due }} </span></span>--}}
-{{--                                | <span class="bg-danger text-white p-1 "> Due : <span>{{ $total_due }}</span></span>--}}
-{{--                                | <span class="bg-danger text-white p-1 "> Refer Due : <span>{{ $refer_amount_total- $refer_amount_paid }}</span></span>--}}
-{{--                            </p>--}}
-                            <p class="card-description">
-                                @include('backend.layouts.partials.message')
-                            </p>
-                            <div class="table-responsive">
-                                <table class="table table-striped mt-3">
-                                    <thead>
+        @include('backend.layouts.partials.message')
 
-                                    </thead>
-                                    <tbody>
-                                    @foreach($datas as $date => $admits)
-                                        <tr class="table-info">
-                                            <td colspan="3"><strong>Date: {{ $date }}</strong> </td>
-                                            <td><strong>TOTAL:</strong></td>
-                                            <td colspan="2"><strong>Subtotals: {{ $admits->sum('total_amount') +  $admits->sum('total_discount') }}</strong></td>
-                                            <td colspan="1"><strong>Discounts: {{ $admits->sum('total_discount') }}</strong></td>
-                                            <td colspan="2"><strong>Collection: {{ $admits->sum('total_collection') }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Admit ID</th>
-                                            <th>Services</th>
-                                            <th>Sub Total</th>
-                                            <th>Discount</th>
-                                            <th>Collection</th>
-                                            <th>Doctor</th>
-                                            <th>Refer</th>
-                                        </tr>
-
-                                        @foreach($admits as $admitId => $group)
-                                            @php
-                                                $firstPayment = isset($group['data']) ? collect($group['data'])->first() : null;
-                                                $admit = $firstPayment?->admit;
-                                            @endphp
-                                            <tr class="table-warning">
-                                                <td colspan="8"><strong>Admit: {{ $admit->id ?? 'N/A' }}</strong></td>
-                                            </tr>
-
-                                            @if(isset($group['data']))
-                                                @foreach($group['data'] as $index => $item)
-                                                    <tr>
-                                                        <td>{{ $index + 1 }}</td>
-                                                        <td>{{ $admit->id ?? 'N/A' }}</td>
-                                                        <td>
-                                                            @foreach(($admit->recepts ?? []) as $recept)
-                                                                @foreach($recept->receptList ?? [] as $pr)
-                                                                    {{ $pr->service->name }}
-                                                                @endforeach
-                                                            @endforeach
-                                                        </td>
-                                                        <td>{{ ($group['total_amount'] ?? 0) + ($group['total_discount'] ?? 0) }}</td>
-                                                        <td>{{ $group['total_discount'] ?? 0 }}</td>
-                                                        <td>{{ $item->paid_amount }}</td>
-                                                        <td>{{ $admit->drreefer->name ?? 'N/A' }}</td>
-                                                        <td>{{ $admit->reefer->name ?? 'N/A' }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            @endif
-                                        @endforeach
-                                    @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+        <div class="inv-kpi-grid">
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon collection"><i class="fas fa-coins"></i></div>
+                <div>
+                    <div class="inv-kpi-label">Total Collected</div>
+                    <div class="inv-kpi-value">৳ {{ $fmt($overall_total_collection ?? 0) }}</div>
                 </div>
-
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon"><i class="fas fa-bed"></i></div>
+                <div>
+                    <div class="inv-kpi-label">Bill Amount (net)</div>
+                    <div class="inv-kpi-value">৳ {{ $fmt($overall_total_amount ?? 0) }}</div>
+                </div>
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon discount"><i class="fas fa-percent"></i></div>
+                <div>
+                    <div class="inv-kpi-label">Total Discount</div>
+                    <div class="inv-kpi-value">৳ {{ $fmt($overall_total_discount ?? 0) }}</div>
+                </div>
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon"><i class="fas fa-calculator"></i></div>
+                <div>
+                    <div class="inv-kpi-label">Gross (before discount)</div>
+                    <div class="inv-kpi-value">৳ {{ $fmt($gross) }}</div>
+                </div>
             </div>
         </div>
 
+        <div class="inv-panel mb-3">
+            <form action="" method="GET" class="inv-filter-toolbar">
+                <div class="filter-field">
+                    <label class="form-label">From date</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
+                </div>
+                <div class="filter-field">
+                    <label class="form-label">To date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+                </div>
+                <div class="filter-field" style="max-width:140px">
+                    <label class="form-label">Export PDF</label>
+                    <select class="form-select" name="export">
+                        <option value="">No</option>
+                        <option value="pdf" @selected(request('export') === 'pdf')>Download PDF</option>
+                    </select>
+                </div>
+                <div class="inv-filter-actions">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Apply</button>
+                </div>
+            </form>
+
+            <div class="p-3 pb-0">
+                <span class="report-period-pill"><i class="fas fa-calendar-alt"></i> {{ $periodLabel }}</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table inv-table mb-0">
+                    <tbody>
+                    @forelse($datas as $date => $admits)
+                        <tr class="report-date-row">
+                            <td colspan="3"><i class="fas fa-calendar-day me-1"></i> {{ \Carbon\Carbon::parse($date)->format('d M Y') }}</td>
+                            <td><strong>Day total</strong></td>
+                            <td>Subtotal ৳{{ $fmt($admits->sum('total_amount') + $admits->sum('total_discount')) }}</td>
+                            <td>Disc ৳{{ $fmt($admits->sum('total_discount')) }}</td>
+                            <td colspan="2"><strong>Collected ৳{{ $fmt($admits->sum('total_collection')) }}</strong></td>
+                        </tr>
+                        <tr class="report-section-head">
+                            <th>#</th>
+                            <th>Admit ID</th>
+                            <th>Services</th>
+                            <th>Subtotal</th>
+                            <th>Discount</th>
+                            <th>Payment</th>
+                            <th>Doctor</th>
+                            <th>Refer By</th>
+                        </tr>
+                        @foreach($admits as $admitId => $group)
+                            @php
+                                $firstPayment = isset($group['data']) ? collect($group['data'])->first() : null;
+                                $admit = $firstPayment?->admit;
+                            @endphp
+                            <tr class="report-group-row">
+                                <td colspan="8"><i class="fas fa-procedures me-1"></i> Admit <strong>#{{ $admit->id ?? 'N/A' }}</strong></td>
+                            </tr>
+                            @if(isset($group['data']))
+                                @foreach($group['data'] as $index => $item)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>#{{ $admit->id ?? 'N/A' }}</td>
+                                        <td class="small">
+                                            @foreach(($admit?->recepts ?? []) as $recept)
+                                                @foreach($recept->receptList ?? [] as $pr)
+                                                    <span class="d-block">{{ $pr->service->name ?? '—' }}</span>
+                                                @endforeach
+                                            @endforeach
+                                        </td>
+                                        <td>৳ {{ $fmt(($group['total_amount'] ?? 0) + ($group['total_discount'] ?? 0)) }}</td>
+                                        <td>৳ {{ $fmt($group['total_discount'] ?? 0) }}</td>
+                                        <td class="fw-semibold text-success">৳ {{ $fmt($item->paid_amount) }}</td>
+                                        <td>{{ $admit?->drreefer?->name ?? '—' }}</td>
+                                        <td>{{ $admit?->reefer?->name ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
+                        @endforeach
+                    @empty
+                        <tr><td colspan="8" class="text-center text-muted py-5">No hospital collection records for this period.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <!-- main-panel ends -->
 @endsection
-
-@push('scripts')
-
-@endpush

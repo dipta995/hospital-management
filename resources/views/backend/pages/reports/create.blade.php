@@ -1,44 +1,32 @@
 @extends('backend.layouts.master')
 @section('title')
-    Create New {{ $pageHeader['title'] }}
+    Reports
 @endsection
+
 @push('styles')
-
+    @include('backend.layouts.partials.crud-styles')
+    @include('backend.layouts.partials.report-styles')
 @endpush
+
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">Create New {{ $pageHeader['title'] }}</h4>
-                            @include('backend.layouts.partials.message')
-                            <form class="cmxform" method="post" action="{{ route($pageHeader['store_route']) }}">
-                                @csrf
-                                <fieldset>
-                                    <div class="form-group">
-                                        <x-default.label required="true" for="name">Name</x-default.label>
-                                        <x-default.input name="name" class="form-control" id="name" type="text"></x-default.input>
-                                        <x-default.input-error name="name"></x-default.input-error>
-                                    </div>
+    <div class="crud-page inv-page container-fluid py-3">
+        @include('backend.layouts.partials.report-hero', [
+            'heroTitle' => 'Reports Hub',
+            'heroSubtitle' => 'Use the sidebar Reports section for collections, balance, references, and more.',
+            'heroIcon' => 'fa-chart-bar',
+        ])
 
-                                    <x-default.button class="float-end mt-2 btn-success">Create</x-default.button>
-
-                                </fieldset>
-                            </form>
-                        </div>
-                    </div>
+        <div class="inv-panel">
+            <div class="p-4">
+                <p class="text-muted mb-3">This page is a placeholder. Open reports from the sidebar:</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('admin.reports.collections') }}" class="btn btn-primary btn-sm">Collections</a>
+                    <a href="{{ route('admin.reports.balance') }}" class="btn btn-outline-primary btn-sm">Balance</a>
+                    <a href="{{ route('admin.reports.references') }}" class="btn btn-outline-primary btn-sm">References</a>
+                    <a href="{{ route('admin.reports.costs') }}" class="btn btn-outline-primary btn-sm">Costs</a>
+                    <a href="{{ route('admin.reports.pharmacy-stock') }}" class="btn btn-outline-primary btn-sm">Pharmacy Stock</a>
                 </div>
             </div>
         </div>
-        <!-- content-wrapper ends -->
-        
-        <!-- partial -->
     </div>
 @endsection
-
-@push('scripts')
-
-@endpush

@@ -73,6 +73,17 @@ class PharmacySaleController extends Controller
 
         $data['datas'] = $query->orderBy('id', 'DESC')->paginate(20);
 
+        $branchId = auth()->user()->branch_id;
+        $today = now()->toDateString();
+        $baseQuery = PharmacySale::where('branch_id', $branchId);
+
+        $data['stats'] = [
+            'today_count' => (clone $baseQuery)->whereDate('sale_date', $today)->count(),
+            'today_amount' => (float) (clone $baseQuery)->whereDate('sale_date', $today)->sum('total_amount'),
+            'total_due' => (float) (clone $baseQuery)->where('due_amount', '>', 0)->sum('due_amount'),
+            'due_invoices' => (clone $baseQuery)->where('due_amount', '>', 0)->count(),
+        ];
+
         return view('backend.pages.pharmacy_sales.index', $data);
     }
 
@@ -80,7 +91,7 @@ class PharmacySaleController extends Controller
     {
         $this->checkOwnPermission('pharmacy_sales.create');
         $data['pageHeader'] = $this->pageHeader;
-        $data['products'] = PharmacyProduct::orderBy('name')->get();
+        $data['products'] = PharmacyProduct::active()->orderBy('name')->get();
 
         return view('backend.pages.pharmacy_sales.create', $data);
     }
@@ -189,7 +200,7 @@ class PharmacySaleController extends Controller
         $data['pageHeader'] = $this->pageHeader;
         $data['sale'] = PharmacySale::with('items')->where('branch_id', auth()->user()->branch_id)->findOrFail($id);
         $data['customer'] = User::find($data['sale']->customer_id);
-        $data['products'] = PharmacyProduct::orderBy('name')->get();
+        $data['products'] = PharmacyProduct::active()->orderBy('name')->get();
 
         return view('backend.pages.pharmacy_sales.edit', $data);
     }

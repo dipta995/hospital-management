@@ -12,7 +12,7 @@
                     </button>
                 </div>
 
-                <div class="topbar-quick-links d-flex align-items-center flex-wrap">
+                <div class="topbar-quick-links d-none d-lg-flex align-items-center flex-wrap">
                     @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
                         <a href="{{ route('admin.users.index') }}" class="btn btn-dark btn-sm">Patient List</a>
                         <a href="{{ route('admin.invoices.index') }}" class="btn btn-success btn-sm">Invoice List</a>
@@ -26,6 +26,39 @@
                         <a href="{{ route('admin.costs.create') }}" class="btn btn-dark btn-sm">Add Cost's</a>
                     @endif
                 </div>
+
+                {{-- Mobile quick links dropdown --}}
+                <div class="dropdown topbar-mobile-quick d-none">
+                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bolt"></i> Quick
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-start">
+                        @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
+                            <li><a class="dropdown-item" href="{{ route('admin.users.index') }}"><i class="fas fa-users me-2"></i>Patient List</a></li>
+                            <li><a class="dropdown-item" href="{{ route('admin.invoices.index') }}"><i class="fas fa-file-invoice me-2"></i>Invoice List</a></li>
+                            <li><a class="dropdown-item" href="{{ route('admin.admits.index') }}"><i class="fas fa-bed me-2"></i>Admit List</a></li>
+                            <li><a class="dropdown-item" href="{{ route('admin.recepts.index') }}"><i class="fas fa-receipt me-2"></i>Recept List</a></li>
+                        @endif
+                        @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
+                            <li><a class="dropdown-item" href="{{ route('admin.labs.index') }}"><i class="fas fa-flask me-2"></i>My Lab</a></li>
+                        @endif
+                        @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
+                            <li><a class="dropdown-item" href="{{ route('admin.costs.create') }}"><i class="fas fa-coins me-2"></i>Add Cost</a></li>
+                        @endif
+                    </ul>
+                </div>
+
+                @if($userGuard->can('users.index'))
+                <div class="topbar-patient-search d-none d-md-block">
+                    <div class="topbar-search-wrap">
+                        <i class="fas fa-search topbar-search-icon"></i>
+                        <input type="search" id="global-patient-search" class="topbar-search-input"
+                               placeholder="Search patient (name / phone)..." autocomplete="off">
+                        <div id="global-patient-search-results" class="topbar-search-dropdown"></div>
+                    </div>
+                </div>
+                @endif
             </div>
 
             <div class="topbar-right d-flex align-items-center">
@@ -84,8 +117,7 @@
                 </div>
 
                 @if ( Auth::guard('admin')->user()->can('reports.index'))
-                    <!-- Trigger Button -->
-                    <button id="openBalanceModal" class="btn btn-info">
+                    <button id="openBalanceModal" class="btn btn-info btn-sm" title="Balance">
                         <i class="fas fa-eye"></i>
                     </button>
                 @endif
@@ -150,6 +182,75 @@
         min-width: 0;
         gap: 8px;
     }
+
+    .topbar-patient-search {
+        flex: 0 1 280px;
+        min-width: 180px;
+        max-width: 320px;
+    }
+
+    .topbar-search-wrap {
+        position: relative;
+    }
+
+    .topbar-search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 0.85rem;
+        pointer-events: none;
+    }
+
+    .topbar-search-input {
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 8px 14px 8px 34px;
+        font-size: 0.85rem;
+        background: #f8fafc;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .topbar-search-input:focus {
+        outline: none;
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        background: #fff;
+    }
+
+    .topbar-search-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+        z-index: 1080;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+
+    .topbar-search-dropdown.show { display: block; }
+
+    .topbar-search-item {
+        display: block;
+        padding: 10px 14px;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.12s ease;
+    }
+
+    .topbar-search-item:hover { background: #eff6ff; color: inherit; }
+    .topbar-search-item:last-child { border-bottom: none; }
+
+    .topbar-search-item-name { font-weight: 700; font-size: 0.88rem; color: #0f172a; }
+    .topbar-search-item-sub { font-size: 0.75rem; color: #64748b; }
 
     .topbar-quick-links {
         gap: 6px;
@@ -230,13 +331,7 @@
 
     @media (max-width: 991px) {
         .topbar-navbar {
-            flex-wrap: wrap;
-        }
-
-        .topbar-right {
-            width: 100%;
-            justify-content: flex-end;
-            padding-top: 4px;
+            flex-wrap: nowrap;
         }
     }
 
@@ -438,15 +533,56 @@
 
     });
 </script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const toggleBtn = document.getElementByClass("button-toggle-menu topbar-button");
 
-        if (toggleBtn) {
-            toggleBtn.addEventListener("click", function () {
-                document.documentElement.classList.toggle("sidebar-enable");
-                console.log("Toggled sidebar-enable on <html>"); // debug
-            });
+@if($userGuard->can('users.index'))
+<script>
+(function () {
+    var input = document.getElementById('global-patient-search');
+    var dropdown = document.getElementById('global-patient-search-results');
+    if (!input || !dropdown) return;
+
+    var searchUrl = @json(route('admin.patients.search'));
+    var timer = null;
+
+    var hideDropdown = function () {
+        dropdown.classList.remove('show');
+        dropdown.innerHTML = '';
+    };
+
+    var render = function (rows) {
+        if (!rows.length) {
+            dropdown.innerHTML = '<div class="p-3 small text-muted text-center">No patients found</div>';
+            dropdown.classList.add('show');
+            return;
+        }
+        dropdown.innerHTML = rows.map(function (row) {
+            return '<a href="' + row.profile_url + '" class="topbar-search-item">' +
+                '<div class="topbar-search-item-name">' + row.name + '</div>' +
+                '<div class="topbar-search-item-sub">' + row.phone + (row.subtitle ? ' · ' + row.subtitle : '') + '</div></a>';
+        }).join('');
+        dropdown.classList.add('show');
+    };
+
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        var q = input.value.trim();
+        if (q.length < 2) { hideDropdown(); return; }
+        timer = setTimeout(function () {
+            fetch(searchUrl + '?q=' + encodeURIComponent(q), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { render(data.results || []); })
+                .catch(hideDropdown);
+        }, 280);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            hideDropdown();
         }
     });
+})();
 </script>
+@endif

@@ -103,6 +103,7 @@ class CostController extends Controller
         }
 
         $costQuery = $query->where('branch_id', auth()->user()->branch_id)
+            ->with(['category', 'reeferBy'])
             ->orderBy('id', 'desc');
 
         if ($request->query('export') == 'pdf') {
@@ -150,6 +151,7 @@ class CostController extends Controller
 
         $costQuery = $query->where('branch_id', auth()->user()->branch_id)
             ->whereIn('cost_category_id', $diagnosticCategoryIds)
+            ->with(['category', 'reeferBy'])
             ->orderBy('id', 'desc');
         if ($request->query('export') == 'pdf') {
             $data['datas'] = $costQuery->get();
@@ -176,7 +178,8 @@ class CostController extends Controller
         $this->checkOwnPermission('costs.create');
         $data['pageHeader'] = $this->pageHeader;
         $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)
-            ->where('type', 'diagnostic')
+            ->orderBy('type')
+            ->orderBy('name')
             ->get();
         return view('backend.pages.costs.create', $data);
     }
@@ -329,9 +332,11 @@ class CostController extends Controller
         $this->checkOwnPermission('costs.edit');
         $data['pageHeader'] = $this->pageHeader;
         $data['categories'] = CostCategory::where('branch_id', auth()->user()->branch_id)
-            ->where('type', 'diagnostic')
+            ->orderBy('type')
+            ->orderBy('name')
             ->get();
         if ($data['edited'] = Cost::where('branch_id', auth()->user()->branch_id)
+            ->with('category')
             ->find($id)) {
             return view('backend.pages.costs.edit', $data);
             if (\Carbon\Carbon::parse($data['edited']->created_at)->setTimezone('Asia/Dhaka')->isToday()) {

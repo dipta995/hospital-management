@@ -1,356 +1,395 @@
 @extends('backend.layouts.master')
 @section('title')
-    List of {{ $pageHeader['title'] }}
+    {{ $pageHeader['title'] }}
     @php
         $userGuard = Auth::guard('admin')->user();
     @endphp
 @endsection
+
 @push('styles')
-
+    @include('backend.layouts.partials.invoice-styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 @endpush
+
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
+    <div class="inv-page container-fluid py-3">
 
-                <div class="col-lg-12 grid-margin stretch-card">
-                    <div class="card">
+        {{-- Hero --}}
+        <div class="inv-hero">
+            <div class="inv-hero-inner">
+                <div class="inv-hero-left">
+                    <div class="inv-hero-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div>
+                        <h1 class="inv-hero-title">Invoice Management</h1>
+                        <p class="inv-hero-sub">Track collections, filter invoices & manage payments</p>
+                    </div>
+                </div>
+                <div class="inv-hero-actions">
+                    <a href="{{ route('admin.invoices.index') }}" class="inv-btn-glass">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </a>
+                    @if($userGuard->can('invoices.create'))
+                        <a href="{{ route($pageHeader['create_route']) }}" class="inv-btn-white">
+                            <i class="fas fa-plus"></i> New Invoice
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </div>
 
-                        <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
+        @include('backend.layouts.partials.message')
 
-                            <p class="card-description">
-                                @include('backend.layouts.partials.message')
+        {{-- KPI Cards --}}
+        <div class="inv-kpi-grid">
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon own"><i class="fas fa-user-check"></i></div>
+                <div>
+                    <div class="inv-kpi-label">My Collection</div>
+                    <div class="inv-kpi-value">৳ {{ number_format($my_collection, 2) }}</div>
+                </div>
+            </div>
+            @if ($userGuard->can('reports.amounts'))
+                <div class="inv-kpi">
+                    <div class="inv-kpi-icon other"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="inv-kpi-label">Others</div>
+                        <div class="inv-kpi-value">৳ {{ number_format($other_collection, 2) }}</div>
+                    </div>
+                </div>
+                <div class="inv-kpi">
+                    <div class="inv-kpi-icon collection"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div>
+                        <div class="inv-kpi-label">Total Collection</div>
+                        <div class="inv-kpi-value">৳ {{ number_format($total_paid_amount, 2) }}</div>
+                    </div>
+                </div>
+                <div class="inv-kpi">
+                    <div class="inv-kpi-icon discount"><i class="fas fa-tags"></i></div>
+                    <div>
+                        <div class="inv-kpi-label">Discount</div>
+                        <div class="inv-kpi-value">৳ {{ number_format($discount_amount, 2) }}</div>
+                    </div>
+                </div>
+                <div class="inv-kpi">
+                    <div class="inv-kpi-icon due"><i class="fas fa-exclamation-circle"></i></div>
+                    <div>
+                        <div class="inv-kpi-label">Total Due</div>
+                        <div class="inv-kpi-value">৳ {{ number_format($total_due_amount, 2) }}</div>
+                    </div>
+                </div>
+            @endif
+        </div>
 
-                            </p>
-                            <form action="{{ route('admin.invoices.index') }}" method="GET" class="mb-4">
-                                <div class="row">
-                                    @if (!$userGuard->can('invoices.desk'))
-                                    <div class="col-md-2">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" name="start_date" id="start_date" class="form-control"
-                                               value="{{ request('start_date') }}">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" name="end_date" id="end_date" class="form-control"
-                                               value="{{ request('end_date') }}">
-                                    </div>
-
-                                    @endif
-                                    <div class="col-md-3">
-                                        <label for="start_date">Doctor:</label>
-                                        <select class="form-control" name="dr_refer_id" id="select2">
-                                            <option value="">Choose</option>
-                                            @foreach($reffers as $item)
-                                                <option
-                                                    @selected(old('dr_refer_id', request('dr_refer_id')) == $item->id) value="{{ $item->id }}">{{ $item->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label for="invoice_by" class="form-label">Invoice By:</label>
-                                        <select name="admin_id" id="invoice_by" class="form-control form-control-sm">
-                                            <option value="">Select</option>
-                                            @foreach(\App\Models\Admin::where('branch_id',auth()->user()->branch_id)->get() as $item)
-                                                <option
-                                                    value="{{ $item->id }}" @selected(old('admin_id', request('admin_id')) == $item->id) >{{ $item->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-1">
-                                        <label for="due_filter" class="form-label">Due:</label>
-                                        <select name="due" id="due_filter" class="form-control form-control-sm"
-                                                onchange="this.form.submit()">
-                                            <option value="">Select</option>
-                                            <option value="yes" {{ request('due') == 'yes' ? 'selected' : '' }}>Yes
-                                            </option>
-                                            <option value="no" {{ request('due') == 'no' ? 'selected' : '' }}>No
-                                            </option>
-                                        </select>
-                                    </div>
-
-
-                                        <!-- SELECT -->
-                                        <div class="col-md-2">
-                                            <label>Choose Field:</label>
-                                            <select id="fieldSelector" class="form-control">
-                                                <option value="">Select One</option>
-                                                <option value="invoice">Invoice</option>
-                                                <option value="patient">Patient ID</option>
-                                            </select>
-                                        </div>
-
-                                        <!-- Invoice Field -->
-                                        <div class="col-md-2" id="invoiceField">
-                                            <label for="invoice_number">Invoice:</label>
-                                            <input type="text" name="invoice_number" id="invoice_number"
-                                                   class="form-control">
-                                        </div>
-
-                                        <!-- Patient Field -->
-                                        <div class="col-md-2" id="patientField">
-                                            <label for="user_id">Patient Id:</label>
-                                            <input type="text" name="user_id" id="user_id"
-                                                   class="form-control">
-                                        </div>
-
-
-
-                                        <div class="col-md-12 mt-2 d-flex justify-content-end align-items-end">
-                                        <button type="submit" class="btn btn-primary">Filter</button>
-                                        <a href="{{ route('admin.invoices.index') }}" class="btn btn-secondary ms-2">Reset</a>
-                                    </div>
-
+        {{-- Filters --}}
+        <div class="inv-panel">
+            <div class="inv-panel-head" data-bs-toggle="collapse" data-bs-target="#invFilterCollapse">
+                <h6><i class="fas fa-sliders-h"></i> Advanced Filters</h6>
+                <i class="fas fa-chevron-down text-muted"></i>
+            </div>
+            <div class="collapse show" id="invFilterCollapse">
+                <div class="inv-panel-body">
+                    <form action="{{ route('admin.invoices.index') }}" method="GET">
+                        <div class="row g-3 align-items-end">
+                            @if (!$userGuard->can('invoices.desk'))
+                                <div class="col-md-2">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="date" name="start_date" id="start_date" class="form-control"
+                                           value="{{ request('start_date') }}">
                                 </div>
-                            </form>
-                            <div class="table-responsive">
-                                <div class="row">
-                                    <div class="text-start col-md-6">
-                                    <span
-                                        class="bg-danger text-white p-1 ">Own : <span>{{ $my_collection }} </span></span>
-                                        | @if ( $userGuard->can('reports.amounts'))
-                                            <span
-                                                class="bg-warning text-white p-1 ">Others : <span>{{ $other_collection }} </span></span>
-                                        @endif
-                                    </div>
-                                    @if ( $userGuard->can('reports.amounts'))
-                                        <div class="text-end  col-md-6">
-                                    <span
-                                        class="bg-info text-white p-1 ">Collection : <span>{{ $total_paid_amount }} </span></span>
-                                            |
-                                            <span
-                                                class="bg-success text-white p-1 ">Discount : <span>{{ $discount_amount }} </span></span>
-                                            |
-                                            <span
-                                                class="bg-danger text-white p-1 "> Due : <span>{{ $total_due_amount }}</span></span>
-                                        </div>
-                                    @endif
-                                    {{--                                        </p>--}}
-                                    <table style="font-size: 13px;" class="table table-striped">
-                                        <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Name [Id]</th>
-                                            <th>DR</th>
-                                            <th>Reefer By</th>
-                                            <th>Inv By</th>
-                                            <th>Total</th>
-                                            <th>Discount</th>
-                                            <th>Paid</th>
-                                            <th>Due</th>
-                                            <th>LAB||Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @forelse($datas as $item)
-                                            <tr id="table-data{{ $item->id }}">
-                                                <td>{{ $loop->index + 1 }}. {{ $item->invoice_number }}</td>
-                                                <td>{{ $item->patient_name ?? 'NA'}} <br> [{{ $item->patient_no }}]
-                                                </td>
-                                                <td>{{ $item->reeferDr->name ?? 'NA' }}</td>
-                                                <td>{{ $item->reeferBy->name ?? 'NA' }}
-                                                    ({{ $item->refer_fee_total - ($item->costs->sum('amount')) }})
-                                                </td>
-                                                <td>{{ $item->admin->name ?? 'NA' }}</td>
-                                                <td>{{ $item->total_amount }}</td>
-                                                <td>{{ $item->discount_amount }}</td>
-                                                <td>{{ $item->paid_amount_sum_paid_amount ?? 0 }}</td>
-                                                <td>{{ $item->total_amount - $item->paid_amount_sum_paid_amount }}</td>
+                                <div class="col-md-2">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" name="end_date" id="end_date" class="form-control"
+                                           value="{{ request('end_date') }}">
+                                </div>
+                            @endif
+                            <div class="col-md-3">
+                                <label for="select2" class="form-label">Doctor</label>
+                                <select class="form-select" name="dr_refer_id" id="select2">
+                                    <option value="">All Doctors</option>
+                                    @foreach($reffers as $item)
+                                        <option @selected(old('dr_refer_id', request('dr_refer_id')) == $item->id) value="{{ $item->id }}">{{ $item->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="invoice_by" class="form-label">Invoice By</label>
+                                <select name="admin_id" id="invoice_by" class="form-select">
+                                    <option value="">All Staff</option>
+                                    @foreach(\App\Models\Admin::where('branch_id', auth()->user()->branch_id)->get() as $item)
+                                        <option value="{{ $item->id }}" @selected(old('admin_id', request('admin_id')) == $item->id)>{{ $item->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="due_filter" class="form-label">Due Status</label>
+                                <select name="due" id="due_filter" class="form-select">
+                                    <option value="">All</option>
+                                    <option value="yes" {{ request('due') == 'yes' ? 'selected' : '' }}>Has Due</option>
+                                    <option value="no" {{ request('due') == 'no' ? 'selected' : '' }}>Fully Paid</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="fieldSelector" class="form-label">Search By</label>
+                                <select id="fieldSelector" class="form-select">
+                                    <option value="">—</option>
+                                    <option value="invoice">Invoice No</option>
+                                    <option value="patient">Patient ID</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2" id="invoiceField" style="display:none;">
+                                <label for="invoice_number" class="form-label">Invoice No</label>
+                                <input type="text" name="invoice_number" id="invoice_number" class="form-control"
+                                       value="{{ request('invoice_number') }}" placeholder="INV-...">
+                            </div>
+                            <div class="col-md-2" id="patientField" style="display:none;">
+                                <label for="user_id" class="form-label">Patient ID</label>
+                                <input type="text" name="user_id" id="user_id" class="form-control"
+                                       value="{{ request('user_id') }}">
+                            </div>
+                        </div>
+                        <div class="inv-filter-actions">
+                            <a href="{{ route('admin.invoices.index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                            <button type="submit" class="inv-btn-filter"><i class="fas fa-search me-1"></i> Apply Filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-                                                <td>
-                                                    <strong
-                                                        class="badge  {{ $item->isFullyProcessed() ? 'bg-success' : 'bg-warning' }}">{{ $item->isFullyProcessed() ? 'Complete' : 'Pending' }}</strong>
-                                                    <hr>
-                                                    <span
-                                                        class="badge bg-{{ $item->status==\App\Models\Invoice::$deliveryStatusArray[0] ? 'danger' : 'success' }}">
-                                                    {{ $item->status }}
-
-                                                </span>
-                                                </td>
-                                                <td>
-                                                    @if ( $userGuard->can('invoices.edit'))
-                                                        @if (\Carbon\Carbon::parse($item->creation_date)->setTimezone('Asia/Dhaka')->isToday())
-                                                            <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                               class="badge bg-info"><i class="fas fa-pen"></i></a>
-                                                        @else
-                                                            @if(auth()->user()->hasRole('Owner'))
-                                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                                   class="badge bg-info"><i class="fas fa-pen"></i></a>
-                                                            @endif
-                                                        @endif
-
-                                                    @endif
-                                                    <a type="button" class="badge bg-primary" data-bs-toggle="modal"
-                                                       data-bs-target="#addEmployeeSalaryModal{{$item->id}}"><i
-                                                            class="fas fa-dollar"></i>
-                                                    </a>
-                                                    <a target="_blank"
-                                                       href="{{ route('admin.invoices.pdf-preview',$item->id) }}"
-                                                       class="badge bg-danger"><i class="fas fa-file-pdf"></i></a>
-                                                    <br>
-                                                    <a href="{{ route('admin.invoices.show',$item->id) }}"
-                                                       class="badge bg-success"><i class="fas fa-eye"></i></a>
-                                                    @if ( $userGuard->can('invoices.delete'))
-                                                        <a class="badge bg-danger" href="javascript:void(0)"
-                                                           onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i
-                                                                class="fas fa-trash"></i></a>
-                                                    @endif
-
-
-                                                    <div class="modal fade" id="addEmployeeSalaryModal{{$item->id}}"
-                                                         tabindex="-1"
-                                                         aria-labelledby="modalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="modalLabel">Pay
-                                                                        Due</h5>
-                                                                    <button type="button" class="btn-close"
-                                                                            data-bs-dismiss="modal"
-                                                                            aria-label="Close"></button>
-                                                                </div>
-                                                                <div class="modal-body">
-                                                                    @php
-                                                                        $dueAmount = $item->total_amount - $item->paid_amount_sum_paid_amount;
-                                                                        $customerBalance = \App\Models\CustomerBalance::where('user_id', $item->user_id)
-                                                                            ->where('branch_id', auth()->user()->branch_id)
-                                                                            ->first();
-                                                                        $currentBalance = $customerBalance->balance ?? 0;
-                                                                    @endphp
-                                                                    <form method="post"
-                                                                          action="{{ route('admin.invoices.due-pay',$item->id) }}">
-                                                                        @csrf
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">Due Amount</label>
-                                                                            <input type="text" class="form-control" value="{{ number_format($dueAmount, 2) }}" readonly>
-                                                                        </div>
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">Customer Balance</label>
-                                                                            <input type="text" class="form-control" value="{{ number_format($currentBalance, 2) }}" readonly>
-                                                                        </div>
-                                                                        <div class="mb-3">
-                                                                                  <label for="due_pay" class="form-label">Pay Amount</label>
-                                                                                  <input type="number" step="0.01"
-                                                                                   class="form-control"
-                                                                                   value="{{ $dueAmount }}"
-                                                                                   id="due_pay" name="due_pay"
-                                                                                   required>
-                                                                        </div>
-                                                                        <div class="form-check mb-3">
-                                                                            <input class="form-check-input" type="checkbox" value="1" id="pay_from_balance_{{$item->id}}" name="pay_from_balance">
-                                                                            <label class="form-check-label" for="pay_from_balance_{{$item->id}}">
-                                                                                Pay from balance
-                                                                            </label>
-                                                                        </div>
-                                                                        <button type="submit"
-                                                                                class="btn btn-success">Save
-                                                                        </button>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td></td>
-                                                <td></td>
-                                                <td>No record Found <a
-                                                        href="{{ route($pageHeader['create_route']) }}"
-                                                        class="badge btn-info">Create</a></td>
-                                            </tr>
-                                        @endforelse
-
-                                        </tbody>
-                                    </table>
-                                    <div class="d-flex justify-content-end">
-                                        {!! $datas->appends(request()->query())->links() !!}
-
+        {{-- Table --}}
+        <div class="inv-table-wrap">
+            <div class="table-responsive">
+                <table class="table inv-table">
+                    <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Referred</th>
+                        <th>By</th>
+                        <th>Total</th>
+                        <th>Paid</th>
+                        <th>Due</th>
+                        <th>Status</th>
+                        <th class="inv-actions-cell">
+                            <div class="inv-actions-head">
+                                <span title="Edit"><i class="fas fa-pen"></i></span>
+                                <span title="Pay Due"><i class="fas fa-dollar-sign"></i></span>
+                                <span title="PDF"><i class="fas fa-file-pdf"></i></span>
+                                <span title="View"><i class="fas fa-eye"></i></span>
+                                <span title="Delete"><i class="fas fa-trash"></i></span>
+                            </div>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($datas as $item)
+                        @php
+                            $dueAmount = $item->total_amount - $item->paid_amount_sum_paid_amount;
+                            $paidPct = $item->total_amount > 0
+                                ? min(100, round(($item->paid_amount_sum_paid_amount / $item->total_amount) * 100))
+                                : 100;
+                            $canEditRow = $userGuard->can('invoices.edit')
+                                && (\Carbon\Carbon::parse($item->creation_date)->setTimezone('Asia/Dhaka')->isToday()
+                                    || auth()->user()->hasRole('Owner'));
+                        @endphp
+                        <tr id="table-data{{ $item->id }}">
+                            <td data-label="Invoice">
+                                <span class="inv-inv-no">{{ $item->invoice_number }}</span>
+                            </td>
+                            <td data-label="Patient">
+                                <div class="inv-patient-name">{{ $item->patient_name ?? 'NA' }}</div>
+                                <div class="inv-patient-id">ID: {{ $item->patient_no }}</div>
+                            </td>
+                            <td data-label="Doctor">{{ $item->reeferDr->name ?? '—' }}</td>
+                            <td data-label="Referred">
+                                {{ $item->reeferBy->name ?? '—' }}
+                                <div class="inv-patient-id">Ref: ৳{{ $item->refer_fee_total - ($item->costs->sum('amount')) }}</div>
+                            </td>
+                            <td data-label="By">{{ $item->admin->name ?? '—' }}</td>
+                            <td data-label="Total">
+                                <span class="inv-amount">৳{{ number_format($item->total_amount, 2) }}</span>
+                                @if($item->discount_amount > 0)
+                                    <div class="inv-patient-id">Disc: ৳{{ number_format($item->discount_amount, 2) }}</div>
+                                @endif
+                            </td>
+                            <td data-label="Paid">
+                                <span class="inv-amount paid">৳{{ number_format($item->paid_amount_sum_paid_amount ?? 0, 2) }}</span>
+                                <div class="inv-progress-wrap">
+                                    <div class="inv-progress-bar">
+                                        <div class="inv-progress-fill" style="width: {{ $paidPct }}%"></div>
                                     </div>
                                 </div>
+                            </td>
+                            <td data-label="Due">
+                                <span class="inv-amount {{ $dueAmount > 0 ? 'due' : 'paid' }}">
+                                    ৳{{ number_format($dueAmount, 2) }}
+                                </span>
+                            </td>
+                            <td data-label="Status">
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="inv-status {{ $item->isFullyProcessed() ? 'complete' : 'pending' }}">
+                                        <span class="inv-status-dot"></span>
+                                        {{ $item->isFullyProcessed() ? 'Lab Complete' : 'Lab Pending' }}
+                                    </span>
+                                    <span class="inv-status delivery">
+                                        <span class="inv-status-dot"></span>
+                                        {{ $item->status }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td data-label="Actions" class="inv-actions-cell">
+                                <div class="inv-actions-grid">
+                                    @if ($canEditRow)
+                                        <a href="{{ route($pageHeader['edit_route'], $item->id) }}"
+                                           class="inv-act edit" title="Edit"><i class="fas fa-pen"></i></a>
+                                    @else
+                                        <span class="inv-act-slot" aria-hidden="true"></span>
+                                    @endif
+
+                                    @if($dueAmount > 0)
+                                        <button type="button" class="inv-act pay"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#payDueModal{{ $item->id }}" title="Pay Due">
+                                            <i class="fas fa-dollar-sign"></i>
+                                        </button>
+                                    @else
+                                        <span class="inv-act-slot" aria-hidden="true"></span>
+                                    @endif
+
+                                    <a target="_blank" href="{{ route('admin.invoices.pdf-preview', $item->id) }}"
+                                       class="inv-act pdf" title="PDF"><i class="fas fa-file-pdf"></i></a>
+
+                                    <a href="{{ route('admin.invoices.show', $item->id) }}"
+                                       class="inv-act view" title="View"><i class="fas fa-eye"></i></a>
+
+                                    @if ($userGuard->can('invoices.delete'))
+                                        <a href="javascript:void(0)" class="inv-act del" title="Delete"
+                                           onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    @else
+                                        <span class="inv-act-slot" aria-hidden="true"></span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10">
+                                <div class="inv-empty">
+                                    <i class="fas fa-file-invoice"></i>
+                                    <p>No invoices found for selected filters.</p>
+                                    @if($userGuard->can('invoices.create'))
+                                        <a href="{{ route($pageHeader['create_route']) }}" class="inv-btn-white" style="color:var(--inv-primary);display:inline-flex;">
+                                            <i class="fas fa-plus"></i> Create First Invoice
+                                        </a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Pay Due modals (outside table for clean alignment) --}}
+        @foreach($datas as $item)
+            @php
+                $dueAmountModal = $item->total_amount - $item->paid_amount_sum_paid_amount;
+            @endphp
+            @if($dueAmountModal > 0)
+                <div class="modal fade inv-modal" id="payDueModal{{ $item->id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-dollar-sign me-2"></i>Pay Due — {{ $item->invoice_number }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                @php
+                                    $customerBalance = \App\Models\CustomerBalance::where('user_id', $item->user_id)
+                                        ->where('branch_id', auth()->user()->branch_id)->first();
+                                    $currentBalance = $customerBalance->balance ?? 0;
+                                @endphp
+                                <form method="post" action="{{ route('admin.invoices.due-pay', $item->id) }}">
+                                    @csrf
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <label class="form-label">Due Amount</label>
+                                            <input type="text" class="form-control fw-bold text-danger"
+                                                   value="৳ {{ number_format($dueAmountModal, 2) }}" readonly>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">Customer Balance</label>
+                                            <input type="text" class="form-control"
+                                                   value="৳ {{ number_format($currentBalance, 2) }}" readonly>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="due_pay_{{ $item->id }}" class="form-label">Pay Amount</label>
+                                            <input type="number" step="0.01" class="form-control"
+                                                   value="{{ $dueAmountModal }}"
+                                                   id="due_pay_{{ $item->id }}" name="due_pay" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="1"
+                                                       id="pay_from_balance_{{ $item->id }}" name="pay_from_balance">
+                                                <label class="form-check-label" for="pay_from_balance_{{ $item->id }}">
+                                                    Pay from customer balance
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <button type="submit" class="inv-btn-filter w-100">
+                                                <i class="fas fa-check me-1"></i> Confirm Payment
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
-
                 </div>
-            </div>
+            @endif
+        @endforeach
 
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <span class="text-muted small">Showing {{ $datas->count() }} of {{ $datas->total() }} invoices</span>
+            {!! $datas->appends(request()->query())->links() !!}
         </div>
-        <!-- main-panel ends -->
-        @endsection
-        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    </div>
+@endsection
 
-        @push('scripts')
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-            <script>
-                $(document).ready(function () {
+@push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#select2').select2({ placeholder: "All Doctors", allowClear: true, width: '100%' });
 
-                    $('#select2').select2({
-                        placeholder: "Select reagents",
-                        allowClear: true
-                    });
+            let $selector = $('#fieldSelector');
+            let $invoice = $('#invoiceField');
+            let $patient = $('#patientField');
 
-                    let $selector = $('#fieldSelector');
-                    let $invoice = $('#invoiceField');
-                    let $patient = $('#patientField');
+            function updateFields(val) {
+                $invoice.toggle(val === 'invoice');
+                $patient.toggle(val === 'patient');
+                if (val === 'invoice') $('#user_id').val('');
+                else if (val === 'patient') $('#invoice_number').val('');
+                else { $('#invoice_number, #user_id').val(''); }
+            }
 
-                    // Hide both initially
-                    $invoice.hide();
-                    $patient.hide();
+            @if(request('invoice_number'))
+                $selector.val('invoice'); updateFields('invoice');
+            @elseif(request('user_id'))
+                $selector.val('patient'); updateFields('patient');
+            @else
+                updateFields('');
+            @endif
 
-                    function updateFields(val) {
-
-                        // Always clear both fields when switching
-                        $('#invoice_number').val('');
-                        $('#user_id').val('');
-
-                        if (val === 'invoice') {
-                            $invoice.show();
-                            $patient.hide();
-                        }
-                        else if (val === 'patient') {
-                            $invoice.hide();
-                            $patient.show();
-                        }
-                        else {
-                            $invoice.hide();
-                            $patient.hide();
-                        }
-                    }
-
-                    // On dropdown change
-                    $selector.on('change', function() {
-                        updateFields($(this).val());
-                    });
-
-                });
-            </script>
-            <script>
-                document.getElementById('due_filter').addEventListener('change', function () {
-                    const dueValue = this.value;
-                    const currentUrl = new URL(window.location.href);
-
-                    // Update the URL with the new 'due' query parameter
-                    currentUrl.searchParams.set('due', dueValue);
-
-                    // Redirect to the updated URL
-                    window.location.href = currentUrl.toString();
-                });
-            </script>
-            <script>
-                document.getElementById('dueToggle').addEventListener('change', function () {
-                    const value = this.value;
-                    document.getElementById('normalTable').style.display = value === 'due' ? 'none' : '';
-                    document.getElementById('dueTable').style.display = value === 'due' ? '' : 'none';
-                });
-            </script>
-    @endpush
-
+            $selector.on('change', function () { updateFields($(this).val()); });
+        });
+    </script>
+@endpush

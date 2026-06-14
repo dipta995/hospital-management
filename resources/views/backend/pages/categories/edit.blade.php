@@ -1,61 +1,63 @@
 @extends('backend.layouts.master')
 @section('title')
-    List of {{ $pageHeader['title'] }}
+    Edit {{ $pageHeader['title'] }}
 @endsection
+
 @push('styles')
-
+    @include('backend.layouts.partials.crud-styles')
 @endpush
-@section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">Modify  <strong>{{ $edited->name }}'s</strong> Information</h4>
-                            @include('backend.layouts.partials.message')
 
-                            <form class="cmxform" method="post" action="{{ route($pageHeader['update_route'], $edited->id) }}">
-                                @method('PUT')
-                                @csrf
-                                <fieldset>
-                                    <div class="form-group">
-                                        <label for="name">Name <strong class="text-danger">*</strong></label>
-                                        <input id="name" class="form-control "
-                                               name="name" type="text" value="{{ old('name',$edited->name) }}">
-                                        @error('name')
-                                        <strong class="text-danger">{{ $errors->first('name') }}</strong>
-                                        @enderror
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="room_no">Room No <strong class="text-danger">*</strong></label>
-                                        <input id="room_no" class="form-control "
-                                               name="room_no" type="text" value="{{ old('room_no',$edited->room_no) }}">
-                                        @error('room_no')
-                                        <strong class="text-danger">{{ $errors->first('room_no') }}</strong>
-                                        @enderror
-                                    </div>  <div class="form-group">
-                                        <label for="room_name">Room Name <strong class="text-danger">*</strong></label>
-                                        <input id="room_name" class="form-control "
-                                               name="room_name" type="text" value="{{ old('room_name',$edited->room_name) }}">
-                                        @error('room_name')
-                                        <strong class="text-danger">{{ $errors->first('room_name') }}</strong>
-                                        @enderror
-                                    </div>
-                                    <x-default.button class="float-end mt-2 btn-success">Update</x-default.button>
-                                </fieldset>
-                            </form>
+@section('admin-content')
+    <div class="crud-page container-fluid py-3">
+        @include('backend.layouts.partials.crud-form-hero', [
+            'formTitle' => 'Edit Category',
+            'formSubtitle' => 'Update information for ' . $edited->name,
+            'formIcon' => 'fa-layer-group',
+        ])
+
+        <div class="crud-card">
+            @include('backend.layouts.partials.message')
+
+            <form method="post" action="{{ route($pageHeader['update_route'], $edited->id) }}">
+                @method('PUT')
+                @csrf
+
+                <div class="crud-form-section">
+                    <div class="crud-form-section-header">
+                        <i class="fas fa-info-circle"></i> Category Information
+                    </div>
+                    <div class="crud-form-section-body">
+                        <div class="row crud-form-grid g-3">
+                            <div class="col-md-4">
+                                <label for="name">Name <span class="text-danger">*</span></label>
+                                <input id="name" class="form-control" name="name" type="text" value="{{ old('name', $edited->name) }}">
+                                @error('name')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4">
+                                <label for="room_no">Room No <span class="text-danger">*</span></label>
+                                <input id="room_no" class="form-control" name="room_no" type="text" value="{{ old('room_no', $edited->room_no) }}">
+                                @error('room_no')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4">
+                                <label for="room_name">Room Name <span class="text-danger">*</span></label>
+                                <input id="room_name" class="form-control" name="room_name" type="text" value="{{ old('room_name', $edited->room_name) }}">
+                                @error('room_name')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="crud-form-actions">
+                    <a href="{{ route($pageHeader['index_route']) }}" class="btn-crud-cancel">Cancel</a>
+                    <button type="submit" class="btn btn-crud-submit">Update Category</button>
+                </div>
+            </form>
         </div>
-        <!-- content-wrapper ends -->
-         <!-- partial -->
     </div>
 @endsection
-
-@push('scripts')
-
-@endpush

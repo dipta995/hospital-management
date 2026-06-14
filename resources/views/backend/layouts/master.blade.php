@@ -69,6 +69,7 @@
 </div>
 @include('backend.layouts.partials.script')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+@include('backend.layouts.partials.auth-feedback')
 @if($subscriptionMeta && !empty($subscriptionMeta['show_popup']) && empty($subscriptionMeta['expired']))
 <script>
     document.addEventListener('DOMContentLoaded', function () {

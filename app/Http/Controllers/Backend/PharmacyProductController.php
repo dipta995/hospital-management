@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\PharmacyBrand;
 use App\Models\PharmacyCategory;
 use App\Models\PharmacyProduct;
+use App\Models\PharmacyPurchaseItem;
+use App\Models\PharmacySaleItem;
 use App\Models\PharmacyType;
 use App\Models\PharmacyUnit;
 use Illuminate\Database\QueryException;
@@ -46,8 +48,24 @@ class PharmacyProductController extends Controller
     {
         $this->checkOwnPermission('pharmacy_products.index');
         $data['pageHeader'] = $this->pageHeader;
+        $branchId = auth()->user()->branch_id;
         $search = request('search');
-        $query = PharmacyProduct::with(['category', 'brand', 'type', 'quantityType'])->orderBy('id', 'DESC');
+        $stockFilter = request('stock');
+
+        $purchasedMap = PharmacyProduct::purchasedQuantitiesByBranch($branchId);
+        $soldMap = PharmacyProduct::soldQuantitiesByBranch($branchId);
+
+        $attachStock = function ($product) use ($purchasedMap, $soldMap) {
+            $purchased = (float) ($purchasedMap[$product->id] ?? 0);
+            $sold = (float) ($soldMap[$product->id] ?? 0);
+            $product->stock_qty = max($purchased - $sold, 0);
+            $product->purchased_qty = $purchased;
+            $product->sold_qty = $sold;
+            return $product;
+        };
+
+        $query = PharmacyProduct::with(['category', 'brand', 'type', 'quantityType'])
+            ->orderBy('name');
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
@@ -57,7 +75,51 @@ class PharmacyProductController extends Controller
             });
         }
 
-        $data['datas'] = $query->paginate(20);
+        if (in_array($stockFilter, ['low', 'out'], true)) {
+            $filtered = $query->get()->map($attachStock);
+
+            if ($stockFilter === 'low') {
+                $filtered = $filtered->filter(fn ($p) => $p->stock_qty > 0 && $p->stock_qty <= $p->alert_qty);
+            } else {
+                $filtered = $filtered->filter(fn ($p) => $p->stock_qty <= 0);
+            }
+
+            $page = (int) request('page', 1);
+            $perPage = 20;
+            $data['datas'] = new \Illuminate\Pagination\LengthAwarePaginator(
+                $filtered->forPage($page, $perPage)->values(),
+                $filtered->count(),
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+        } else {
+            $data['datas'] = $query->paginate(20)->through($attachStock);
+        }
+
+        $totalPurchased = (float) $purchasedMap->sum();
+        $totalSold = (float) $soldMap->sum();
+        $allProducts = PharmacyProduct::get(['id', 'alert_qty']);
+        $stockMap = PharmacyProduct::stockMapForBranch($branchId);
+
+        $lowStock = 0;
+        $outOfStock = 0;
+        foreach ($allProducts as $product) {
+            $stock = $stockMap[$product->id] ?? 0;
+            if ($stock <= 0) {
+                $outOfStock++;
+            } elseif ($stock <= $product->alert_qty) {
+                $lowStock++;
+            }
+        }
+
+        $data['stats'] = [
+            'total_products' => $allProducts->count(),
+            'low_stock' => $lowStock,
+            'out_of_stock' => $outOfStock,
+            'total_stock_units' => max($totalPurchased - $totalSold, 0),
+        ];
+
         return view('backend.pages.pharmacy_products.index', $data);
     }
 
@@ -88,6 +150,7 @@ class PharmacyProductController extends Controller
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'alert_qty' => ['required', 'integer', 'min:0'],
+            'status' => ['nullable', 'boolean'],
         ];
 
         $request->validate($rules);
@@ -105,8 +168,9 @@ class PharmacyProductController extends Controller
             $row->purchase_price = $request->purchase_price;
             $row->sell_price = $request->sell_price;
             $row->alert_qty = $request->alert_qty;
-            // Default status to active when creating
-            $row->status = 1;
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pharmacy_products', 'status')) {
+                $row->status = $request->boolean('status', true) ? 1 : 0;
+            }
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Product Created Successfully');
@@ -115,7 +179,6 @@ class PharmacyProductController extends Controller
                 return RedirectHelper::backWithInput();
             }
         } catch (QueryException $e) {
-            return $e;
             return RedirectHelper::backWithInputFromException();
         }
     }
@@ -157,6 +220,7 @@ class PharmacyProductController extends Controller
             'purchase_price' => ['required', 'numeric', 'min:0'],
             'sell_price' => ['required', 'numeric', 'min:0'],
             'alert_qty' => ['required', 'integer', 'min:0'],
+            'status' => ['nullable', 'boolean'],
         ];
 
         $request->validate($rules);
@@ -174,6 +238,9 @@ class PharmacyProductController extends Controller
                 $row->purchase_price = $request->purchase_price;
                 $row->sell_price = $request->sell_price;
                 $row->alert_qty = $request->alert_qty;
+                if (\Illuminate\Support\Facades\Schema::hasColumn('pharmacy_products', 'status')) {
+                    $row->status = $request->boolean('status', true) ? 1 : 0;
+                }
 
                 if ($row->save()) {
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Product Updated Successfully');
@@ -185,7 +252,6 @@ class PharmacyProductController extends Controller
                 return RedirectHelper::routeError($this->index_route, '<strong>Sorry !!!</strong>Data not found');
             }
         } catch (QueryException $e) {
-            return $e;
             return RedirectHelper::backWithInputFromException();
         }
     }
@@ -193,14 +259,26 @@ class PharmacyProductController extends Controller
     public function destroy($id)
     {
         $this->checkOwnPermission('pharmacy_products.delete');
-        $deleteData = PharmacyProduct::find($id);
+        $product = PharmacyProduct::find($id);
 
-        if (!is_null($deleteData)) {
-            if ($deleteData->delete()) {
-                return response()->json(['status' => 200]);
-            } else {
-                return response()->json(['status' => 422]);
-            }
+        if (!$product) {
+            return response()->json(['status' => 404, 'message' => 'Product not found.']);
         }
+
+        $hasPurchases = PharmacyPurchaseItem::where('pharmacy_product_id', $id)->exists();
+        $hasSales = PharmacySaleItem::where('pharmacy_product_id', $id)->exists();
+
+        if ($hasPurchases || $hasSales) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Cannot delete: this product has purchase or sale history.',
+            ]);
+        }
+
+        if ($product->delete()) {
+            return response()->json(['status' => 200]);
+        }
+
+        return response()->json(['status' => 422, 'message' => 'Failed to delete product.']);
     }
 }

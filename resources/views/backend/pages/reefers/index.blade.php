@@ -1,89 +1,99 @@
 @extends('backend.layouts.master')
 @section('title')
-    List of {{ $pageHeader['title'] }}'s
+    {{ $pageHeader['title'] }}
 @endsection
+
 @push('styles')
-
+    @include('backend.layouts.partials.crud-styles')
 @endpush
-@section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="col-lg-12 grid-margin stretch-card">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
-                            <p class="card-description">
-                                @include('backend.layouts.partials.message')
-                            </p>
-                            <form action="" method="get" class="row">
-                                <div class="form-group col-md-3">
-                                    <input type="text" name="name" class="form-control">
-                                </div>
-                                <div class="form-group col-md-3">
-                                    <button class="btn btn-info">Search</button>
-                                </div>
-                            </form>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Name</th>
-                                        <th>Phone</th>
-                                        <th>Designation</th>
-                                        <th>Percent (%)</th>
-                                        <th>Type</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @forelse($datas as $item)
-                                        <tr id="table-data{{ $item->id }}">
-                                            <td>{{ $loop->index + 1 }}</td>
-                                            <td>{{ $item->name }}</td>
-                                            <td>{{ $item->phone }}</td>
-                                            <td>{!! $item->designation !!}</td>
-                                            <td>{{ $item->percent }} %
-                                                <hr>
-                                                @foreach($item->customParcent as $cus)
-                                                    <strong>{{ $cus->category->name }} <span class="badge bg-info">{{ $cus->percentage }} %</span></strong>
-                                                @endforeach
-                                            </td>
-                                            <td><strong>{{ $item->type ?? 'N/a' }}</strong></td>
-                                            <td>
-                                                <a href="{{ route($pageHeader['edit_route'],$item->id) }}"
-                                                   class="badge bg-info"><i class="fas fa-pen"></i></a>
-                                                <a class="badge bg-danger" href="javascript:void(0)"
-                                                   onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <td>No record Found <a href="{{ route($pageHeader['create_route']) }}"
-                                                                   class="btn btn-info">Create</a></td>
-                                        </tr>
-                                    @endforelse
 
-                                    </tbody>
-                                </table>
-                                <div class="d-flex justify-content-end">
-                                    {!! $datas->appends(request()->query())->links() !!}
-                                </div>
-                            </div>
-                        </div>
+@section('admin-content')
+    <div class="crud-page container-fluid py-3">
+        @include('backend.layouts.partials.crud-hero', [
+            'heroTitle' => 'Referrers / Doctors',
+            'heroSubtitle' => 'Manage referring doctors, commission and contact details',
+            'heroIcon' => 'fa-user-md',
+            'heroCreateLabel' => 'Add Referrer',
+        ])
+
+        <div class="crud-card">
+            @include('backend.layouts.partials.message')
+
+            <form action="" method="get" class="crud-toolbar">
+                <div class="row g-2 align-items-end flex-grow-1">
+                    <div class="col-md-4">
+                        <label for="name" class="form-label">Search by Name</label>
+                        <input type="text" name="name" id="name" class="form-control" value="{{ request('name') }}" placeholder="Enter referrer name">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary">Search</button>
                     </div>
                 </div>
+            </form>
 
+            <div class="crud-table-wrap">
+                <div class="table-responsive">
+                    <table class="table crud-table table-hover">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Designation</th>
+                            <th>Percent (%)</th>
+                            <th>Type</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($datas as $item)
+                            <tr id="table-data{{ $item->id }}">
+                                <td>{{ $loop->iteration }}</td>
+                                <td><strong>{{ $item->name }}</strong></td>
+                                <td>{{ $item->phone ?: '—' }}</td>
+                                <td>{{ \Illuminate\Support\Str::limit(strip_tags($item->designation ?? ''), 60) ?: '—' }}</td>
+                                <td>
+                                    <span class="crud-badge">{{ $item->percent }}%</span>
+                                    @if($item->customParcent->isNotEmpty())
+                                        <div class="mt-2">
+                                            @foreach($item->customParcent as $cus)
+                                                <div class="small text-muted">
+                                                    {{ $cus->category->name ?? 'Category' }}:
+                                                    <span class="crud-badge">{{ $cus->percentage }}%</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>{{ $item->type ?? 'N/A' }}</td>
+                                <td class="text-end">
+                                    <div class="crud-action-group">
+                                        <a href="{{ route($pageHeader['edit_route'], $item->id) }}" class="crud-btn-icon crud-btn-edit" title="Edit">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+                                        <a href="javascript:void(0)" class="crud-btn-icon crud-btn-delete" title="Delete"
+                                           onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="crud-empty">
+                                    No referrers found.
+                                    <a href="{{ route($pageHeader['create_route']) }}" class="btn btn-sm btn-primary ms-2">Add Referrer</a>
+                                </td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                {!! $datas->appends(request()->query())->links() !!}
             </div>
         </div>
     </div>
-    <!-- main-panel ends -->
 @endsection
-
-@push('scripts')
-
-@endpush

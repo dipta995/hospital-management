@@ -1,240 +1,98 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
-<div class="container">
+@extends('backend.layouts.report-pdf-layout')
 
-    <div class="card-body">
+@section('pdf-title')
+    Hospital Collections Report
+@endsection
 
-        <div class="header"
-             style="display: table; width: 100%; border-bottom: 2px solid black; padding-bottom: 10px; border: 1px solid black;">
-            <div style="display: table-cell; width: 40%; vertical-align: middle;">
-                <img src="{{ asset('images/'.\App\Models\Setting::get('logo')) }}" alt="Logo" style="height: 80px;">
-            </div>
-            <div style=" display: table-cell; width: 60%; text-align: left; vertical-align: middle; color:#000;">
-                <h1 style="margin: 0; font-size: 20px;">{{ \App\Models\Setting::get('company_name') }}</h1>
-                <p style="margin: 0; font-size: 10px;">{!! \App\Models\Setting::get('address') !!}</p>
-                <p style="margin: 0; font-size: 10px;">Mobile: {{ \App\Models\Setting::get('phone_one') }}
-                    , {{ \App\Models\Setting::get('phone_two') }}</p>
-                <p style="margin: 0; font-size: 10px;">Email: {{ \App\Models\Setting::get('email') }}</p>
-            </div>
-        </div>
-            <h4 class="card-title" style="font-size: 20px; font-weight: bold; text-align: center; margin-top:10px;">{{ $pageHeader['title'] }}'s Report</h4>
-        <p class="text-end" style="font-size: 14px; margin: 20px 150px;">
-            <span style=" border: 1px solid black;border-radius: 10px;" class="text-white p-1 ">Collection : <span>{{ $overall_total_collection }} </span></span>
-            | <span style=" border: 1px solid black;border-radius: 10px;" class="text-white p-1 "> Discount : <span>{{ $overall_total_discount }}</span></span>
-            | <span style=" border: 1px solid black;border-radius: 10px;" class="text-white p-1 ">  Due : <span>{{ $overall_total_amount- $overall_total_collection }}</span></span>
-        </p>
-        <div class="table-responsive">
-            <table class="table table-striped mt-3">
-                <thead>
+@section('pdf-subtitle')
+    Payments received against hospital / admit invoices
+@endsection
 
-                </thead>
-                <tbody>
-                @foreach($datas as $date => $admits)
-                    <tr class="table-info">
-                        <td colspan="3"><strong>Date: {{ $date }}</strong> </td>
-                        <td colspan="2"><strong>Sub.  {{ $admits->sum('total_amount') +  $admits->sum('total_discount') }}</strong></td>
-                        <td colspan="1"><strong>Dis.  {{ $admits->sum('total_discount') }}</strong></td>
-                        <td colspan="1"><strong>Col.  {{ $admits->sum('total_collection') }}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>#</th>
-                        <th>Admit ID</th>
-                        <th>Services</th>
-                        <th>Sub Total</th>
-                        <th>Discount</th>
-                        <th>Collection</th>
-                        <th>Doctor</th>
-                        <th>Refer</th>
-                    </tr>
+@section('pdf-actions')
+    <button onclick="window.print()" class="rpdf-btn">Print / Save as PDF</button>
+@endsection
 
-                    @foreach($admits as $admitId => $group)
-                        @php
-                            $firstPayment = isset($group['data']) ? collect($group['data'])->first() : null;
-                            $admit = $firstPayment?->admit;
-                        @endphp
-                        <tr class="table-warning">
-                            <td colspan="8"><strong>Admit: {{ $admit->id ?? 'N/A' }}</strong></td>
+@section('pdf-summary')
+    @php
+        $fmt = fn ($n) => number_format((float) $n, 2);
+        $due = ($overall_total_amount ?? 0) - ($overall_total_collection ?? 0);
+    @endphp
+    <table class="rpdf-kpi-table">
+        <tr>
+            <td>
+                <div class="rpdf-kpi-label">Total Collected</div>
+                <div class="rpdf-kpi-value success">৳ {{ $fmt($overall_total_collection ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Invoice (Net)</div>
+                <div class="rpdf-kpi-value">৳ {{ $fmt($overall_total_amount ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Discount</div>
+                <div class="rpdf-kpi-value warning">৳ {{ $fmt($overall_total_discount ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Due</div>
+                <div class="rpdf-kpi-value danger">৳ {{ $fmt($due) }}</div>
+            </td>
+        </tr>
+    </table>
+@endsection
+
+@section('content')
+    @php $fmt = fn ($n) => number_format((float) $n, 2); @endphp
+    <table class="rpdf-table">
+        <tbody>
+        @foreach($datas as $date => $admits)
+            <tr class="rpdf-row-date">
+                <td colspan="3"><strong>{{ $date }}</strong></td>
+                <td colspan="2" class="text-end"><strong>Sub ৳{{ $fmt($admits->sum('total_amount') + $admits->sum('total_discount')) }}</strong></td>
+                <td class="text-end"><strong>Disc ৳{{ $fmt($admits->sum('total_discount')) }}</strong></td>
+                <td class="text-end"><strong>Col ৳{{ $fmt($admits->sum('total_collection')) }}</strong></td>
+                <td></td>
+            </tr>
+            <tr>
+                <th>#</th>
+                <th>Admit ID</th>
+                <th>Services</th>
+                <th class="text-end">Sub Total</th>
+                <th class="text-end">Discount</th>
+                <th class="text-end">Collection</th>
+                <th>Doctor</th>
+                <th>Refer</th>
+            </tr>
+
+            @foreach($admits as $admitId => $group)
+                @php
+                    $firstPayment = isset($group['data']) ? collect($group['data'])->first() : null;
+                    $admit = $firstPayment?->admit;
+                @endphp
+                <tr class="rpdf-row-group">
+                    <td colspan="8"><strong>Admit: {{ $admit->id ?? 'N/A' }}</strong></td>
+                </tr>
+
+                @if(isset($group['data']))
+                    @foreach($group['data'] as $index => $item)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $admit->id ?? 'N/A' }}</td>
+                            <td>
+                                @foreach(($admit?->recepts ?? []) as $recept)
+                                    @foreach($recept->receptList ?? [] as $pr)
+                                        {{ $pr->service->name ?? '—' }}@if(!$loop->last), @endif
+                                    @endforeach
+                                @endforeach
+                            </td>
+                            <td class="text-end">৳ {{ $fmt(($group['total_amount'] ?? 0) + ($group['total_discount'] ?? 0)) }}</td>
+                            <td class="text-end">৳ {{ $fmt($group['total_discount'] ?? 0) }}</td>
+                            <td class="text-end fw-bold">৳ {{ $fmt($item->paid_amount) }}</td>
+                            <td>{{ $admit?->drreefer?->name ?? '—' }}</td>
+                            <td>{{ $admit?->reefer?->name ?? '—' }}</td>
                         </tr>
-
-                        @if(isset($group['data']))
-                            @foreach($group['data'] as $index => $item)
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $admit->id ?? 'N/A' }}</td>
-                                    <td>
-                                        @foreach(($admit->recepts ?? []) as $recept)
-                                            @foreach($recept->receptList ?? [] as $pr)
-                                                {{ $pr->service->name }}
-                                            @endforeach
-                                        @endforeach
-                                    </td>
-                                    <td>{{ ($group['total_amount'] ?? 0) + ($group['total_discount'] ?? 0) }}</td>
-                                    <td>{{ $group['total_discount'] ?? 0 }}</td>
-                                    <td>{{ $item->paid_amount }}</td>
-                                    <td>{{ $admit->drreefer->name ?? 'N/A' }}</td>
-                                    <td>{{ $admit->reefer->name ?? 'N/A' }}</td>
-                                </tr>
-                            @endforeach
-                        @endif
                     @endforeach
-                @endforeach
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-</div>
-
-<style>
-    /* General reset */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: Arial, sans-serif;
-        line-height: 1.0;
-        color: #212529;
-        background-color: #fff;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        margin-bottom: 0px;
-        color: #333;
-    }
-
-    /* Container */
-    .container {
-        width: 99%;
-        margin: 0 auto;
-        padding: 2px;
-    }
-
-    /* Table Styles */
-    table {
-        width: 90%;
-        margin: 5px 0;
-        border-collapse: collapse;
-    }
-
-    table th, table td {
-        border: 1px solid #ddd;
-        padding: 6px 10px;
-        text-align: left;
-        font-size: 12px;
-    }
-
-    table th {
-        background-color: #f8f9fa;
-        color: #495057;
-        font-weight: bold;
-    }
-
-    table td {
-        background-color: #fff;
-        padding: -10px;
-        font-size: 12px;
-    }
-
-    /* Table striped rows */
-    table tr:nth-child(odd) {
-        background-color: #f2f2f2;
-    }
-
-    /* Table hover effect */
-    table tr:hover {
-        background-color: #e9ecef;
-    }
-
-    /* Button styles (you can remove if you don't need them) */
-    .btn {
-        display: inline-block;
-        font-size: 12px;
-        padding: 8px 16px;
-        margin: 5px;
-        text-align: center;
-        cursor: pointer;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        text-decoration: none;
-    }
-
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-        border-color: #007bff;
-    }
-
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border-color: #dc3545;
-    }
-
-    /* Text utility classes */
-    .text-center {
-        text-align: center;
-    }
-
-    .text-end {
-        text-align: right;
-    }
-
-    .text-left {
-        text-align: left;
-    }
-
-    /* Background Colors */
-    .bg-info {
-        background-color: #17a2b8;
-        color: white;
-    }
-
-    .bg-danger {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    .bg-gray {
-        background-color: #f8f9fa;
-    }
-
-    /* Padding helpers */
-    .p-1 {
-        padding: 5px;
-    }
-
-    .p-2 {
-        padding: 10px;
-    }
-
-    .p-3 {
-        padding: 15px;
-    }
-
-    /* Margin helpers */
-    .m-1 {
-        margin: 5px;
-    }
-
-    .m-2 {
-        margin: 10px;
-    }
-
-    .m-3 {
-        margin: 15px;
-    }
-</style>
-
-</body>
-</html>
+                @endif
+            @endforeach
+        @endforeach
+        </tbody>
+    </table>
+@endsection

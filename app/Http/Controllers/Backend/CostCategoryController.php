@@ -47,7 +47,10 @@ class CostCategoryController extends Controller
         $this->checkOwnPermission('cost_categories.index');
         $data['pageHeader'] = $this->pageHeader;
         $data['datas'] = CostCategory::where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'DESC')->paginate(10);
+            ->withCount('costs')
+            ->orderBy('type')
+            ->orderBy('name')
+            ->paginate(10);
         return view('backend.pages.cost_categories.index', $data);
     }
 

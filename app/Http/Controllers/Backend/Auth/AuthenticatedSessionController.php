@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Backend\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Admin;
-use App\Models\Setting;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,18 +44,17 @@ class AuthenticatedSessionController extends Controller
 //            Log::info('Attempting login for email: ' . $request->email);
 
             if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
-                session()->flash('success', 'Logged in Successfully!');
+                session()->flash('success', 'Logged in successfully!');
+                session()->flash('auth_event', 'login');
                 return redirect()->intended(RouteServiceProvider::ADMIN_HOME);
-            } else {
-                session()->flash('error', 'Incorrect Email or Password');
-                return back();
             }
+
+            session()->flash('error', 'Incorrect email or password.');
+            session()->flash('auth_event', 'error');
+            return back();
         } catch (\Exception $e) {
-            // Log the error for debugging
-//            Log::error('Login attempt failed: ' . $e->getMessage());
-return $e;
-            // Flash a generic error message to the user
             session()->flash('error', 'An error occurred while trying to log in. Please try again later.');
+            session()->flash('auth_event', 'error');
             return back();
         }
     }
@@ -75,7 +73,9 @@ return $e;
 
         $request->session()->regenerateToken();
 
-        return redirect('/admin/login');
+        return redirect('/admin/login')
+            ->with('success', 'Logged out successfully.')
+            ->with('auth_event', 'logout');
     }
 
     public function change(Request $request)
@@ -87,7 +87,6 @@ return $e;
         return [
             'pageTitle' => $pageTitle,
             'softwareName' => 'Hospital Management Software',
-            'companyName' => Setting::getGuest('company_name'),
         ];
     }
 

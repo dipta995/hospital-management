@@ -2,138 +2,128 @@
 @section('title')
     Edit {{ $pageHeader['title'] }}
 @endsection
+
 @push('styles')
-
+    @include('backend.layouts.partials.crud-styles')
 @endpush
+
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">Modify <strong>{{ $edited->name }}'s</strong> Information</h4>
-                            @include('backend.layouts.partials.message')
+    <div class="crud-page container-fluid py-3">
+        @include('backend.layouts.partials.crud-form-hero', [
+            'formTitle' => 'Edit Referrer',
+            'formSubtitle' => 'Update ' . $edited->name,
+            'formIcon' => 'fa-user-md',
+        ])
 
-                            <form class="cmxform" method="post"
-                                  action="{{ route($pageHeader['update_route'], $edited->id) }}">
-                                @method('PUT')
-                                @csrf
-                                <fieldset class="row">
-                                    <div class="form-group col-md-6">
-                                        <label for="name">Name <strong class="text-danger">*</strong></label>
-                                        <input id="name" class="form-control "
-                                               name="name" type="text" value="{{ old('name', $edited->name) }}">
-                                        @error('name')
-                                        <strong class="text-danger">{{ $errors->first('name') }}</strong>
-                                        @enderror
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <x-default.label required="true" for="type">Type</x-default.label>
-                                        <select class="form-control" name="type" id="type">
-                                            <option value="">--Choose--</option>
-                                            @foreach(\App\Models\Reefer::$typeArray as $item)
-                                                <option
-                                                    @selected(old('type', $edited->type) == $item) value="{{ $item }}">{{ $item }}</option>
-                                            @endforeach
-                                        </select>
-                                        <x-default.input-error name="type"></x-default.input-error>
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label for="phone">Phone<strong
-                                                class="text-danger">*</strong></label>
-                                        <input id="phone"
-                                               class="form-control @error('phone') is-invalid @enderror"
-                                               name="phone" type="number"
-                                               value="{{ old('phone', $edited->phone) }}">
-                                        @error('phone')
-                                        <strong class="text-danger">{{ $errors->first('phone') }}</strong>
-                                        @enderror
-                                    </div>
+        <div class="crud-card">
+            @include('backend.layouts.partials.message')
 
-                                    <div class="form-group col-md-6">
-                                        <label for="office_time">Time</label>
-                                        <input id="office_time"
-                                               class="form-control"
-                                               name="office_time"
-                                               type="time"
-                                               value="{{ old('office_time', $edited->office_time ?? '') }}">
-                                        @error('office_time')
-                                        <strong class="text-danger">{{ $message }}</strong>
-                                        @enderror
-                                    </div>
+            <form method="post" action="{{ route($pageHeader['update_route'], $edited->id) }}">
+                @method('PUT')
+                @csrf
 
-                                    <div class="form-group col-md-6">
-                                        <label for="percent">Percent</label>
-                                        <input id="percent"
-                                               class="form-control"
-                                               name="percent" type="number"
-                                               value="{{ old('percent', $edited->percent) }}">
-                                        @error('percent')
-                                        <strong class="text-danger">{{ $errors->first('percent') }}</strong>
-                                        @enderror
-                                    </div>
-                                    {{-- Custom Percent per Category --}}
-                                    <div class="form-group col-12">
-                                        <div class="form-check mb-2">
-                                            @php
-                                                // Check if there is at least one custom percent set
-                                                $hasCustomPercent = $edited->customParcent->isNotEmpty();
-                                            @endphp
-
-                                            <input class="form-check-input"
-                                                   type="checkbox" value="yes"
-                                                   id="enableCustomPercent"
-                                                {{ $hasCustomPercent ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="enableCustomPercent">
-                                                Enable Custom Percent by Category
-                                            </label>
-                                        </div>
-
-                                        <div id="customPercentFields" style="{{ $hasCustomPercent ? '' : 'display: none;' }}">
-                                            <h5>Custom Percent by Category (optional)</h5>
-                                            <div class="row">
-                                                @foreach($categories as $category)
-                                                    @php
-                                                        $custom = $edited->customParcent->firstWhere('category_id', $category->id) ?? null;
-                                                        $percentValue = old("custom_percent.{$category->id}", $custom->percentage ?? null);
-                                                    @endphp
-                                                    <div class="col-md-6 mb-2">
-                                                        <label>{{ $category->name }}</label>
-                                                        <input type="number"
-                                                               step="0.01"
-                                                               name="custom_percent[{{ $category->id }}]"
-                                                               class="form-control"
-                                                               value="{{ $percentValue }}"
-                                                            {{ $hasCustomPercent ? 'required' : '' }}>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-
-
-
-                                    <div class="form-group col-md-12">
-                                        <label for="designation">Designation</label>
-                                        <textarea id="designation" class="form-control"
-                                                  name="designation">{{ old('designation', $edited->designation) }}</textarea>
-                                        @error('designation')
-                                        <strong class="text-danger">{{ $errors->first('designation') }}</strong>
-                                        @enderror
-                                    </div>
-                                    <x-default.button class="float-end mt-2 btn-success">Update</x-default.button>
-                                </fieldset>
-                            </form>
+                <div class="crud-form-section">
+                    <div class="crud-form-section-header">
+                        <i class="fas fa-user"></i> Personal Information
+                    </div>
+                    <div class="crud-form-section-body">
+                        <div class="row crud-form-grid g-3">
+                            <div class="col-md-6">
+                                <label for="name">Name <span class="text-danger">*</span></label>
+                                <input id="name" class="form-control" name="name" type="text" value="{{ old('name', $edited->name) }}">
+                                @error('name')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <x-default.label required="true" for="type">Type</x-default.label>
+                                <select class="form-select" name="type" id="type">
+                                    <option value="">-- Choose Type --</option>
+                                    @foreach(\App\Models\Reefer::$typeArray as $item)
+                                        <option @selected(old('type', $edited->type) == $item) value="{{ $item }}">{{ $item }}</option>
+                                    @endforeach
+                                </select>
+                                <x-default.input-error name="type"></x-default.input-error>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone">Phone</label>
+                                <input id="phone" class="form-control" name="phone" type="text" value="{{ old('phone', $edited->phone) }}">
+                                @error('phone')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label for="office_time">Office Time</label>
+                                <input id="office_time" class="form-control" name="office_time" type="time"
+                                       value="{{ old('office_time', $edited->office_time ?? '') }}">
+                                @error('office_time')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-12">
+                                <label for="designation">Designation</label>
+                                <textarea id="designation" class="form-control" name="designation" rows="4">{{ old('designation', $edited->designation) }}</textarea>
+                                @error('designation')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <!-- content-wrapper ends -->
 
-        <!-- partial -->
+                <div class="crud-form-section">
+                    <div class="crud-form-section-header">
+                        <i class="fas fa-percent"></i> Commission Settings
+                    </div>
+                    <div class="crud-form-section-body">
+                        <div class="row crud-form-grid g-3">
+                            <div class="col-md-4">
+                                <label for="percent">Default Percent (%)</label>
+                                <input id="percent" class="form-control" name="percent" type="number" step="0.01"
+                                       value="{{ old('percent', $edited->percent) }}">
+                                @error('percent')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        @php
+                            $hasCustomPercent = $edited->customParcent->isNotEmpty();
+                        @endphp
+
+                        <div class="form-check mt-3 mb-2">
+                            <input class="form-check-input" type="checkbox" value="yes" id="enableCustomPercent"
+                                {{ $hasCustomPercent ? 'checked' : '' }}>
+                            <label class="form-check-label" for="enableCustomPercent">
+                                Enable custom percent by category
+                            </label>
+                        </div>
+
+                        <div id="customPercentFields" style="{{ $hasCustomPercent ? '' : 'display: none;' }}">
+                            <div class="row crud-form-grid g-3">
+                                @foreach($categories as $category)
+                                    @php
+                                        $custom = $edited->customParcent->firstWhere('category_id', $category->id) ?? null;
+                                        $percentValue = old("custom_percent.{$category->id}", $custom->percentage ?? null);
+                                    @endphp
+                                    <div class="col-md-4">
+                                        <label>{{ $category->name }} (%)</label>
+                                        <input type="number" step="0.01" name="custom_percent[{{ $category->id }}]"
+                                               class="form-control" value="{{ $percentValue }}"
+                                            {{ $hasCustomPercent ? 'required' : '' }}>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crud-form-actions">
+                    <a href="{{ route($pageHeader['index_route']) }}" class="btn-crud-cancel">Cancel</a>
+                    <button type="submit" class="btn btn-crud-submit">Update Referrer</button>
+                </div>
+            </form>
+        </div>
     </div>
 @endsection
 
@@ -146,17 +136,14 @@
                     $('#customPercentFields input').attr('required', true);
                 } else {
                     $('#customPercentFields').slideUp();
-                    $('#customPercentFields input')
-                        .val('')               // clear value
-                        .attr('required', false);
+                    $('#customPercentFields input').val('').attr('required', false);
                 }
             });
+
+            $('#designation').summernote({
+                tabsize: 2,
+                height: 280,
+            });
         });
-    </script>
-    <script>
-        $('#designation').summernote({
-            tabsize: 2,
-            height: 400,
-        })
     </script>
 @endpush

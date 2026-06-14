@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 
 class DoctorSerialController extends Controller
 {
@@ -50,30 +51,38 @@ class DoctorSerialController extends Controller
     public function index()
     {
         $this->checkOwnPermission('doctor_serials.index');
-        $reefer_id = \request()->query('reefer_id');
+
+        $date = request()->filled('date')
+            ? request()->input('date')
+            : now()->setTimezone('Asia/Dhaka')->toDateString();
+
         $data['pageHeader'] = $this->pageHeader;
         $data['reefers'] = Reefer::where('branch_id', auth()->user()->branch_id)
             ->where('type', Reefer::$typeArray[0])
+            ->orderBy('name')
             ->get(['id', 'name']);
+        $data['selectedDate'] = $date;
+        $data['selectedReeferId'] = request('reefer_id');
 
-        $query = DoctorSerial::where('branch_id', auth()->user()->branch_id)
-            ->where('reefer_id', $reefer_id);
+        $query = DoctorSerial::with('doctor')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->whereDate('date', $date);
 
-        if (request()->filled('date')) {
-            $date = request()->input('date');
-        } else {
-            $date = now()->setTimezone('Asia/Dhaka')->toDateString();
+        if (request()->filled('reefer_id')) {
+            $query->where('reefer_id', request('reefer_id'));
         }
 
-        $query->whereDate('date', $date)
+        $query->orderBy('reefer_id')
             ->orderByRaw('CAST(serial_number AS UNSIGNED) ASC');
 
         if (request()->input('export') == 'pdf') {
             $data['datas'] = $query->get();
             return view('backend.pages.doctor_serials.pdf-serial', $data);
-        } else {
-            $data['datas'] = $query->get();
         }
+
+        $data['datas'] = $query->get();
+        $data['totalSerials'] = $data['datas']->count();
+        $data['pendingCount'] = $data['datas']->where('status', DoctorSerial::$statusArray[0])->count();
 
         return view('backend.pages.doctor_serials.index', $data);
     }
@@ -172,20 +181,13 @@ class DoctorSerialController extends Controller
     public function generateSerialNumber($reeferId, $forDate = null)
     {
         $currentDate = $forDate ? Carbon::parse($forDate)->toDateString() : Carbon::now('Asia/Dhaka')->toDateString();
-        $latestSerial = DoctorSerial::where('branch_id', auth()->user()->branch_id)
+
+        $maxSerial = DoctorSerial::where('branch_id', auth()->user()->branch_id)
             ->where('reefer_id', $reeferId)
             ->whereDate('date', $currentDate)
-            ->latest('created_at')
-            ->first();
+            ->max(DB::raw('CAST(serial_number AS UNSIGNED)'));
 
-//        dd($latestSerial);
-        if ($latestSerial) {
-            $serial = (int) $latestSerial->serial_number + 1;
-        } else {
-            $serial = 1;
-        }
-//        dd($serial);
-        return $serial;
+        return ((int) $maxSerial) + 1;
     }
 
     /**
@@ -235,16 +237,17 @@ class DoctorSerialController extends Controller
     public function edit($id)
 {
     $this->checkOwnPermission('doctor_serials.edit');
-    $data['edited'] = DoctorSerial::where('branch_id', auth()->user()->branch_id)
+    $data['edited'] = DoctorSerial::with('doctor')
+        ->where('branch_id', auth()->user()->branch_id)
         ->find($id);
-    $data['reefers'] = Reefer::where('branch_id', auth()->user()->branch_id)
-        ->get();
     $data['pageHeader'] = $this->pageHeader;
+    $data['statusOptions'] = DoctorSerial::$statusArray;
+
     if ($data['edited']) {
         return view('backend.pages.doctor_serials.edit', $data);
-    } else {
-        return RedirectHelper::backWithInputFromException();
     }
+
+    return RedirectHelper::backWithInputFromException();
 }
 
 
@@ -260,28 +263,46 @@ class DoctorSerialController extends Controller
     {
         $this->checkOwnPermission('doctor_serials.edit');
         $request->validate([
-//            'reefer_id' => 'required',
             'patient_name' => 'required|max:200',
             'date' => 'required|date',
+            'serial_number' => 'required',
+            'status' => 'nullable|in:' . implode(',', DoctorSerial::$statusArray),
+            'patient_phone' => ['nullable', 'regex:/^01[0-9]{9}$/'],
         ]);
         try {
             $row = DoctorSerial::where('branch_id', auth()->user()->branch_id)
                 ->findOrFail($id);
-                $row->branch_id = auth()->user()->branch_id;
-                $row->patient_name = $request->patient_name;
-                $row->patient_age_year = $request->patient_age_year;
-                $row->patient_phone = $request->patient_phone;
-                $row->patient_email = $request->patient_email;
-                $row->patient_gender = $request->patient_gender;
-                $row->patient_blood_group = $request->patient_blood_group;
-                $row->patient_address = $request->patient_address;
-                $row->serial_number = $request->serial_number;  //self::generateSerialNumber($request->reefer_id);
-                $row->amount = $request->amount;
-                $row->date = $request->date;
-                $row->remarks = $request->remarks;
-                $row->status = DoctorSerial::$statusArray[0];
-                $row->save();
-            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Doctor Serial updated successfully.');
+
+            $duplicate = DoctorSerial::where('branch_id', auth()->user()->branch_id)
+                ->where('reefer_id', $row->reefer_id)
+                ->whereDate('date', $request->date)
+                ->where('serial_number', $request->serial_number)
+                ->where('id', '!=', $id)
+                ->exists();
+
+            if ($duplicate) {
+                return RedirectHelper::backWithInputFromException('<strong>Sorry!</strong> Serial number already exists for this doctor on this date.');
+            }
+
+            $row->patient_name = $request->patient_name;
+            $row->patient_age_year = $request->patient_age_year;
+            $row->patient_phone = $request->patient_phone;
+            $row->patient_email = $request->patient_email;
+            $row->patient_gender = $request->patient_gender;
+            $row->patient_blood_group = $request->patient_blood_group;
+            $row->patient_address = $request->patient_address;
+            $row->serial_number = $request->serial_number;
+            $row->amount = $request->amount;
+            $row->date = $request->date;
+            $row->remarks = $request->remarks;
+            $row->status = $request->input('status', $row->status);
+            $row->save();
+
+            return RedirectHelper::routeSuccessWithParams(
+                $this->index_route,
+                '<strong>Success!</strong> Doctor serial updated successfully.',
+                ['date' => $request->date, 'reefer_id' => $row->reefer_id]
+            );
 
         } catch (QueryException $e) {
             return $e;

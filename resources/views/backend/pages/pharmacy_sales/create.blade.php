@@ -3,138 +3,147 @@
     Create New {{ $pageHeader['title'] }}
 @endsection
 @push('styles')
+    @include('backend.layouts.partials.crud-styles')
+    @include('backend.layouts.partials.pharmacy-styles')
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 @endpush
 @section('admin-content')
-<div class="main-panel">
-    <div class="content-wrapper">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h4 class="card-title mb-0">Create New {{ $pageHeader['title'] }}</h4>
-                            <button type="button" class="btn btn-sm btn-primary d-none" id="print-invoice-top">Invoice</button>
+<div class="crud-page pharm-page container-fluid py-3">
+    @include('backend.layouts.partials.crud-form-hero', [
+        'formTitle' => 'Pharmacy POS — New Sale',
+        'formSubtitle' => 'Search customer & products, complete payment',
+        'formIcon' => 'fa-cash-register',
+    ])
+
+    <div class="d-flex justify-content-end mb-3 gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm d-none" id="print-invoice-top"><i class="fas fa-print"></i> Invoice</button>
+    </div>
+
+    @include('backend.layouts.partials.message')
+
+    <div class="pharm-pos-grid">
+        <div>
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-user"></i> Customer</div>
+                <div class="pharm-pos-panel-body">
+                    <div class="row g-2">
+                        <div class="col-md-5 position-relative">
+                            <label class="form-label">Search Name / Phone</label>
+                            <input type="text" id="customer_search" class="form-control" placeholder="Type to search...">
+                            <ul class="list-group pharm-suggestion" id="customer_suggestion"></ul>
                         </div>
-                        @include('backend.layouts.partials.message')
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Customer</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label>Search (Name / Phone)</label>
-                                <input type="text" id="customer_search" class="form-control" placeholder="Type name or phone">
-                                <ul class="list-group" id="customer_suggestion" style="position:absolute; z-index:1000; width:100%; display:none;"></ul>
-                            </div>
-                            <div class="col-md-3">
-                                <label>&nbsp;</label>
-                                <button type="button" class="btn btn-primary form-control" data-bs-toggle="modal" data-bs-target="#customerModal">Add New Customer</button>
-                            </div>
-                            <div class="col-md-5">
-                                <label>Selected Customer</label>
-                                <input type="text" id="customer_name" class="form-control" readonly>
-                                <input type="hidden" id="customer_id">
-                            </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#customerModal"><i class="fas fa-user-plus"></i> New</button>
                         </div>
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Doctor</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="dr_refer_name">Dr Name
-                                    <button type="button" class="badge bg-info openDoctorModal" data-target-input="dr_refer_name">Add Doctor</button>
-                                </label>
-                                <input type="text" id="dr_refer_name" class="form-control">
-                                <input type="hidden" id="dr_refer_id">
-                            </div>
-                        </div>
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Products</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-5">
-                                <label for="product_name">Product</label>
-                                <input type="text" id="product_name" class="form-control" placeholder="Type product name / generic / barcode">
-                                <input type="hidden" id="pharmacy_product_id">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="product_qty">Qty
-                                    <small class="text-muted d-block">Current stock: <span id="current_stock">-</span></small>
-                                </label>
-                                <input type="number" id="product_qty" class="form-control" value="1" min="1">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="product_price">Unit Price</label>
-                                <input type="number" id="product_price" class="form-control" step="0.01">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" class="btn btn-success w-100" id="add-product">Add</button>
-                            </div>
-                        </div>
-
-                        <table class="table table-bordered" id="sale-products">
-                            <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Price</th>
-                                <th>Discount</th>
-                                <th>Total</th>
-                                <th>Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <!-- rows via JS -->
-                            </tbody>
-                        </table>
-
-                        <h4 class="card-title bg-info p-1 mt-3 mb-3">Payment</h4>
-                        <div class="row mb-3">
-                            <div class="col-md-3">
-                                <label>Sale Date</label>
-                                <input type="date" id="sale_date" class="form-control" value="{{ date('Y-m-d') }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label>Subtotal</label>
-                                <input type="number" id="subtotal" class="form-control" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label>Invoice Discount</label>
-                                <input type="number" id="discount_amount" class="form-control" value="0" step="0.01">
-                            </div>
-                            <div class="col-md-3">
-                                <label>Total</label>
-                                <input type="number" id="total_amount" class="form-control" readonly>
-                            </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Paid</label>
-                                <input type="number" id="paid_amount" class="form-control" value="0" step="0.01">
-                            </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Due</label>
-                                <input type="number" id="due_amount" class="form-control" readonly>
-                            </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Payment Method</label>
-                                <input type="text" id="payment_method" class="form-control" placeholder="Cash / Card / Bkash">
-                            </div>
-                            <div class="col-md-3 mt-2">
-                                <label>Note</label>
-                                <input type="text" id="note" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-3">
-                            <button type="button" class="btn btn-sm btn-primary d-none" id="print-invoice-bottom">Invoice</button>
-                            <button type="button" class="btn btn-success" id="submit-sale">Complete Sale</button>
+                        <div class="col-md-4">
+                            <label class="form-label">Selected Customer</label>
+                            <input type="text" id="customer_name" class="form-control bg-light" readonly placeholder="No customer selected">
+                            <input type="hidden" id="customer_id">
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-user-md"></i> Referring Doctor <small class="text-muted">(optional)</small></div>
+                <div class="pharm-pos-panel-body">
+                    <label for="dr_refer_name" class="form-label">Doctor
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 openDoctorModal" data-target-input="dr_refer_name">+ Add</button>
+                    </label>
+                    <input type="text" id="dr_refer_name" class="form-control" placeholder="Search doctor name">
+                    <input type="hidden" id="dr_refer_id">
+                </div>
+            </div>
+
+            <div class="pharm-pos-panel mb-3">
+                <div class="pharm-pos-panel-head"><i class="fas fa-pills"></i> Add Product</div>
+                <div class="pharm-pos-panel-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label for="product_name" class="form-label">Product</label>
+                            <input type="text" id="product_name" class="form-control" placeholder="Name / generic / barcode">
+                            <input type="hidden" id="pharmacy_product_id">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="product_qty" class="form-label">Qty <small class="text-muted">Stock: <span id="current_stock">-</span></small></label>
+                            <input type="number" id="product_qty" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="product_price" class="form-label">Unit Price</label>
+                            <input type="number" id="product_price" class="form-control" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-success w-100" id="add-product"><i class="fas fa-plus"></i> Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pharm-pos-panel">
+                <div class="pharm-pos-panel-head"><i class="fas fa-shopping-cart"></i> Cart</div>
+                <div class="table-responsive">
+                    <table class="table pharm-cart-table mb-0" id="sale-products">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Disc.</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="pharm-pos-panel sticky-top" style="top: 80px;">
+            <div class="pharm-pos-panel-head"><i class="fas fa-receipt"></i> Payment Summary</div>
+            <div class="pharm-pos-panel-body">
+                <div class="mb-3">
+                    <label class="form-label">Sale Date</label>
+                    <input type="date" id="sale_date" class="form-control" value="{{ date('Y-m-d') }}">
+                </div>
+                <div class="pharm-summary-row"><span>Subtotal</span><strong>৳ <span id="subtotal_display">0.00</span></strong></div>
+                <input type="hidden" id="subtotal">
+                <div class="mb-2 mt-2">
+                    <label class="form-label">Invoice Discount</label>
+                    <input type="number" id="discount_amount" class="form-control" value="0" step="0.01">
+                </div>
+                <div class="pharm-summary-row total"><span>Grand Total</span><span>৳ <span id="total_display">0.00</span></span></div>
+                <input type="hidden" id="total_amount" readonly>
+                <div class="mb-2 mt-3">
+                    <label class="form-label">Paid Amount</label>
+                    <input type="number" id="paid_amount" class="form-control" value="0" step="0.01">
+                </div>
+                <div class="pharm-summary-row"><span>Due</span><strong class="text-danger">৳ <span id="due_display">0.00</span></strong></div>
+                <input type="hidden" id="due_amount" readonly>
+                <div class="mb-2 mt-2">
+                    <label class="form-label">Payment Method</label>
+                    <select id="payment_method" class="form-select">
+                        <option value="Cash">Cash</option>
+                        <option value="Bkash">Bkash</option>
+                        <option value="Nagad">Nagad</option>
+                        <option value="Card">Card</option>
+                        <option value="Bank">Bank</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Note</label>
+                    <input type="text" id="note" class="form-control" placeholder="Optional note">
+                </div>
+                <button type="button" class="btn btn-crud-submit w-100 btn-lg" id="submit-sale"><i class="fas fa-check-circle"></i> Complete Sale</button>
+                <button type="button" class="btn btn-outline-primary w-100 mt-2 d-none" id="print-invoice-bottom"><i class="fas fa-print"></i> Print Invoice</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Customer Modal -->
-<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade crud-modal" id="customerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -288,8 +297,9 @@
                         data: { query: request.term },
                         success: function (data) {
                             response($.map(data, function (item) {
+                                var stockLabel = typeof item.current_stock !== 'undefined' ? ' [Stock: ' + item.current_stock + ']' : '';
                                 return {
-                                    label: item.name + (item.generic_name ? ' (' + item.generic_name + ')' : ''),
+                                    label: item.name + (item.generic_name ? ' (' + item.generic_name + ')' : '') + stockLabel,
                                     value: item.name,
                                     item: item
                                 };
@@ -312,12 +322,15 @@
                 subtotal += parseFloat(it.total_amount) || 0;
             });
             $('#subtotal').val(subtotal.toFixed(2));
+            $('#subtotal_display').text(subtotal.toFixed(2));
             let invDisc = parseFloat($('#discount_amount').val()) || 0;
             let grand = subtotal - invDisc;
             $('#total_amount').val(grand.toFixed(2));
+            $('#total_display').text(grand.toFixed(2));
             let paid = parseFloat($('#paid_amount').val()) || 0;
             let due = grand - paid;
             $('#due_amount').val(due.toFixed(2));
+            $('#due_display').text(due.toFixed(2));
         }
 
         function renderTable() {
@@ -437,6 +450,13 @@
 
         $('#discount_amount, #paid_amount').on('input', function () {
             recalcTotals();
+        });
+
+        $('#paid_amount').on('focus', function () {
+            if (parseFloat($(this).val()) === 0) {
+                $(this).val($('#total_amount').val());
+                recalcTotals();
+            }
         });
         // Customer search by name/phone
         $('#customer_search').on('keyup', function () {
@@ -564,6 +584,10 @@
 
         // Submit sale
         $('#submit-sale').click(function () {
+            if (!$('#customer_id').val()) {
+                alert('Please select or add a customer.');
+                return;
+            }
             if (!selectedItems.length) {
                 alert('Please add at least one product.');
                 return;
@@ -624,8 +648,14 @@
                     recalcTotals();
                 },
                 error: function (xhr) {
-                    console.log(xhr.responseText);
-                    alert('Failed to complete sale');
+                    let msg = 'Failed to complete sale';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        if (xhr.responseJSON.errors && xhr.responseJSON.errors.length) {
+                            msg += '\n' + xhr.responseJSON.errors.join('\n');
+                        }
+                    }
+                    alert(msg);
                 }
             });
         });

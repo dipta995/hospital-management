@@ -6,6 +6,53 @@
 <!-- App Javascript (Require in all Page) -->
 <script src="{{ asset('backend/assets/js/app.js') }}"></script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var menuBtn = document.querySelector('.button-toggle-menu');
+        if (!menuBtn) return;
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-enable');
+            document.documentElement.classList.remove('sidebar-enable');
+            var backdrop = document.querySelector('.offcanvas-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+                document.body.style.overflow = null;
+                document.body.style.paddingRight = null;
+            }
+        }
+
+        function syncSidebarClass() {
+            var enabled = document.body.classList.contains('sidebar-enable');
+            document.documentElement.classList.toggle('sidebar-enable', enabled);
+        }
+
+        menuBtn.addEventListener('click', function () {
+            setTimeout(syncSidebarClass, 0);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('offcanvas-backdrop')) {
+                closeSidebar();
+            }
+        });
+
+        document.querySelectorAll('.main-nav a.nav-link, .main-nav a.sub-nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.innerWidth <= 1140) {
+                    closeSidebar();
+                }
+            });
+        });
+
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 1140) {
+                closeSidebar();
+            }
+        });
+    });
+</script>
+
 <!-- Vector Map Js -->
 <script src="{{ asset('backend/assets/vendor/jsvectormap/js/jsvectormap.min.js') }}"></script>
 <script src="{{ asset('backend/assets/vendor/jsvectormap/maps/world-merc.js') }}"></script>
@@ -60,14 +107,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-});
-document.addEventListener('DOMContentLoaded', function () {
-    const topbarButton = document.querySelector('.topbar-button');
-
-    topbarButton.addEventListener('click', function () {
-        // Toggle the "sidebar-enable" class on the <html> element
-        document.documentElement.classList.toggle('sidebar-enable');
-    });
 });
 
 

@@ -27,6 +27,7 @@ use App\Http\Controllers\Backend\PharmacyProductController;
 use App\Http\Controllers\Backend\PharmacyPurchaseController;
 use App\Http\Controllers\Backend\PharmacySaleController;
 use App\Http\Controllers\Backend\NumberCategoryController;
+use App\Http\Controllers\Backend\PatientController;
 use App\Http\Controllers\Backend\PaymentController;
 use App\Http\Controllers\Backend\PhoneNumberController;
 use App\Http\Controllers\Backend\ProductController;
@@ -79,13 +80,6 @@ Route::get('/', function () {
 });
 
 Route::post('/update-serial-status', [SerialController::class, 'updateSerialStatus']);
-Route::get('/clearall', function () {
-    Artisan::call('cache:clear');
-    Artisan::call('route:clear');
-    Artisan::call('view:clear');
-    Artisan::call('config:clear');
-    echo "Cleared all caches successfully.";
-});
 
 // Route for the print view
 Route::get('/doctor-serials/print', [DoctorSerialController::class, 'print'])->name('admin.doctor_serials.print');
@@ -120,6 +114,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin'], function () {
 Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admin', 'subscription.access']], function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('home');
+    Route::get('/dashboard/live', [DashboardController::class, 'liveStats'])->name('dashboard.live');
+    Route::post('/system/clear-cache', [SystemMaintenanceController::class, 'clearCache'])->name('system.clear-cache');
     Route::post('/system/install-hr-schema', [SystemMaintenanceController::class, 'installHrSchema'])->name('system.install-hr-schema');
 //    Roles
     Route::resource('roles', RolesController::class, ['names' => 'roles']);
@@ -127,6 +123,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::resource('admins', AdminController::class, ['names' => 'admins']);
 //    Users
     Route::resource('users', UserController::class, ['names' => 'users']);
+    Route::get('/patients/profile', [PatientController::class, 'profile'])->name('patients.profile');
+    Route::get('/patients/search', [PatientController::class, 'search'])->name('patients.search');
 
 //    CrudGenerator
 //    Profile Edit
@@ -176,7 +174,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/invoices/pdf-preview/{id}', [InvoiceController::class, 'pdfPreview'])->name('invoices.pdf-preview');
     Route::get('/report/pdf-preview/{id}', [InvoiceController::class, 'reportPdfPreview'])->name('lab.report.pdf-preview');
     Route::get('/report/file-download/{id}', [InvoiceController::class, 'reportfileDownload'])->name('lab.report.file-download');
-    Route::get('/invoices/status/{id}', [InvoiceController::class, 'invoiceStatus'])->name('lab.test.status');
+    Route::get('/invoices/status/{id}', [InvoiceController::class, 'invoiceStatus'])->name('invoices.test.status');
     Route::post('/invoices/due/pay/{id}', [InvoiceController::class, 'invoiceDuePay'])->name('invoices.due-pay');
 
     Route::resource('invoice_lists', InvoiceListController::class, ['names' => 'invoice_lists']);

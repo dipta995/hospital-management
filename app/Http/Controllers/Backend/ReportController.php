@@ -107,7 +107,7 @@ class ReportController extends Controller
         if ($request->query('export') == 'pdf') {
             $dataPaginator = $dataPaginator->get();
         } else {
-            $dataPaginator = $dataPaginator->paginate(2000);
+            $dataPaginator = $dataPaginator->paginate(50);
         }
 
         // Group payments by DATE and INVOICE to avoid duplicate invoice totals
@@ -206,7 +206,7 @@ class ReportController extends Controller
         if ($request->query('export') == 'pdf') {
             $dataPaginator = $dataPaginator->get();
         } else {
-            $dataPaginator = $dataPaginator->paginate(2000);
+            $dataPaginator = $dataPaginator->paginate(50);
         }
 
         // Group payments by DATE and ADMIT to structure like invoice collections
@@ -271,7 +271,7 @@ class ReportController extends Controller
         $data['reffers'] = Reefer::where('branch_id', auth()->user()->branch_id)
             ->get();
 
-        $query = Invoice::withSum('paidAmount', 'paid_amount')->with('reeferDr', 'reeferBy', 'costs')->where('branch_id', auth()->user()->branch_id);
+        $query = Invoice::withSum('paidAmount', 'paid_amount')->with('reeferDr', 'reeferBy', 'costs.admin')->where('branch_id', auth()->user()->branch_id);
         if ($request->filled('refer_id')) {
             $query->where('refer_id', $request->refer_id);
 
@@ -325,7 +325,7 @@ class ReportController extends Controller
         $data['reffers'] = Reefer::where('branch_id', auth()->user()->branch_id)
             ->get();
 
-        $query = Invoice::withSum('paidAmount', 'paid_amount')->with('reeferDr', 'reeferBy', 'costs')->where('branch_id', auth()->user()->branch_id);
+        $query = Invoice::withSum('paidAmount', 'paid_amount')->with('reeferDr', 'reeferBy', 'costs.admin')->where('branch_id', auth()->user()->branch_id);
         if ($request->filled('refer_id')) {
             $query->where('refer_id', $request->refer_id);
 
@@ -364,21 +364,30 @@ class ReportController extends Controller
     public function referencesDoctor(Request $request)
     {
         $this->checkOwnPermission('prescriptions.index');
-        $data['pageHeader'] = [
-            'title' => "References",
-            'sub_title' => "",
-            'plural_name' => "references",
-            'singular_name' => "Reference",
-            'base_url' => url('admin/references'),
 
-        ];
-        $referdoctor = Reefer::where('admin_id', auth()->id())->first();
+        $referdoctor = Reefer::where('branch_id', auth()->user()->branch_id)
+            ->where('admin_id', auth()->id())
+            ->first();
+
         $nowDhaka = Carbon::now('Asia/Dhaka');
+        $data['pageHeader'] = [
+            'title' => 'Doctor Refer Report',
+            'sub_title' => '',
+            'plural_name' => 'references',
+            'singular_name' => 'Reference',
+            'base_url' => url('admin/reports/references/doctor'),
+        ];
+        $data['linkedDoctor'] = $referdoctor;
+        $data['startDate'] = $request->start_date ?? $nowDhaka->toDateString();
+        $data['endDate'] = $request->end_date ?? $nowDhaka->toDateString();
 
-        $query = Invoice::with('reeferDr', 'reeferBy', 'costs')->where('branch_id', auth()->user()->branch_id);
-        if ($request->filled('refer_id')) {
-            $query->where('refer_id', $referdoctor->id);
+        $query = Invoice::with('reeferDr', 'reeferBy', 'costs.admin')
+            ->where('branch_id', auth()->user()->branch_id);
 
+        if ($referdoctor) {
+            $query->where('dr_refer_id', $referdoctor->id);
+        } else {
+            $query->whereRaw('1 = 0');
         }
 
         if (!$request->filled('start_date') && !$request->filled('end_date')) {
@@ -393,12 +402,18 @@ class ReportController extends Controller
             }
         }
 
+        $allInvoices = (clone $query)->get();
+        $data['totalPaidAmount'] = $allInvoices->sum(fn ($invoice) => $invoice->costs->sum('amount'));
+        $data['totalAmount'] = $allInvoices->sum('refer_fee_total');
+        $data['totalDueAmount'] = $data['totalAmount'] - $data['totalPaidAmount'];
+        $data['invoiceCount'] = $allInvoices->count();
+
         if ($request->query('export') == 'pdf') {
-            $data['datas'] = $query->get();
-            return Pdf::loadView('backend.pages.reports.references-doctor-pdf', $data)->stream('reports.pdf');
-        } else {
-            $data['datas'] = $query->paginate(20);
+            $data['datas'] = $query->orderByDesc('id')->get();
+            return Pdf::loadView('backend.pages.reports.references-doctor-pdf', $data)->stream('doctor-refer-report.pdf');
         }
+
+        $data['datas'] = $query->orderByDesc('id')->paginate(20)->withQueryString();
 
         return view('backend.pages.reports.references-doctor', $data);
     }
@@ -455,7 +470,7 @@ class ReportController extends Controller
             ->get(['id', 'name']);
         $nowDhaka = Carbon::now('Asia/Dhaka');
 
-        $query = InvoiceList::with('product.category');
+        $query = InvoiceList::with(['product.category', 'invoice.reeferDr', 'invoice.reeferBy']);
 
         if (!$request->filled('start_date') && !$request->filled('end_date')) {
             $query->whereDate('created_at', $nowDhaka->toDateString());
@@ -486,7 +501,7 @@ class ReportController extends Controller
             ->get();
 
         $data['datas'] = $invoiceLists->groupBy(function ($invoiceList) {
-            return $invoiceList->product->category->name; // Group by category name (or use category_id)
+            return $invoiceList->product?->category?->name ?? 'Uncategorized';
         })->map(function ($groupedInvoices) {
             return [
                 'invoices' => $groupedInvoices,
@@ -781,7 +796,7 @@ class ReportController extends Controller
 
             $product->total_purchased = $totalPurchased;
             $product->total_sold = $totalSold;
-            $product->current_stock = $currentStock;
+            $product->current_stock = max($currentStock, 0);
 
             return $product;
         });

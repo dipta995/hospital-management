@@ -253,9 +253,6 @@
                         <i class="fas fa-hospital-alt"></i>
                     </div>
                     <div class="brand-title">{{ $softwareName ?? 'Hospital Management Software' }}</div>
-                    @if(!empty($companyName))
-                        <div class="brand-hospital-name">{{ $companyName }}</div>
-                    @endif
                     <p class="brand-subtitle">
                         Secure admin panel for hospital operations, billing, patients, pharmacy, and staff management.
                     </p>
@@ -271,13 +268,15 @@
                 @yield('auth-content')
 
                 <div class="auth-footer-note">
-                    &copy; {{ date('Y') }} {{ $softwareName ?? 'Hospital Management Software' }}@if(!empty($companyName)) — {{ $companyName }}@endif
+                    &copy; {{ date('Y') }} {{ $softwareName ?? 'Hospital Management Software' }}
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+    @include('backend.layouts.partials.auth-feedback')
     @stack('scripts')
 </body>
 </html>

@@ -1,238 +1,96 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
-<div class="container">
+@extends('backend.layouts.report-pdf-layout')
 
-    <div class="card-body">
+@section('pdf-title')
+    Referrer Commission Report
+@endsection
 
-        <div class="header"
-             style="display: table; width: 100%; border-bottom: 2px solid black; padding-bottom: 10px; border: 1px solid black;">
-            <div style="display: table-cell; width: 40%; vertical-align: middle;">
-                <img src="{{ public_path('images/'.\App\Models\Setting::get('logo')) }}" alt="Logo"
-                     style="height: 80px;">
-            </div>
-            <div style=" display: table-cell; width: 60%; text-align: left; vertical-align: middle; color:#000;">
-                <h1 style="margin: 0; font-size: 20px;">{{ \App\Models\Setting::get('company_name') }}</h1>
-                <p style="margin: 0; font-size: 10px;">{!! \App\Models\Setting::get('address') !!}</p>
-                <p style="margin: 0; font-size: 10px;">Mobile: {{ \App\Models\Setting::get('phone_one') }}
-                    , {{ \App\Models\Setting::get('phone_two') }}</p>
-                <p style="margin: 0; font-size: 10px;">Email: {{ \App\Models\Setting::get('email') }}</p>
-            </div>
-        </div>
-        <h4 class="card-title"
-            style="font-size: 20px; font-weight: bold; text-align: center; margin-top:10px;">{{ $pageHeader['title'] }}
-            's Report</h4>
-        <h5 style="float: right;">{{ $startDate }} to {{ $endDate }}</h5>
-        <p>
-            <strong>Total Collection :{{ $toatalCollection }}</strong> ||
-            <strong>Total:{{ $totalAmount }}</strong> ||
-            <strong>Paid:{{ $totalPaidAmount }}</strong> ||
-            <strong>Due:{{ $totalDueAmount }}</strong>
-        </p>
-        <div class="table-responsive">
-            <table class="table table-striped mt-3">
-                <thead>
-                <tr>
-                    <th>Invoice</th>
-                    <th>Refer By</th>
-                    <th>Dr</th>
-                    <th>Patient</th>
-                    <th>Amount</th>
-                    <th>Paid</th>
-                    <th>Unpaid</th>
-                    <th>Status||By</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach($datas as $item)
-                    <tr>
-                        <td>{{ $item->id }} | {{ $item->invoice_number }} <br>
-                        {{ $item->creation_date }}
-                        </td>
-                        <td>{{ $item->reeferBy->name ?? 'n/a' }}</td>
-                        <td>{{ $item->reeferDr->name ?? 'n/a' }}</td>
-                        <td>
-                            {{ $item->patient_name }}
-                            <br>
-                            <strong>Total:</strong>{{ $item->total_amount+$item->discount_amount }}</br>
-                            <strong>Less:</strong>{{ $item->discount_amount }}
-                        </td>
-                        <td>{{ $item->refer_fee_total  }}</td>
-                        <td>{{ $item->costs->sum('amount') }}</td>
-                        <td>{{ $item->refer_fee_total - ($item->costs->sum('amount')) }} @if($item->refer_fee_total - ($item->costs->sum('amount'))<0) Extra @endif</td>
-                        <td>
-                            @if($item->refer_fee_total - ($item->costs->sum('amount'))>0)
-                                <strong class="badge bg-danger">Unpaid</strong>
-                            @else
-                                <strong class="badge bg-info">Paid</strong>
-                            @endif
-                                @php
-                                    $editors = $item->costs
-                                        ->pluck('admin.name')
-                                        ->filter()
-                                        ->unique()
-                                        ->implode(', ');
-                                @endphp
+@section('pdf-subtitle')
+    Refer fees earned, paid and outstanding
+@endsection
 
-                                {{ $editors ? 'By-' . $editors : '' }}
+@section('pdf-period')
+    {{ $startDate }} → {{ $endDate }}
+@endsection
 
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
+@section('pdf-summary')
+    @php $fmt = fn ($n) => number_format((float) $n, 2); @endphp
+    <table class="rpdf-kpi-table">
+        <tr>
+            <td>
+                <div class="rpdf-kpi-label">Total Collection</div>
+                <div class="rpdf-kpi-value">৳ {{ $fmt($toatalCollection ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Refer Fee</div>
+                <div class="rpdf-kpi-value">৳ {{ $fmt($totalAmount ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Paid</div>
+                <div class="rpdf-kpi-value success">৳ {{ $fmt($totalPaidAmount ?? 0) }}</div>
+            </td>
+            <td>
+                <div class="rpdf-kpi-label">Due</div>
+                <div class="rpdf-kpi-value danger">৳ {{ $fmt($totalDueAmount ?? 0) }}</div>
+            </td>
+        </tr>
+    </table>
+@endsection
 
-        </div>
-    </div>
-</div>
-
-<style>
-    /* General reset */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: Arial, sans-serif;
-        line-height: 1.0;
-        color: #212529;
-        background-color: #fff;
-        margin: 0 auto;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        margin-bottom: 0px;
-        color: #333;
-    }
-
-    /* Container */
-    .container {
-        width: 99%;
-        margin: 0 auto;
-        padding: 2px;
-    }
-
-    /* Table Styles */
-    table {
-        width: 100%;
-        margin: 0 auto;
-        border-collapse: collapse;
-    }
-
-    table th, table td {
-        border: 1px solid #ddd;
-        padding: 6px 10px;
-        text-align: left;
-    }
-
-    table th {
-        background-color: #f8f9fa;
-        color: #495057;
-        font-weight: bold;
-    }
-
-    table td {
-        background-color: #fff;
-    }
-
-    /* Table striped rows */
-    table tr:nth-child(odd) {
-        background-color: #f2f2f2;
-    }
-
-    /* Table hover effect */
-    table tr:hover {
-        background-color: #e9ecef;
-    }
-
-    /* Button styles (you can remove if you don't need them) */
-    .btn {
-        display: inline-block;
-        font-size: 12px;
-        padding: 8px 16px;
-        margin: 5px;
-        text-align: center;
-        cursor: pointer;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        text-decoration: none;
-    }
-
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-        border-color: #007bff;
-    }
-
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-        border-color: #dc3545;
-    }
-
-    /* Text utility classes */
-    .text-center {
-        text-align: center;
-    }
-
-    .text-end {
-        text-align: right;
-    }
-
-    .text-left {
-        text-align: left;
-    }
-
-    /* Background Colors */
-    .bg-info {
-        background-color: #17a2b8;
-        color: white;
-    }
-
-    .bg-danger {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    .bg-gray {
-        background-color: #f8f9fa;
-    }
-
-    /* Padding helpers */
-    .p-1 {
-        padding: 5px;
-    }
-
-    .p-2 {
-        padding: 10px;
-    }
-
-    .p-3 {
-        padding: 15px;
-    }
-
-    /* Margin helpers */
-    .m-1 {
-        margin: 5px;
-    }
-
-    .m-2 {
-        margin: 10px;
-    }
-
-    .m-3 {
-        margin: 15px;
-    }
-</style>
-
-</body>
-</html>
+@section('content')
+    @php $fmt = fn ($n) => number_format((float) $n, 2); @endphp
+    <table class="rpdf-table">
+        <thead>
+        <tr>
+            <th>Invoice</th>
+            <th>Refer By</th>
+            <th>Doctor</th>
+            <th>Patient</th>
+            <th class="text-end">Refer Fee</th>
+            <th class="text-end">Paid</th>
+            <th class="text-end">Unpaid</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($datas as $item)
+            @php
+                $paid = $item->costs->sum('amount');
+                $unpaid = $item->refer_fee_total - $paid;
+                $editors = $item->costs
+                    ->map(fn ($cost) => $cost->admin?->name)
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+            @endphp
+            <tr>
+                <td>
+                    <strong>{{ $item->invoice_number }}</strong>
+                    <div class="text-muted">#{{ $item->id }} · {{ $item->creation_date }}</div>
+                </td>
+                <td>{{ $item->reeferBy->name ?? '—' }}</td>
+                <td>{{ $item->reeferDr->name ?? '—' }}</td>
+                <td>
+                    {{ $item->patient_name }}
+                    <div class="text-muted">Bill ৳{{ $fmt($item->total_amount + $item->discount_amount) }} · Disc ৳{{ $fmt($item->discount_amount) }}</div>
+                </td>
+                <td class="text-end fw-bold">৳ {{ $fmt($item->refer_fee_total) }}</td>
+                <td class="text-end">৳ {{ $fmt($paid) }}</td>
+                <td class="text-end">
+                    ৳ {{ $fmt($unpaid) }}
+                    @if($unpaid < 0)<span class="rpdf-badge rpdf-badge-extra">Extra</span>@endif
+                </td>
+                <td>
+                    @if($unpaid > 0)
+                        <span class="rpdf-badge rpdf-badge-unpaid">Unpaid</span>
+                    @else
+                        <span class="rpdf-badge rpdf-badge-paid">Paid</span>
+                    @endif
+                    @if($editors)
+                        <div class="text-muted" style="margin-top:3px">By {{ $editors }}</div>
+                    @endif
+                </td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+@endsection

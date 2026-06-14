@@ -62,8 +62,9 @@ class PharmacyUnitController extends Controller
         try {
             $row = new PharmacyUnit();
             $row->name = $request->name;
-            // Default status to active when creating
-            $row->status = 1;
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pharmacy_units', 'status')) {
+                $row->status = 1;
+            }
 
             if ($row->save()) {
                 return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Pharmacy Unit Created Successfully');
