@@ -81,8 +81,11 @@
             </div>
         </div>
 
-        <div class="inv-table-wrap">
-            <div class="table-responsive">
+        <div class="inv-table-wrap inv-list-table-wrap" data-inv-hscroll>
+            <div class="inv-hscroll-top" aria-hidden="true">
+                <div class="inv-hscroll-top-inner"></div>
+            </div>
+            <div class="table-responsive inv-hscroll-body">
                 <table class="table inv-table">
                     <thead>
                     <tr>
@@ -199,6 +202,7 @@
 @endsection
 
 @push('scripts')
+    @include('backend.layouts.partials.invoice-hscroll-sync')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {

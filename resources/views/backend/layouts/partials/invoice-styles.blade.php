@@ -275,6 +275,71 @@
         background: var(--inv-surface);
     }
 
+    /* List/index tables — horizontal scroll so action buttons stay reachable */
+    .inv-list-table-wrap {
+        overflow: visible;
+    }
+
+    .inv-list-table-wrap .inv-hscroll-top {
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 14px;
+        margin-bottom: 2px;
+        scrollbar-width: thin;
+        border-radius: var(--inv-radius) var(--inv-radius) 0 0;
+        background: #f8fafc;
+    }
+
+    .inv-list-table-wrap .inv-hscroll-top::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .inv-list-table-wrap .inv-hscroll-top::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .inv-list-table-wrap .inv-hscroll-top-inner {
+        height: 1px;
+    }
+
+    .inv-list-table-wrap .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        border-radius: 0 0 var(--inv-radius) var(--inv-radius);
+    }
+
+    .inv-list-table-wrap .table-responsive::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .inv-list-table-wrap .table-responsive::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .inv-list-table-wrap .inv-table {
+        min-width: 980px;
+    }
+
+    .inv-list-table-wrap .inv-actions-cell {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        background: #fff;
+        box-shadow: -8px 0 16px rgba(15, 23, 42, 0.06);
+    }
+
+    .inv-list-table-wrap .inv-table thead .inv-actions-cell {
+        background: linear-gradient(180deg, #f1f5f9, #e8edf3);
+    }
+
+    .inv-list-table-wrap .inv-table tbody tr:hover .inv-actions-cell {
+        background: #f0fdfa;
+    }
+
     .inv-table {
         margin: 0;
         font-size: 0.875rem;
@@ -768,6 +833,35 @@
             font-weight: 700;
             color: var(--inv-muted);
             font-size: 0.78rem;
+        }
+
+        /* Wide list tables keep normal table + horizontal scroll */
+        .inv-list-table-wrap .inv-table thead {
+            display: table-header-group !important;
+        }
+
+        .inv-list-table-wrap .inv-table tbody tr {
+            display: table-row !important;
+            padding: 0;
+            border-bottom: none;
+        }
+
+        .inv-list-table-wrap .inv-table tbody td {
+            display: table-cell !important;
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .inv-list-table-wrap .inv-table tbody td::before {
+            display: none !important;
+        }
+
+        .inv-list-table-wrap .inv-actions-cell {
+            min-width: 200px;
+        }
+
+        .inv-list-table-wrap .inv-actions-grid {
+            justify-content: flex-end;
         }
     }
 
