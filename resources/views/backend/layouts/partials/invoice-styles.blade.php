@@ -324,6 +324,10 @@
         min-width: 980px;
     }
 
+    .inv-list-table-wrap.inv-list-table-wide .inv-table {
+        min-width: 1180px;
+    }
+
     .inv-list-table-wrap .inv-actions-cell {
         position: sticky;
         right: 0;

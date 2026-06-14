@@ -157,8 +157,11 @@
         </div>
 
         {{-- Table --}}
-        <div class="inv-table-wrap">
-            <div class="table-responsive">
+        <div class="inv-table-wrap inv-list-table-wrap inv-list-table-wide" data-inv-hscroll>
+            <div class="inv-hscroll-top" aria-hidden="true">
+                <div class="inv-hscroll-top-inner"></div>
+            </div>
+            <div class="table-responsive inv-hscroll-body">
                 <table class="table inv-table">
                     <thead>
                     <tr>
@@ -363,6 +366,7 @@
 @endsection
 
 @push('scripts')
+    @include('backend.layouts.partials.invoice-hscroll-sync')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>

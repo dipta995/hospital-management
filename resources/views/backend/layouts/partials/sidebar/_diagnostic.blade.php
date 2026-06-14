@@ -2,9 +2,8 @@
     $hasDiagnostic = ($userGuard->can('categories.index') || $userGuard->can('categories.create'))
         || ($userGuard->can('products.index') || $userGuard->can('products.create'))
         || ($userGuard->can('invoices.index') || $userGuard->can('invoices.create'))
-        || ($userGuard->can('labs.index'))
-        || ($userGuard->can('test_report_demos.index') || $userGuard->can('test_report_demos.create'));
-    $diagnosticActive = Route::is('admin.categories.*', 'admin.products.*', 'admin.invoices.*', 'admin.labs.*', 'admin.test_report_demos.*');
+        || ($userGuard->can('labs.index'));
+    $diagnosticActive = Route::is('admin.categories.*', 'admin.products.*', 'admin.invoices.*', 'admin.labs.*');
 @endphp
 @if ($hasDiagnostic)
     @include('backend.layouts.partials.sidebar._section-title', [
@@ -58,20 +57,11 @@
                     @endif
                 @endif
 
-                @if ($userGuard->can('labs.index') || $userGuard->can('test_report_demos.index'))
-                    <li class="sub-nav-section">Lab & Reports</li>
-                @endif
                 @if ($userGuard->can('labs.index'))
+                    <li class="sub-nav-section">Lab & Reports</li>
                     <li class="sub-nav-item">
                         <a class="sub-nav-link" href="{{ route('admin.labs.index') }}">
                             <i class="fas fa-flask fa-fw me-1"></i> {{ __('language.lab') }}
-                        </a>
-                    </li>
-                @endif
-                @if ($userGuard->can('test_report_demos.index') || $userGuard->can('test_report_demos.create'))
-                    <li class="sub-nav-item">
-                        <a class="sub-nav-link" href="{{ route('admin.test_report_demos.index') }}">
-                            <i class="fas fa-file-medical fa-fw me-1"></i> Test Report Templates
                         </a>
                     </li>
                 @endif
