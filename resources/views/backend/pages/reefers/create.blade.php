@@ -83,7 +83,8 @@
                         </div>
 
                         <div class="form-check mt-3 mb-2">
-                            <input class="form-check-input" value="yes" type="checkbox" id="enableCustomPercent">
+                            <input class="form-check-input" name="enable_custom_percent" value="yes" type="checkbox" id="enableCustomPercent"
+                                {{ old('enable_custom_percent') === 'yes' ? 'checked' : '' }}>
                             <label class="form-check-label" for="enableCustomPercent">
                                 Enable custom percent by category
                             </label>

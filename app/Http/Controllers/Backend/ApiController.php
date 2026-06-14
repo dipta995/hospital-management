@@ -27,7 +27,7 @@ class ApiController extends Controller
             $q->where('name', 'LIKE', '%' . $query . '%')
                 ->orWhere('code', 'LIKE', '%' . $query . '%');
         })
-            ->get(['name', 'price', 'reefer_fee', 'id as productID']);
+            ->get(['name', 'price', 'reefer_fee', 'category_id', 'id as productID']);
 
         return response()->json($products);
     }
@@ -89,9 +89,23 @@ class ApiController extends Controller
     public function getReefs(Request $request)
     {
         $query = $request->get('query');
-        $products = Reefer::where('branch_id', auth()->user()->branch_id)
-            ->where('name', 'LIKE', '%' . $query . '%')->get(['name', 'id as referID']);
-        return response()->json($products);
+        $reefers = Reefer::with('customParcent')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->where('name', 'LIKE', '%' . $query . '%')
+            ->get();
+
+        return response()->json($reefers->map(function (Reefer $refer) {
+            return [
+                'name' => $refer->name,
+                'referID' => $refer->id,
+                'percent' => (float) $refer->percent,
+                'has_custom_percent' => $refer->customParcent->isNotEmpty(),
+                'custom_percents' => $refer->customParcent
+                    ->pluck('percentage', 'category_id')
+                    ->map(fn ($value) => (float) $value)
+                    ->all(),
+            ];
+        }));
     }
 
     public function searchUserPhone(Request $request)

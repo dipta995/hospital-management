@@ -4,50 +4,14 @@
 <header class="topbar">
     <div class="container-fluid">
         <div class="navbar-header topbar-navbar">
+            <div class="topbar-item topbar-menu-wrap flex-shrink-0">
+                <button type="button" class="button-toggle-menu topbar-button topbar-menu-btn" aria-label="Open menu">
+                    <iconify-icon icon="solar:hamburger-menu-broken" class="fs-24 align-middle"></iconify-icon>
+                </button>
+            </div>
+
             <div class="topbar-left d-flex align-items-center">
-                <!-- Menu Toggle Button -->
-                <div class="topbar-item flex-shrink-0">
-                    <button type="button" class="button-toggle-menu topbar-button">
-                        <iconify-icon icon="solar:hamburger-menu-broken" class="fs-24 align-middle"></iconify-icon>
-                    </button>
-                </div>
-
-                <div class="topbar-quick-links d-none d-lg-flex align-items-center flex-wrap">
-                    @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-dark btn-sm">Patient List</a>
-                        <a href="{{ route('admin.invoices.index') }}" class="btn btn-success btn-sm">Invoice List</a>
-                        <a href="{{ route('admin.admits.index') }}" class="btn btn-secondary btn-sm">Admit List</a>
-                        <a href="{{ route('admin.recepts.index') }}" class="btn btn-warning btn-sm">Recept List</a>
-                    @endif
-                    @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
-                        <a href="{{ route('admin.labs.index') }}" class="btn btn-primary btn-sm">My Lab</a>
-                    @endif
-                    @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
-                        <a href="{{ route('admin.costs.create') }}" class="btn btn-dark btn-sm">Add Cost's</a>
-                    @endif
-                </div>
-
-                {{-- Mobile quick links dropdown --}}
-                <div class="dropdown topbar-mobile-quick d-none">
-                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bolt"></i> Quick
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-start">
-                        @if ( $userGuard->can('invoices.index') || $userGuard->can('invoices.create') || $userGuard->can('invoices.edit') || $userGuard->can('invoices.delete'))
-                            <li><a class="dropdown-item" href="{{ route('admin.users.index') }}"><i class="fas fa-users me-2"></i>Patient List</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.invoices.index') }}"><i class="fas fa-file-invoice me-2"></i>Invoice List</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.admits.index') }}"><i class="fas fa-bed me-2"></i>Admit List</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.recepts.index') }}"><i class="fas fa-receipt me-2"></i>Recept List</a></li>
-                        @endif
-                        @if ( $userGuard->can('labs.index') || $userGuard->can('labs.create') || $userGuard->can('labs.edit') || $userGuard->can('labs.delete'))
-                            <li><a class="dropdown-item" href="{{ route('admin.labs.index') }}"><i class="fas fa-flask me-2"></i>My Lab</a></li>
-                        @endif
-                        @if ( $userGuard->can('costs.index') || $userGuard->can('costs.create') || $userGuard->can('costs.edit') || $userGuard->can('costs.delete'))
-                            <li><a class="dropdown-item" href="{{ route('admin.costs.create') }}"><i class="fas fa-coins me-2"></i>Add Cost</a></li>
-                        @endif
-                    </ul>
-                </div>
+                @include('backend.layouts.partials.topbar-quick-links', ['topbarQuickLinksMode' => 'desktop'])
 
                 @if($userGuard->can('users.index'))
                 <div class="topbar-patient-search d-none d-md-block">
@@ -162,6 +126,8 @@
                 </a>
             </div>
         </div>
+
+        @include('backend.layouts.partials.topbar-quick-links', ['topbarQuickLinksMode' => 'mobile'])
     </div>
 </header>
 
@@ -252,17 +218,142 @@
     .topbar-search-item-name { font-weight: 700; font-size: 0.88rem; color: #0f172a; }
     .topbar-search-item-sub { font-size: 0.75rem; color: #64748b; }
 
-    .topbar-quick-links {
-        gap: 6px;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: thin;
-        padding-bottom: 2px;
+    .topbar-menu-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f172a;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     }
 
-    .topbar-quick-links .btn {
+    .topbar-menu-btn:hover {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+    }
+
+    .tb-quick-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 2px 4px;
+    }
+
+    .tb-quick-nav::-webkit-scrollbar { display: none; }
+
+    .tb-quick-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 700;
         white-space: nowrap;
         flex-shrink: 0;
+        border: 1px solid transparent;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .tb-quick-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        color: inherit;
+    }
+
+    .tb-quick-link-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.68rem;
+    }
+
+    .tb-quick-link--patients { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+    .tb-quick-link--patients .tb-quick-link-icon { background: #334155; color: #fff; }
+    .tb-quick-link--invoices { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .tb-quick-link--invoices .tb-quick-link-icon { background: #059669; color: #fff; }
+    .tb-quick-link--admits { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .tb-quick-link--admits .tb-quick-link-icon { background: #64748b; color: #fff; }
+    .tb-quick-link--recepts { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .tb-quick-link--recepts .tb-quick-link-icon { background: #f59e0b; color: #fff; }
+    .tb-quick-link--lab { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+    .tb-quick-link--lab .tb-quick-link-icon { background: #4f46e5; color: #fff; }
+    .tb-quick-link--cost { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
+    .tb-quick-link--cost .tb-quick-link-icon { background: #0f172a; color: #fff; }
+
+    .tb-quick-link.is-active {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+    }
+
+    .tb-quick-strip {
+        border-top: 1px solid #eef2f7;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+        padding: 8px 0 10px;
+        margin: 0 -0.65rem;
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+    }
+
+    .tb-quick-strip-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 0 0.65rem;
+    }
+
+    .tb-quick-strip-scroll::-webkit-scrollbar { display: none; }
+
+    .tb-quick-chip {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-width: 68px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        text-decoration: none;
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1.1;
+        flex-shrink: 0;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    .tb-quick-chip i {
+        font-size: 1rem;
+    }
+
+    .tb-quick-chip--patients i { color: #334155; }
+    .tb-quick-chip--invoices i { color: #059669; }
+    .tb-quick-chip--admits i { color: #64748b; }
+    .tb-quick-chip--recepts i { color: #d97706; }
+    .tb-quick-chip--lab i { color: #4f46e5; }
+    .tb-quick-chip--cost i { color: #7e22ce; }
+
+    .tb-quick-chip.is-active {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        color: #1d4ed8;
     }
 
     .topbar-right {
@@ -323,15 +414,32 @@
     }
 
     @media (max-width: 1400px) {
-        .topbar-quick-links .btn {
-            font-size: 0.78rem;
-            padding: 0.28rem 0.55rem;
+        .tb-quick-link {
+            font-size: 0.76rem;
+            padding: 6px 10px;
         }
     }
 
-    @media (max-width: 991px) {
+    @media (max-width: 991.98px) {
         .topbar-navbar {
-            flex-wrap: nowrap;
+            display: grid !important;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .topbar-menu-wrap {
+            grid-column: 1;
+        }
+
+        .topbar-left {
+            grid-column: 2;
+            min-width: 0;
+        }
+
+        .topbar-right {
+            grid-column: 3;
+            margin-left: 0;
         }
     }
 

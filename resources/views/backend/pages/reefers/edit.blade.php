@@ -92,8 +92,8 @@
                         @endphp
 
                         <div class="form-check mt-3 mb-2">
-                            <input class="form-check-input" type="checkbox" value="yes" id="enableCustomPercent"
-                                {{ $hasCustomPercent ? 'checked' : '' }}>
+                            <input class="form-check-input" name="enable_custom_percent" type="checkbox" value="yes" id="enableCustomPercent"
+                                {{ old('enable_custom_percent', $hasCustomPercent ? 'yes' : '') === 'yes' ? 'checked' : '' }}>
                             <label class="form-check-label" for="enableCustomPercent">
                                 Enable custom percent by category
                             </label>

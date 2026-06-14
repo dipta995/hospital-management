@@ -22,14 +22,40 @@
             }
         }
 
+        function openSidebar() {
+            document.body.classList.add('sidebar-enable');
+            document.documentElement.classList.add('sidebar-enable');
+            if (!document.querySelector('.offcanvas-backdrop')) {
+                var backdrop = document.createElement('div');
+                backdrop.className = 'offcanvas-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+        }
+
         function syncSidebarClass() {
             var enabled = document.body.classList.contains('sidebar-enable');
             document.documentElement.classList.toggle('sidebar-enable', enabled);
         }
 
-        menuBtn.addEventListener('click', function () {
-            setTimeout(syncSidebarClass, 0);
-        });
+        function isMobileNav() {
+            return window.innerWidth < 992;
+        }
+
+        menuBtn.addEventListener('click', function (event) {
+            if (!isMobileNav()) {
+                setTimeout(syncSidebarClass, 0);
+                return;
+            }
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            if (document.body.classList.contains('sidebar-enable')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        }, true);
 
         document.addEventListener('click', function (e) {
             if (e.target && e.target.classList.contains('offcanvas-backdrop')) {
@@ -39,14 +65,14 @@
 
         document.querySelectorAll('.main-nav a.nav-link, .main-nav a.sub-nav-link').forEach(function (link) {
             link.addEventListener('click', function () {
-                if (window.innerWidth <= 1140) {
+                if (isMobileNav()) {
                     closeSidebar();
                 }
             });
         });
 
         window.addEventListener('resize', function () {
-            if (window.innerWidth > 1140) {
+            if (!isMobileNav()) {
                 closeSidebar();
             }
         });

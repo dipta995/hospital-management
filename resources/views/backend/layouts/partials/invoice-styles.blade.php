@@ -749,23 +749,303 @@
         .inv-hero { padding: 20px; }
         .inv-hero-title { font-size: 1.3rem; }
         .inv-kpi-grid { grid-template-columns: 1fr 1fr; }
-        .inv-table thead { display: none; }
-        .inv-table tbody tr {
+
+        /* List/index tables only — not invoice create/edit form table */
+        .inv-table-wrap:not(.inv-form-table-wrap) .inv-table thead { display: none; }
+        .inv-table-wrap:not(.inv-form-table-wrap) .inv-table tbody tr {
             display: block;
             padding: 14px;
             border-bottom: 8px solid #f1f5f9;
         }
-        .inv-table tbody td {
+        .inv-table-wrap:not(.inv-form-table-wrap) .inv-table tbody td {
             display: flex;
             justify-content: space-between;
             padding: 6px 0;
             border: none;
         }
-        .inv-table tbody td::before {
+        .inv-table-wrap:not(.inv-form-table-wrap) .inv-table tbody td::before {
             content: attr(data-label);
             font-weight: 700;
             color: var(--inv-muted);
             font-size: 0.78rem;
+        }
+    }
+
+    /* ── Invoice create / edit — mobile ── */
+    @media (max-width: 991.98px) {
+        .inv-page.container-fluid {
+            padding-left: 0.65rem;
+            padding-right: 0.65rem;
+            padding-bottom: 7.5rem;
+        }
+
+        .inv-hero {
+            padding: 18px 16px;
+            margin-bottom: 14px;
+        }
+
+        .inv-hero-inner {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .inv-hero-left {
+            gap: 12px;
+        }
+
+        .inv-hero-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .inv-hero-title {
+            font-size: 1.25rem;
+        }
+
+        .inv-hero-sub {
+            font-size: 0.84rem;
+            word-break: break-word;
+        }
+
+        .inv-hero-actions {
+            width: 100%;
+        }
+
+        .inv-btn-glass {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .inv-steps {
+            flex-direction: column;
+            margin-bottom: 14px;
+        }
+
+        .inv-step {
+            border-right: none;
+            border-bottom: 1px solid var(--inv-border);
+            justify-content: flex-start;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+        }
+
+        .inv-step:last-child {
+            border-bottom: none;
+        }
+
+        .inv-section {
+            margin-bottom: 14px;
+        }
+
+        .inv-section-head {
+            padding: 12px 14px;
+            font-size: 0.88rem;
+        }
+
+        .inv-section-body {
+            padding: 14px;
+        }
+
+        .inv-section-body .form-control,
+        .inv-section-body .form-select {
+            min-height: 44px;
+            font-size: 16px;
+        }
+
+        .inv-add-test-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 0.65rem 1rem;
+        }
+
+        .inv-form-table-wrap {
+            border: none;
+            background: transparent;
+        }
+
+        .inv-form-table-wrap .table-responsive {
+            overflow: visible;
+        }
+
+        /* Product rows as cards */
+        .inv-form-table-wrap #ordered-products thead {
+            display: none;
+        }
+
+        .inv-form-table-wrap #ordered-products tbody tr {
+            display: block;
+            margin-bottom: 10px;
+            padding: 12px 14px;
+            border: 1px solid var(--inv-border);
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .inv-form-table-wrap #ordered-products tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            border: none;
+            text-align: right;
+        }
+
+        .inv-form-table-wrap #ordered-products tbody td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            color: var(--inv-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            text-align: left;
+            flex: 1;
+        }
+
+        .inv-form-table-wrap #ordered-products tbody td:last-child {
+            justify-content: flex-end;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
+            margin-top: 4px;
+        }
+
+        .inv-form-table-wrap #ordered-products tbody td:last-child::before {
+            display: none;
+        }
+
+        /* Payment / discount block */
+        .inv-form-table-wrap #ordered-products tfoot {
+            display: block;
+            margin-top: 12px;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot tr {
+            display: block;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border: 1px solid var(--inv-border);
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot td {
+            display: block;
+            width: 100% !important;
+            padding: 4px 0;
+            border: none;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot td:empty {
+            display: none;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot strong {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--inv-muted);
+            margin-bottom: 6px;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot input.form-control {
+            width: 100%;
+            min-height: 44px;
+            font-size: 16px;
+        }
+
+        .inv-form-table-wrap #ordered-products tfoot label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 16px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Fixed payment summary bar */
+        .inv-summary-sticky {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            top: auto;
+            z-index: 1025;
+            padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .inv-summary-card {
+            border-radius: 16px 16px 12px 12px;
+            box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.16);
+        }
+
+        .inv-summary-card h5 {
+            padding: 10px 16px;
+            font-size: 0.88rem;
+        }
+
+        .inv-summary-body {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 2px 14px;
+            padding: 8px 16px 10px;
+        }
+
+        .inv-summary-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1px;
+            padding: 6px 0;
+            border-bottom: none;
+            font-size: 0.78rem;
+        }
+
+        .inv-summary-row .val {
+            font-size: 0.92rem;
+        }
+
+        .inv-summary-row.total {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 4px;
+            padding: 10px 12px;
+        }
+
+        .inv-section-body label .btn {
+            margin-top: 4px;
+            margin-left: 0 !important;
+        }
+
+        .inv-section-body .form-group label {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ui-autocomplete {
+            max-width: calc(100vw - 2rem);
+            z-index: 2000 !important;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .inv-kpi-grid { grid-template-columns: 1fr; }
+
+        .inv-summary-body {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .inv-section-body .col-md-2,
+        .inv-section-body .col-md-4,
+        .inv-section-body .col-md-8 {
+            flex: 0 0 100%;
+            max-width: 100%;
         }
     }
 </style>

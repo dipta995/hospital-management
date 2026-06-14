@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Cost;
-use App\Models\CustomPercent;
 use App\Models\Invoice;
 use App\Models\InvoiceList;
 use App\Models\InvoicePayment;
@@ -15,6 +14,7 @@ use App\Models\Reefer;
 use App\Models\Setting;
 use App\Models\TestReport;
 use App\Models\User;
+use App\Services\ReferCommissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
@@ -301,18 +301,13 @@ class InvoiceController extends Controller
                     $row->discount_by = $request['customerDetails']['discount_by'];
                     $row->total_amount = $request['paymentDetails']['total_amount'];
                     $row->discount_amount = $request['paymentDetails']['discount_amount'];
-                    $refer = Reefer::find($request['customerDetails']['refer_id']);
-                    if ($refer && $refer->customParcent->isNotEmpty()) {
-                        $refFeeTotal =  $this->refferAmountNew($request['customerDetails']['refer_id'], $request['products'], $request['paymentDetails']['discount_amount']);
-                    }else{
-                       $refFeeTotal = self::refferAmount($request['customerDetails']['refer_id'], ($request['paymentDetails']['total_amount'] + $request['paymentDetails']['discount_amount']), $request['paymentDetails']['discount_amount']);
-                    }
-                    if ($request['customerDetails']['refer_id'] != null) {
-                        $row->refer_fee_total =$refFeeTotal;
-
-                    } else {
-                        $row->refer_fee_total = 0.00;
-                    }
+                    $refFeeTotal = app(ReferCommissionService::class)->calculate(
+                        (int) ($request['customerDetails']['refer_id'] ?? 0),
+                        $request['products'],
+                        (float) $request['paymentDetails']['discount_amount'],
+                        (float) ($request['paymentDetails']['total_amount'] + $request['paymentDetails']['discount_amount'])
+                    );
+                    $row->refer_fee_total = $request['customerDetails']['refer_id'] ? $refFeeTotal : 0.00;
                     $row->refer_fee_total_agent = $request->refer_fee_total_agent ?? 0.00;
 //                $row->discount_percent = $request->discount_percent;
                     $row->delivery_at = $request['customerDetails']['delivery_at'];
@@ -478,29 +473,14 @@ class InvoiceController extends Controller
 
     }
 
-    protected function refferAmountNew($referId, $products, $discount)
-    {
-        $amount = 0;
-        foreach ($products as $product) {
-            $productPrice = $product['price'];
-            $paecentage = $this->referOtherPercentage($referId, $product['product_id']);
-            $amount += ($paecentage * $productPrice) / 100;
-        }
-        return ($amount > 0) ? $amount - $discount : 0;
-    }
-
-    protected function referOtherPercentage($referId, $productId)
-    {
-        $categoryId = Product::find($productId)->category_id;
-        return (CustomPercent::where('refer_id', $referId)->where('category_id', $categoryId)->first())->percentage;
-
-    }
-
     public function refferAmount($refferId, $totalAmount, $discount)
     {
-        $ref = Reefer::find($refferId);
-//        dd(round((($ref->percent*$totalAmount)/100)-$discount));
-        return round((($ref->percent * $totalAmount) / 100) - $discount) > 0 ? round((($ref->percent * $totalAmount) / 100) - $discount) : 0;
+        return app(ReferCommissionService::class)->calculate(
+            (int) $refferId,
+            [],
+            (float) $discount,
+            (float) $totalAmount
+        );
     }
 
     /**
@@ -555,8 +535,12 @@ class InvoiceController extends Controller
                         'product_name' => $product->product->name, // Assuming 'product_name' is a column
                         'price' => $product->price,
                         'reefer_fee' => $product->refer_fee,
+                        'category_id' => $product->product->category_id ?? null,
                     ];
                 });
+            $data['referCommission'] = $data['edited']->refer_id
+                ? app(ReferCommissionService::class)->referPayload((int) $data['edited']->refer_id)
+                : null;
             $data['reports'] = TestReport::where('invoice_id', $id)->get();
             return view('backend.pages.invoices.edit', $data);
         } else {
@@ -594,18 +578,13 @@ class InvoiceController extends Controller
                 $row->invoice_number = $request['customerDetails']['invoice_number'];
                 $row->total_amount = $request['paymentDetails']['total_amount'];
                 $row->discount_amount = $request['paymentDetails']['discount_amount'];
-                $refer = Reefer::find($request['customerDetails']['refer_id']);
-                if ($refer && $refer->customParcent->isNotEmpty()) {
-                    $refFeeTotal =  $this->refferAmountNew($request['customerDetails']['refer_id'], $request['products'], $request['paymentDetails']['discount_amount']);
-                }else{
-                    $refFeeTotal = self::refferAmount($request['customerDetails']['refer_id'], ($request['paymentDetails']['total_amount'] + $request['paymentDetails']['discount_amount']), $request['paymentDetails']['discount_amount']);
-                }
-                if ($request['customerDetails']['refer_id'] != null) {
-                    $row->refer_fee_total =$refFeeTotal;
-
-                } else {
-                    $row->refer_fee_total = 0.00;
-                }
+                $refFeeTotal = app(ReferCommissionService::class)->calculate(
+                    (int) ($request['customerDetails']['refer_id'] ?? 0),
+                    $request['products'],
+                    (float) $request['paymentDetails']['discount_amount'],
+                    (float) ($request['paymentDetails']['total_amount'] + $request['paymentDetails']['discount_amount'])
+                );
+                $row->refer_fee_total = $request['customerDetails']['refer_id'] ? $refFeeTotal : 0.00;
                 $row->refer_fee_total_agent = $request->refer_fee_total_agent ?? 0.00;
 //                $row->discount_percent = $request->discount_percent;
                 $row->delivery_at = $request['customerDetails']['delivery_at'];

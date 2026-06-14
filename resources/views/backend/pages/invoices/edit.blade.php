@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         #ordered-products tfoot td { vertical-align: middle; }
-        #discount-percent-row, #discount-taka-row { display: contents; }
+        #ordered-products tfoot td input,
+        #ordered-products tfoot td span { width: 100%; max-width: 100%; }
     </style>
 @endpush
 
@@ -129,6 +130,7 @@
                                             <x-default.input-error name="name"></x-default.input-error>
                                         </div>
                                         <input type="hidden" name="product_id" id="product_id" >
+                                        <input type="hidden" id="product_category_id">
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
@@ -137,11 +139,10 @@
                                             <x-default.input-error name="price"></x-default.input-error>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-4 d-none">
                                         <div class="form-group">
-                                            <x-default.label required="true" for="reefer_fee">Refer Fee</x-default.label>
+                                            <x-default.label for="reefer_fee">Refer Fee</x-default.label>
                                             <x-default.input name="reefer_fee" class="form-control" id="reefer_fee" type="number" ></x-default.input>
-                                            <x-default.input-error name="reefer_fee"></x-default.input-error>
                                         </div>
                                     </div>
                             <div class="col-12 text-end">
@@ -153,7 +154,7 @@
                 <div class="inv-section">
                     <div class="inv-section-head"><i class="fas fa-receipt"></i> Invoice Details</div>
                     <div class="inv-section-body">
-                        <div class="inv-table-wrap"><div class="table-responsive">
+                        <div class="inv-table-wrap inv-form-table-wrap"><div class="table-responsive">
                                 <table id="ordered-products" class="table inv-table table-bordered mb-0">
                                     <thead>
                                     <tr>
@@ -252,6 +253,7 @@
 @endsection
 
 @push('scripts')
+    @include('backend.layouts.partials.invoice-refer-commission')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 
@@ -266,15 +268,21 @@
             let selectedProducts = []; // Holds all products for the invoice
 
             // Preload data for editing (replace `existingProducts` with actual data from server-side)
-            const existingProducts = @json($products); // Laravel server-side data
+            const referCommission = @json($referCommission);
+            if (referCommission) {
+                window.InvoiceReferCommission.setRefer(referCommission);
+            }
+
+            const existingProducts = @json($products);
             if (existingProducts && existingProducts.length) {
                 selectedProducts = existingProducts.map(product => ({
                     product_id: product.product_id,
                     name: product.product_name,
                     price: parseFloat(product.price),
+                    category_id: product.category_id,
                     reefer_fee: parseFloat(product.reefer_fee),
                 }));
-                updateTable(); // Populate the table with existing data
+                updateTable();
             }
 
             // Function to configure autocomplete fields
@@ -311,8 +319,8 @@
             // Configure product autocomplete
             configureAutocomplete("name", "/admin/get-products", function (item) {
                 $("#price").val(item.price);
-                $("#reefer_fee").val(item.reefer_fee);
                 $("#product_id").val(item.productID);
+                $("#product_category_id").val(item.category_id || '');
             });
 
             // Configure doctors autocomplete
@@ -325,6 +333,8 @@
             configureAutocomplete("refer_name", "/admin/get-referrals", function (item) {
                 $("#refer_id").val(item.referID);
                 $("#refer_name").val(item.name);
+                window.InvoiceReferCommission.setRefer(item);
+                updateTable();
             });
             // Handle radio button change for discount type (percent or taka)
             $("input[name='discount-type']").on("change", function () {
@@ -348,9 +358,9 @@
                 const product_id = $("#product_id").val().trim();
                 const name = $("#name").val().trim();
                 const price = parseFloat($("#price").val().trim());
-                const reeferFee = parseFloat($("#reefer_fee").val().trim());
+                const category_id = $("#product_category_id").val() ? parseInt($("#product_category_id").val(), 10) : null;
 
-                if (!name || isNaN(price) || isNaN(reeferFee) || isNaN(product_id)) {
+                if (!name || isNaN(price) || isNaN(product_id)) {
                     alert("All fields are required.");
                     return;
                 }
@@ -367,7 +377,7 @@
                     product_id: product_id,
                     name: name,
                     price: price,
-                    reefer_fee: reeferFee,
+                    category_id: category_id,
                 });
 
                 updateTable(); // Update the table
@@ -377,6 +387,7 @@
             // Function to reset the product form fields
             function resetProductForm() {
                 $("#product_id").val("");
+                $("#product_category_id").val("");
                 $("#name").val("");
                 $("#price").val("");
                 $("#reefer_fee").val("");
@@ -388,12 +399,13 @@
                 tableBody.empty();
 
                 selectedProducts.forEach((product, index) => {
+                    const lineReferFee = window.InvoiceReferCommission.lineAmount(product);
                     let row = `
                 <tr>
-                    <td>${index + 1}</td>
-                    <td>${product.name}</td>
-                    <td>${product.price}</td>
-                    <td>${product.reefer_fee}</td>
+                    <td data-label="#">${index + 1}</td>
+                    <td data-label="Test">${product.name}</td>
+                    <td data-label="Price">${product.price}</td>
+                    <td data-label="Refer Fee">${lineReferFee.toFixed(2)}</td>
                     <td>
                         <button type="button" class="btn btn-danger btn-sm remove-product" data-index="${index}">
                             Close
@@ -409,15 +421,12 @@
             // Function to update the summary (subtotal, refer fee total, discount, final amount)
             function updateSummary() {
                 let subtotal = 0;
-                let referFeeTotal = 0;
 
                 selectedProducts.forEach(product => {
                     subtotal += product.price;
-                    referFeeTotal += product.reefer_fee;
                 });
 
                 $("#subtotal").text(subtotal.toFixed(2));
-                $("#refer-fee-total").text(referFeeTotal.toFixed(2));
 
                 const discountPercent = parseFloat($("#discount-percent").val()) || 0;
                 const discountTaka = parseFloat($("#discount-taka").val()) || 0;
@@ -428,6 +437,12 @@
                 } else if (discountTaka > 0) {
                     discountAmount = discountTaka;
                 }
+
+                const referFeeTotal = window.InvoiceReferCommission.calculate(
+                    selectedProducts,
+                    discountAmount,
+                    subtotal
+                );
 
                 $("#discount-amount").text(discountAmount.toFixed(2));
 
@@ -465,7 +480,7 @@
                 const products = selectedProducts.map(product => ({
                     product_id: product.product_id,
                     price: product.price,
-                    ref_amount: product.reefer_fee
+                    ref_amount: window.InvoiceReferCommission.lineAmount(product),
                 }));
 
                 const customerDetails = {

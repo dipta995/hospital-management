@@ -1,14 +1,155 @@
 <style>
-    /* ── Mobile sidebar: theme CSS uses html.sidebar-enable but app.js toggles body ── */
+    /* ── Mobile sidebar overlay ── */
     html.sidebar-enable[data-menu-size=hidden] .main-nav,
-    html[data-menu-size=hidden].sidebar-enable .main-nav {
+    html[data-menu-size=hidden].sidebar-enable .main-nav,
+    html.sidebar-enable .main-nav,
+    html.sidebar-enable .main-nav {
         margin-left: 0 !important;
         z-index: 1055 !important;
     }
 
-    html.sidebar-enable[data-menu-size=hidden] .offcanvas-backdrop,
+    html.sidebar-enable .offcanvas-backdrop,
     body.sidebar-enable .offcanvas-backdrop {
         z-index: 1050;
+    }
+
+    @media (max-width: 991.98px) {
+        /* Theme adds sidebar width as topbar padding — pushes menu off-screen on phones */
+        .topbar {
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            height: auto;
+            min-height: 56px;
+        }
+
+        .page-content {
+            margin-left: 0 !important;
+        }
+
+        .main-nav {
+            position: fixed !important;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            margin-left: 0 !important;
+            transform: translateX(-110%);
+            transition: transform 0.25s ease;
+            z-index: 1055 !important;
+        }
+
+        html.sidebar-enable .main-nav {
+            transform: translateX(0);
+            box-shadow: 8px 0 32px rgba(15, 23, 42, 0.18);
+        }
+
+        .button-toggle-menu,
+        .topbar-menu-wrap {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .topbar-menu-wrap {
+            flex: 0 0 auto;
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .topbar-left {
+            grid-column: 2;
+            grid-row: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .topbar-right {
+            grid-column: 3;
+            grid-row: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            flex-wrap: nowrap;
+            min-width: 0;
+            margin-left: 0;
+            padding-left: 0;
+        }
+
+        .topbar-navbar {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 56px;
+        }
+
+        .topbar-menu-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0c4a6e, #0369a1);
+            border: none;
+            color: #fff !important;
+            box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-menu-btn:hover {
+            background: linear-gradient(135deg, #075985, #0284c7);
+            color: #fff !important;
+        }
+
+        .topbar-menu-btn iconify-icon {
+            color: #fff;
+        }
+
+        .topbar-item .topbar-button:not(.topbar-menu-btn) {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .topbar-item .topbar-button .topbar-badge {
+            top: 4px;
+            right: 2px;
+            transform: none;
+        }
+
+        .topbar-user-chip {
+            display: none !important;
+        }
+
+        #openBalanceModal {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-logout-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-sms-badge {
+            display: none !important;
+        }
     }
 
     /* ── Topbar mobile layout ── */
@@ -20,72 +161,8 @@
         }
 
         .topbar .container-fluid {
-            padding-left: 0.65rem;
-            padding-right: 0.65rem;
-        }
-
-        .topbar-navbar {
-            flex-wrap: nowrap;
-            min-height: 56px;
-            gap: 6px;
-        }
-
-        .topbar-left {
-            flex: 1 1 auto;
-            min-width: 0;
-            overflow: hidden;
-        }
-
-        .topbar-right {
-            flex: 0 0 auto;
-            width: auto;
-            padding-top: 0;
             padding-left: 0;
-            gap: 4px;
-            flex-wrap: nowrap;
-        }
-
-        .topbar-quick-links {
-            display: none !important;
-        }
-
-        .topbar-mobile-quick {
-            display: inline-flex !important;
-        }
-
-        .topbar-sms-badge {
-            font-size: 0.68rem;
-            padding: 0.25rem 0.45rem;
-        }
-
-        .topbar-user-chip {
-            padding: 4px 8px;
-            max-width: none;
-        }
-
-        .topbar-user-text {
-            display: none;
-        }
-
-        .topbar-user-chip > i {
-            font-size: 1rem;
-        }
-
-        #openBalanceModal {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .topbar-logout-btn span {
-            display: none !important;
-        }
-
-        .topbar-logout-btn {
-            padding: 0.3rem 0.55rem;
-        }
-
-        .topbar-item .topbar-button {
-            padding: 0.25rem;
+            padding-right: 0;
         }
 
         .page-content {
@@ -95,39 +172,19 @@
     }
 
     @media (max-width: 575.98px) {
-        .topbar-sms-badge {
-            display: none;
+        .topbar {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
         }
 
         .topbar-navbar {
             min-height: 52px;
+            gap: 6px;
         }
-    }
 
-    @media (min-width: 992px) {
-        .topbar-mobile-quick {
-            display: none !important;
+        .tb-quick-chip {
+            min-width: 62px;
+            padding: 7px 8px;
         }
-    }
-
-    .topbar-mobile-quick .dropdown-menu {
-        max-height: 70vh;
-        overflow-y: auto;
-        min-width: 220px;
-        border-radius: 12px;
-        box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
-    }
-
-    .topbar-mobile-quick .dropdown-item {
-        font-weight: 600;
-        font-size: 0.9rem;
-        padding: 0.55rem 1rem;
-    }
-
-    .topbar-mobile-quick .dropdown-toggle {
-        white-space: nowrap;
-        font-size: 0.82rem;
-        font-weight: 600;
-        padding: 0.35rem 0.65rem;
     }
 </style>
