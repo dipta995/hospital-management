@@ -621,13 +621,27 @@ class InvoiceController extends Controller
                     ->whereNotIn('product_id', $productIdsInRequest)
                     ->where('status', InvoiceList::$statusArray[0])
                     ->delete();
+
+                $currentPaid = (float) $row->paidAmount()->sum('paid_amount');
+                $targetPaid = (float) ($request['paymentDetails']['paid_amount'] ?? $currentPaid);
+                $adjustment = round($targetPaid - $currentPaid, 2);
+
+                if (abs($adjustment) >= 0.01) {
+                    InvoicePayment::create([
+                        'branch_id' => auth()->user()->branch_id,
+                        'admin_id' => auth()->id(),
+                        'invoice_id' => $row->id,
+                        'paid_amount' => $adjustment,
+                        'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
+                    ]);
+                }
             });
 
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['status' => 200, 'message' => 'Invoice updated successfully.']);
+            }
 
-            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Invoice Created Successfully');
-
-
-            return RedirectHelper::backWithInput();
+            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Invoice updated successfully.');
 
         } catch (QueryException $e) {
             return $e;
@@ -758,31 +772,64 @@ class InvoiceController extends Controller
             //     return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Nothing due to pay.');
             // }
 
-            // Never pay more than current positive due for forward payments,
-            // but allow negative values (adjustments/refunds) as entered.
-            $amount = $request->due_pay;
-            if ($amount > 0) {
-                $amount = min($amount, $due);
-            }
+            $isReturn = $request->boolean('is_return');
+            $amount = (float) $request->due_pay;
 
-            $fromBalance = $request->boolean('pay_from_balance');
-
-            if ($fromBalance) {
-                $balance = CustomerBalance::firstOrNew([
-                    'user_id' => $invoice->user_id,
-                    'branch_id' => $invoice->branch_id,
-                ]);
-
-                if (($balance->balance ?? 0) < $amount) {
+            if ($isReturn) {
+                if ($due >= -0.009) {
                     \DB::rollBack();
-                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Insufficient balance.');
+                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>No overpayment to return.');
                 }
 
-                $balance->balance -= $amount;
-                $balance->save();
+                $maxReturn = abs($due);
+                $returnAmount = abs($amount);
+
+                if ($returnAmount <= 0 || $returnAmount > ($maxReturn + 0.009)) {
+                    \DB::rollBack();
+                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Return amount cannot exceed overpaid balance.');
+                }
+
+                $amount = -$returnAmount;
+                $fromBalance = $request->boolean('add_to_balance');
+
+                if ($fromBalance) {
+                    $balance = CustomerBalance::firstOrNew([
+                        'user_id' => $invoice->user_id,
+                        'branch_id' => $invoice->branch_id,
+                    ]);
+                    $balance->balance = ($balance->balance ?? 0) + $returnAmount;
+                    $balance->save();
+                }
+            } else {
+                if ($due <= 0.009) {
+                    \DB::rollBack();
+                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Nothing due to pay. Use Return for overpayment.');
+                }
+
+                if ($amount <= 0) {
+                    \DB::rollBack();
+                    return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Enter a valid payment amount.');
+                }
+
+                $amount = min($amount, $due);
+                $fromBalance = $request->boolean('pay_from_balance');
+
+                if ($fromBalance) {
+                    $balance = CustomerBalance::firstOrNew([
+                        'user_id' => $invoice->user_id,
+                        'branch_id' => $invoice->branch_id,
+                    ]);
+
+                    if (($balance->balance ?? 0) < $amount) {
+                        \DB::rollBack();
+                        return RedirectHelper::backWithWarning('<strong>Sorry!!! </strong>Insufficient balance.');
+                    }
+
+                    $balance->balance -= $amount;
+                    $balance->save();
+                }
             }
 
-            // Normal payment record (same as before, but with capped amount)
             $duePaid = new InvoicePayment();
             $duePaid->branch_id = auth()->user()->branch_id;
             $duePaid->admin_id = auth()->id();
@@ -793,7 +840,11 @@ class InvoiceController extends Controller
 
             \DB::commit();
 
-            return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong>Due paid');
+            $message = $isReturn
+                ? '<strong>Done!</strong> Overpayment returned successfully.'
+                : '<strong>Congratulations!!!</strong> Due paid';
+
+            return RedirectHelper::routeSuccess($this->index_route, $message);
         } catch (QueryException $e) {
             \DB::rollBack();
             return RedirectHelper::backWithInputFromException();

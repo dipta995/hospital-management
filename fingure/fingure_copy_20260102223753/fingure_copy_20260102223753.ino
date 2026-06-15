@@ -25,9 +25,21 @@ WiFiManager wm; // manages WiFi credentials via web portal
 const char* SEND_API = "https://bho.dreammake-soft.com/fingerprint-send";
 const char* CHECK_API = "https://bho.dreammake-soft.com/fingerprint-check";
 
-// ================= FINGERPRINT =================
+// ================= FINGERPRINT (ZFM60 back v1.4 — AS608 protocol) =================
+// Wire colors (4-pin ribbon cable):
+//   RED   -> ESP32 3V3  (VCC)
+//   BLACK -> ESP32 GND  (GND)
+//   GREEN -> ESP32 GPIO16 RX2  (sensor TX → MCU RX)
+//   WHITE -> ESP32 GPIO17 TX2  (sensor RX ← MCU TX)
+// See: fingure/fingure_copy_20260102223753/wiring_diagram.svg
+// Default baud is usually 57600; some boards ship with 115200.
+#define FINGERPRINT_BAUD_PRIMARY   57600
+#define FINGERPRINT_BAUD_FALLBACK  115200
+#define FINGERPRINT_BAUD_LAST      9600
+
 HardwareSerial mySerial(2);
 Adafruit_Fingerprint finger(&mySerial);
+long fingerprintBaud = FINGERPRINT_BAUD_PRIMARY;
 
 // ================= STATE =================
 uint8_t enrollID = 1;
@@ -60,6 +72,56 @@ void errorBeeps();
 void warningBeeps();
 void formatAllFingerprints();
 void handleWiFiReconnect();
+bool initFingerprintSensor();
+
+// ================= FINGERPRINT INIT (ZFM60) =================
+bool tryFingerprintBaud(long baud) {
+  Serial.print("[FP] Trying baud ");
+  Serial.println(baud);
+
+  mySerial.end();
+  delay(100);
+  mySerial.begin(baud, SERIAL_8N1, RXD2, TXD2);
+  finger.begin(baud);
+  delay(200);
+
+  if (!finger.verifyPassword()) {
+    return false;
+  }
+
+  fingerprintBaud = baud;
+
+  if (finger.getParameters() == FINGERPRINT_OK) {
+    Serial.print("[FP] ZFM60 ready | capacity=");
+    Serial.print(finger.capacity);
+    Serial.print(" security=");
+    Serial.print(finger.security_level);
+    Serial.print(" baud=");
+    Serial.println(fingerprintBaud);
+  } else {
+    Serial.print("[FP] ZFM60 ready at baud ");
+    Serial.println(fingerprintBaud);
+  }
+
+  return true;
+}
+
+bool initFingerprintSensor() {
+  Serial.println("[FP] Initializing ZFM60 v1.4...");
+
+  if (tryFingerprintBaud(FINGERPRINT_BAUD_PRIMARY)) {
+    return true;
+  }
+  if (tryFingerprintBaud(FINGERPRINT_BAUD_FALLBACK)) {
+    return true;
+  }
+  if (tryFingerprintBaud(FINGERPRINT_BAUD_LAST)) {
+    return true;
+  }
+
+  Serial.println("[FP] Sensor not found. Check wiring TX/RX and power.");
+  return false;
+}
 
 // ================= WIFI HELPERS =================
 void connectToWiFi() {
@@ -319,16 +381,15 @@ void setup() {
     showBootScreen();
   }
 
-  // ---- Fingerprint ----
-  mySerial.begin(57600, SERIAL_8N1, RXD2, TXD2);
-  finger.begin(57600);
-
-  if (!finger.verifyPassword()) {
-    Serial.println("❌ Fingerprint sensor not detected");
+  // ---- Fingerprint (ZFM60 v1.4) ----
+  if (!initFingerprintSensor()) {
+    Serial.println("❌ ZFM60 fingerprint sensor not detected");
     showSensorError();
-    while (1);
+    while (1) {
+      delay(1000);
+    }
   }
-  Serial.println("✅ Fingerprint sensor ready");
+  Serial.println("✅ ZFM60 fingerprint sensor ready");
 
   // ---- WIFI (WiFiManager) ----
   connectToWiFi();
@@ -340,7 +401,12 @@ void setup() {
 
   // ---- LOAD ENROLL ID ----
   finger.getTemplateCount();
-  enrollID = finger.templateCount + 1;
+  if (finger.templateCount >= finger.capacity) {
+    Serial.println("[FP] WARNING: Sensor full. Delete templates or use reset.");
+    enrollID = finger.capacity;
+  } else {
+    enrollID = finger.templateCount + 1;
+  }
 
   Serial.print("Stored fingerprints: ");
   Serial.println(finger.templateCount);
@@ -497,6 +563,13 @@ void loop() {
 
 // ================= ENROLL =================
 void enrollFinger(uint8_t id) {
+  if (id == 0 || id > finger.capacity) {
+    Serial.println("Enrollment ID out of range for ZFM60 capacity");
+    errorBeeps();
+    showEnrollError("ID invalid");
+    return;
+  }
+
   Serial.print("Starting enrollment for ID ");
   Serial.println(id);
 

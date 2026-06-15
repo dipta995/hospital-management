@@ -409,6 +409,86 @@
 
     .inv-amount.due { color: var(--inv-danger); }
     .inv-amount.paid { color: var(--inv-success); }
+    .inv-amount.overpaid { color: #0369a1; }
+
+    .inv-pay-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    @media (max-width: 768px) {
+        .inv-pay-stat-grid { grid-template-columns: 1fr; }
+    }
+
+    .inv-pay-stat {
+        background: var(--inv-surface);
+        border: 1px solid var(--inv-border);
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .inv-pay-stat-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--inv-muted);
+        margin-bottom: 6px;
+    }
+
+    .inv-pay-stat-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+
+    .inv-pay-stat-value.is-paid { color: #059669; }
+    .inv-pay-stat-value.is-due { color: #dc2626; }
+    .inv-pay-stat-value.is-overpaid { color: #0369a1; }
+
+    .inv-payment-panel {
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        border: 1px solid var(--inv-border);
+        border-radius: 14px;
+        padding: 18px 20px;
+    }
+
+    .inv-payment-panel .form-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--inv-muted);
+        margin-bottom: 6px;
+    }
+
+    .inv-due-display {
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        padding: 0.65rem 0.95rem;
+        border-radius: 10px;
+        border: 1px solid var(--inv-border);
+        background: #fff;
+        font-size: 1.1rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .inv-due-display.is-due { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+    .inv-due-display.is-paid { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+    .inv-due-display.is-overpaid { color: #0369a1; border-color: #bae6fd; background: #eff6ff; }
+
+    #paid-amount {
+        font-size: 1.05rem;
+        font-weight: 700;
+        min-height: 46px;
+    }
 
     .inv-progress-wrap {
         min-width: 80px;
@@ -516,6 +596,7 @@
     .inv-act:hover { color: #fff; transform: scale(1.08); opacity: 0.9; }
     .inv-act.edit { background: #0ea5e9; }
     .inv-act.pay { background: #f59e0b; }
+    .inv-act.return { background: #0284c7; }
     .inv-act.pdf { background: #6366f1; }
     .inv-act.view { background: #10b981; }
     .inv-act.del { background: #ef4444; }
@@ -617,6 +698,7 @@
     }
 
     .inv-summary-row.due .val { color: #dc2626; }
+    .inv-summary-row.due .val.is-overpaid { color: #0369a1; }
     .inv-summary-row.paid .val { color: #059669; }
 
     .inv-summary-submit {

@@ -6,8 +6,7 @@
 <div class="main-nav">
     <div class="logo-box">
         <a href="{{ route('admin.home') }}" class="logo-light">
-            <img style="max-width: 170px;" src="{{ asset('images/'.\App\Models\Setting::get('logo')) }}" class="logo-sm" alt="logo sm">
-            {{ \App\Models\Setting::get('company_name') }}
+            <img style="max-width: 170px;" src="{{ asset('images/'.\App\Models\Setting::get('logo')) }}" class="logo-sm" alt="{{ \App\Models\Setting::get('company_name') }}">
         </a>
     </div>
 

@@ -177,7 +177,7 @@
                         <th class="inv-actions-cell">
                             <div class="inv-actions-head">
                                 <span title="Edit"><i class="fas fa-pen"></i></span>
-                                <span title="Pay Due"><i class="fas fa-dollar-sign"></i></span>
+                                <span title="Pay Due / Return"><i class="fas fa-dollar-sign"></i></span>
                                 <span title="PDF"><i class="fas fa-file-pdf"></i></span>
                                 <span title="View"><i class="fas fa-eye"></i></span>
                                 <span title="Delete"><i class="fas fa-trash"></i></span>
@@ -225,9 +225,14 @@
                                 </div>
                             </td>
                             <td data-label="Due">
-                                <span class="inv-amount {{ $dueAmount > 0 ? 'due' : 'paid' }}">
-                                    ৳{{ number_format($dueAmount, 2) }}
-                                </span>
+                                @if($dueAmount < -0.009)
+                                    <span class="inv-amount overpaid">৳{{ number_format($dueAmount, 2) }}</span>
+                                    <div class="inv-patient-id">Overpaid ৳{{ number_format(abs($dueAmount), 2) }}</div>
+                                @else
+                                    <span class="inv-amount {{ $dueAmount > 0 ? 'due' : 'paid' }}">
+                                        ৳{{ number_format($dueAmount, 2) }}
+                                    </span>
+                                @endif
                             </td>
                             <td data-label="Status">
                                 <div class="d-flex flex-column gap-1">
@@ -250,11 +255,17 @@
                                         <span class="inv-act-slot" aria-hidden="true"></span>
                                     @endif
 
-                                    @if($dueAmount > 0)
+                                    @if($dueAmount > 0.009)
                                         <button type="button" class="inv-act pay"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#payDueModal{{ $item->id }}" title="Pay Due">
                                             <i class="fas fa-dollar-sign"></i>
+                                        </button>
+                                    @elseif($dueAmount < -0.009)
+                                        <button type="button" class="inv-act return"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#returnOverpayModal{{ $item->id }}" title="Return Overpay">
+                                            <i class="fas fa-undo"></i>
                                         </button>
                                     @else
                                         <span class="inv-act-slot" aria-hidden="true"></span>
@@ -302,7 +313,7 @@
             @php
                 $dueAmountModal = $item->total_amount - $item->paid_amount_sum_paid_amount;
             @endphp
-            @if($dueAmountModal > 0)
+            @if($dueAmountModal > 0.009)
                 <div class="modal fade inv-modal" id="payDueModal{{ $item->id }}" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -318,6 +329,7 @@
                                 @endphp
                                 <form method="post" action="{{ route('admin.invoices.due-pay', $item->id) }}">
                                     @csrf
+                                    <input type="hidden" name="is_return" value="0">
                                     <div class="row g-3">
                                         <div class="col-6">
                                             <label class="form-label">Due Amount</label>
@@ -331,8 +343,8 @@
                                         </div>
                                         <div class="col-12">
                                             <label for="due_pay_{{ $item->id }}" class="form-label">Pay Amount</label>
-                                            <input type="number" step="0.01" class="form-control"
-                                                   value="{{ $dueAmountModal }}"
+                                            <input type="number" step="0.01" min="0.01" class="form-control"
+                                                   value="{{ number_format($dueAmountModal, 2, '.', '') }}"
                                                    id="due_pay_{{ $item->id }}" name="due_pay" required>
                                         </div>
                                         <div class="col-12">
@@ -347,6 +359,50 @@
                                         <div class="col-12">
                                             <button type="submit" class="inv-btn-filter w-100">
                                                 <i class="fas fa-check me-1"></i> Confirm Payment
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @elseif($dueAmountModal < -0.009)
+                <div class="modal fade inv-modal" id="returnOverpayModal{{ $item->id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>Return Overpayment — {{ $item->invoice_number }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{{ route('admin.invoices.due-pay', $item->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="is_return" value="1">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label">Overpaid Amount</label>
+                                            <input type="text" class="form-control fw-bold text-primary"
+                                                   value="৳ {{ number_format(abs($dueAmountModal), 2) }}" readonly>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="return_pay_{{ $item->id }}" class="form-label">Return Amount</label>
+                                            <input type="number" step="0.01" min="0.01" class="form-control"
+                                                   value="{{ number_format(abs($dueAmountModal), 2, '.', '') }}"
+                                                   id="return_pay_{{ $item->id }}" name="due_pay" required>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="1"
+                                                       id="add_to_balance_{{ $item->id }}" name="add_to_balance">
+                                                <label class="form-check-label" for="add_to_balance_{{ $item->id }}">
+                                                    Add returned amount to customer balance
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <button type="submit" class="inv-btn-filter w-100">
+                                                <i class="fas fa-undo me-1"></i> Confirm Return
                                             </button>
                                         </div>
                                     </div>

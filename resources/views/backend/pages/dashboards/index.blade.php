@@ -127,6 +127,7 @@
         .dash-pill.inv { background: #eff6ff; color: #1d4ed8; }
         .dash-pill.rec { background: #ecfdf5; color: #047857; }
         .dash-pill.earn { background: #fef3c7; color: #b45309; }
+        .dash-pill.pharm { background: #f5f3ff; color: #6d28d9; }
         .dash-pill.cost { background: #fef2f2; color: #b91c1c; }
         .dash-pill.net { background: #f0fdf4; color: #15803d; }
 
@@ -985,6 +986,7 @@
                         <div class="dash-breakdown mb-3">
                             <span class="dash-pill inv">Invoice ৳<span data-live="today.collection.invoice" data-live-fmt="money">{{ $fmt($today['collection']['invoice']) }}</span></span>
                             <span class="dash-pill rec">Recept ৳<span data-live="today.collection.recept" data-live-fmt="money">{{ $fmt($today['collection']['recept']) }}</span></span>
+                            <span class="dash-pill pharm">Pharmacy ৳<span data-live="today.collection.pharmacy" data-live-fmt="money">{{ $fmt($today['collection']['pharmacy'] ?? 0) }}</span></span>
                             <span class="dash-pill earn">Earn ৳<span data-live="today.collection.earn" data-live-fmt="money">{{ $fmt($today['collection']['earn']) }}</span></span>
                         </div>
                         <div class="dash-breakdown">
@@ -1059,6 +1061,7 @@
                                 <div class="dash-breakdown">
                                     <span class="dash-pill inv">Inv ৳{{ $fmt($period['data']['collection']['invoice']) }}</span>
                                     <span class="dash-pill rec">Rec ৳{{ $fmt($period['data']['collection']['recept']) }}</span>
+                                    <span class="dash-pill pharm">Pharm ৳{{ $fmt($period['data']['collection']['pharmacy'] ?? 0) }}</span>
                                     <span class="dash-pill earn">Earn ৳{{ $fmt($period['data']['collection']['earn']) }}</span>
                                     <span class="dash-pill cost">Cost ৳{{ $fmt($period['data']['cost']) }}</span>
                                 </div>
@@ -1237,7 +1240,7 @@
                     chart: { type: 'donut', height: 280, fontFamily: 'inherit' },
                     series: @json($chartTodaySplit['values']),
                     labels: @json($chartTodaySplit['labels']),
-                    colors: ['#2563eb', '#059669', '#d97706'],
+                    colors: ['#2563eb', '#059669', '#7c3aed', '#d97706'],
                     legend: { position: 'bottom', fontSize: '12px' },
                     dataLabels: { enabled: true, formatter: function (v) { return v.toFixed(1) + '%'; } },
                     tooltip: { y: { formatter: function (v) { return '৳ ' + v.toLocaleString(undefined, { minimumFractionDigits: 2 }); } } },
@@ -1340,6 +1343,7 @@
                             '<div class="dash-breakdown">' +
                             '<span class="dash-pill inv">Inv ৳' + fmtMoney(p.collection.invoice) + '</span>' +
                             '<span class="dash-pill rec">Rec ৳' + fmtMoney(p.collection.recept) + '</span>' +
+                            '<span class="dash-pill pharm">Pharm ৳' + fmtMoney(p.collection.pharmacy || 0) + '</span>' +
                             '<span class="dash-pill earn">Earn ৳' + fmtMoney(p.collection.earn) + '</span>' +
                             '<span class="dash-pill cost">Cost ৳' + fmtMoney(p.cost) + '</span>' +
                             '</div></div>';

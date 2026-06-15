@@ -12,6 +12,7 @@ use App\Models\InvoiceList;
 use App\Models\InvoicePayment;
 use App\Models\PharmacyProduct;
 use App\Models\PharmacySale;
+use App\Models\PharmacySalePayment;
 use App\Models\ReceptPayment;
 use App\Models\SmsBalance;
 use App\Services\HrSchemaService;
@@ -127,6 +128,7 @@ class DashboardController extends Controller
                 'invoice' => round((float) $data['collection']['invoice'], 2),
                 'recept' => round((float) $data['collection']['recept'], 2),
                 'earn' => round((float) $data['collection']['earn'], 2),
+                'pharmacy' => round((float) ($data['collection']['pharmacy'] ?? 0), 2),
                 'total' => round((float) $data['collection']['total'], 2),
             ],
         ];
@@ -291,10 +293,11 @@ class DashboardController extends Controller
         ];
 
         $chartTodaySplit = [
-            'labels' => ['Diagnostic', 'Hospital', 'Other Earn'],
+            'labels' => ['Diagnostic', 'Hospital', 'Pharmacy', 'Other Earn'],
             'values' => [
                 round($today['collection']['invoice'], 2),
                 round($today['collection']['recept'], 2),
+                round($today['collection']['pharmacy'], 2),
                 round($today['collection']['earn'], 2),
             ],
         ];
@@ -322,6 +325,7 @@ class DashboardController extends Controller
             'todaysCost' => $today['cost'],
             'todaysInvoiceCollection' => $today['collection']['invoice'],
             'todaysReceptCollection' => $today['collection']['recept'],
+            'todaysPharmacyCollection' => $today['collection']['pharmacy'],
             'todaysEarnCollection' => $today['collection']['earn'],
             'operations' => $operations,
             'pharmacy' => $pharmacy,
@@ -374,31 +378,79 @@ class DashboardController extends Controller
 
     private function collectionBetween(int $branchId, Carbon $start, Carbon $end): array
     {
-        $invoice = (float) InvoicePayment::where('branch_id', $branchId)
-            ->whereBetween('creation_date', [$start, $end])
-            ->sum('paid_amount');
+        $invoice = (float) $this->whereDateColumnBetween(
+            InvoicePayment::where('branch_id', $branchId),
+            'creation_date',
+            $start,
+            $end
+        )->sum('paid_amount');
 
-        $recept = (float) ReceptPayment::where('branch_id', $branchId)
-            ->whereBetween('creation_date', [$start, $end])
-            ->sum('paid_amount');
+        $recept = (float) $this->whereDateColumnBetween(
+            ReceptPayment::where('branch_id', $branchId),
+            'creation_date',
+            $start,
+            $end
+        )->sum('paid_amount');
 
-        $earn = (float) Earn::where('branch_id', $branchId)
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->sum('amount');
+        $earn = (float) $this->whereDateColumnBetween(
+            Earn::where('branch_id', $branchId),
+            'date',
+            $start,
+            $end
+        )->sum('amount');
+
+        $pharmacy = $this->pharmacyCollectionBetween($branchId, $start, $end);
 
         return [
             'invoice' => $invoice,
             'recept' => $recept,
             'earn' => $earn,
-            'total' => $invoice + $recept + $earn,
+            'pharmacy' => $pharmacy,
+            'total' => $invoice + $recept + $earn + $pharmacy,
         ];
     }
 
     private function costBetween(int $branchId, Carbon $start, Carbon $end): float
     {
-        return (float) Cost::where('branch_id', $branchId)
-            ->whereBetween('creation_date', [$start, $end])
-            ->sum('amount');
+        return (float) $this->whereDateColumnBetween(
+            Cost::where('branch_id', $branchId),
+            'creation_date',
+            $start,
+            $end
+        )->sum('amount');
+    }
+
+    /**
+     * Filter Y-m-d string date columns (creation_date, sale_date, etc.).
+     * Datetime whereBetween fails when the column stores date-only strings.
+     */
+    private function whereDateColumnBetween($query, string $column, Carbon $start, Carbon $end)
+    {
+        return $query
+            ->where($column, '>=', $start->toDateString())
+            ->where($column, '<=', $end->toDateString());
+    }
+
+    private function pharmacyCollectionBetween(int $branchId, Carbon $start, Carbon $end): float
+    {
+        $from = $start->toDateString();
+        $to = $end->toDateString();
+
+        $fromPayments = (float) $this->whereDateColumnBetween(
+            PharmacySalePayment::where('branch_id', $branchId),
+            'creation_date',
+            $start,
+            $end
+        )->sum('paid_amount');
+
+        $fromPosSales = (float) $this->whereDateColumnBetween(
+            PharmacySale::where('branch_id', $branchId)->whereDoesntHave('payments'),
+            'sale_date',
+            $start,
+            $end
+        )->sum('paid_amount');
+
+        return $fromPayments + $fromPosSales;
     }
 
     private function outstandingDue(int $branchId): float

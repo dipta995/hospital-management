@@ -13,6 +13,11 @@
 @endpush
 
 @section('admin-content')
+    @php
+        $paidTotal = (float) ($edited->paid_amount_sum_paid_amount ?? 0);
+        $dueTotal = (float) $edited->total_amount - $paidTotal;
+        $dueClass = $dueTotal > 0.009 ? 'is-due' : ($dueTotal < -0.009 ? 'is-overpaid' : 'is-paid');
+    @endphp
     <div class="inv-page container-fluid py-3">
         <div class="inv-hero">
             <div class="inv-hero-inner">
@@ -29,6 +34,22 @@
             </div>
         </div>
         @include('backend.layouts.partials.message')
+
+        <div class="inv-pay-stat-grid">
+            <div class="inv-pay-stat">
+                <div class="inv-pay-stat-label">Invoice Total</div>
+                <div class="inv-pay-stat-value">৳ {{ number_format($edited->total_amount, 2) }}</div>
+            </div>
+            <div class="inv-pay-stat">
+                <div class="inv-pay-stat-label">Paid Amount</div>
+                <div class="inv-pay-stat-value is-paid" id="hero-paid">৳ {{ number_format($paidTotal, 2) }}</div>
+            </div>
+            <div class="inv-pay-stat">
+                <div class="inv-pay-stat-label">{{ $dueTotal < -0.009 ? 'Overpaid' : 'Due Amount' }}</div>
+                <div class="inv-pay-stat-value {{ $dueClass }}" id="hero-due">৳ {{ number_format($dueTotal, 2) }}</div>
+            </div>
+        </div>
+
         <div class="inv-form-layout">
             <div class="inv-form-main">
                 <fieldset>
@@ -207,28 +228,41 @@
                                         <td colspan="3"><input type="text" id="discount-by" name="discount_by" value="{{ $edited->discount_by }}" class="form-control"></td>
                                     </tr>
 
-                                    <!-- Paid Amount Section -->
-                                    <tr>
-                                        <td colspan="2"><strong>Paid</strong></td>
-                                        <td colspan="3"><input type="number" id="paid-amount" value="{{ $edited->paid_amount_sum_paid_amount ?? 0 }}" class="form-control"></td>
-                                    </tr>
-
-                                    <!-- Due Amount Section -->
-                                    <tr>
-                                        <td colspan="2"><strong>Due</strong></td>
-                                        <td id="due-amount" colspan="3"></td>
-                                    </tr>
-
                                     <!-- Final Amount Section -->
                                     <tr>
                                         <td colspan="2"><strong>Final Amount</strong></td>
                                         <td colspan="3">
-                                            <span id="final-amount" >{{ $edited->total_amount }}</span>
+                                            <span id="final-amount">{{ $edited->total_amount }}</span>
                                             (<span id="final-refer">{{ $edited->refer_fee_total }}</span>)
                                         </td>
                                     </tr>
                                     </tfoot>
                                 </table></div></div>
+                    </div>
+                </div>
+
+                <div class="inv-section">
+                    <div class="inv-section-head"><i class="fas fa-money-bill-wave"></i> Payment</div>
+                    <div class="inv-section-body">
+                        <div class="inv-payment-panel">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="paid-amount">Paid Amount (Total)</label>
+                                    <input type="number" step="0.01" id="paid-amount"
+                                           value="{{ number_format($paidTotal, 2, '.', '') }}"
+                                           class="form-control">
+                                    <small class="text-muted">Change this to adjust total paid on save.</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Due / Overpaid</label>
+                                    <div id="due-display" class="inv-due-display {{ $dueClass }}">৳ {{ number_format($dueTotal, 2) }}</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Final Bill</label>
+                                    <div id="final-display" class="inv-due-display is-paid">৳ {{ number_format($edited->total_amount, 2) }}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 </fieldset>
@@ -447,18 +481,37 @@
                 $("#discount-amount").text(discountAmount.toFixed(2));
 
                 const paidAmount = parseFloat($("#paid-amount").val()) || 0;
-                const dueAmount = subtotal - discountAmount - paidAmount;
                 const finalAmount = subtotal - discountAmount;
+                const dueAmount = finalAmount - paidAmount;
 
-                $("#due-amount").text(dueAmount.toFixed(2));
                 $("#final-amount").text(finalAmount.toFixed(2));
                 $("#final-refer").text(referFeeTotal.toFixed(2));
                 $("#side-test-count").text(selectedProducts.length);
                 $("#side-subtotal, #subtotal").text(subtotal.toFixed(2));
                 $("#side-discount").text(discountAmount.toFixed(2));
                 $("#side-paid").text(paidAmount.toFixed(2));
+                $("#hero-paid").text('৳ ' + paidAmount.toFixed(2));
                 $("#side-due").text(dueAmount.toFixed(2));
+                $("#hero-due").text('৳ ' + dueAmount.toFixed(2));
                 $("#side-final").text(finalAmount.toFixed(2));
+                $("#final-display").text('৳ ' + finalAmount.toFixed(2));
+
+                const $dueDisplay = $("#due-display");
+                $dueDisplay.text('৳ ' + dueAmount.toFixed(2));
+                $dueDisplay.removeClass('is-due is-paid is-overpaid');
+                $("#hero-due").removeClass('is-due is-paid is-overpaid');
+                $("#side-due").removeClass('is-overpaid');
+
+                if (dueAmount > 0.009) {
+                    $dueDisplay.addClass('is-due');
+                    $("#hero-due").addClass('is-due');
+                } else if (dueAmount < -0.009) {
+                    $dueDisplay.addClass('is-overpaid');
+                    $("#hero-due, #side-due").addClass('is-overpaid');
+                } else {
+                    $dueDisplay.addClass('is-paid');
+                    $("#hero-due").addClass('is-paid');
+                }
             }
 
             // Handle removal of products from the table
@@ -516,14 +569,17 @@
                     contentType: "application/json",
                     data: JSON.stringify({ _method: "PUT", products, customerDetails, paymentDetails }),
                     success: function () {
-                        alert("Order saved successfully!");
+                        alert("Invoice updated successfully!");
                         location.reload();
                     },
-                    error: function () {
-                        alert("Failed to save the order. Please try again.");
+                    error: function (xhr) {
+                        const msg = xhr.responseJSON?.message || "Failed to save the order. Please try again.";
+                        alert(msg);
                     }
                 });
             });
+
+            updateSummary();
         });
 
     </script>
