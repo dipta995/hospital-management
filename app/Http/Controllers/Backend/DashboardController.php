@@ -15,7 +15,7 @@ use App\Models\PharmacySale;
 use App\Models\PharmacySalePayment;
 use App\Models\ReceptPayment;
 use App\Models\SmsBalance;
-use App\Services\HrSchemaService;
+use App\Services\AuditLogSchemaService;
 use App\Services\PatientInsightService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -24,16 +24,16 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(HrSchemaService $hrSchemaService)
+    public function index(AuditLogSchemaService $auditLogSchemaService)
     {
         $nowDhaka = Carbon::now('Asia/Dhaka');
         $branchId = auth()->user()->branch_id;
         $admin = auth('admin')->user();
 
         $data = [
-            'hrSchemaStatus' => $hrSchemaService->getStatus(),
-            'hrSchemaInstalled' => $hrSchemaService->isInstalled(),
-            'isSuperAdmin' => $admin && $admin->hasRole('Super Admin'),
+            'auditLogSchemaStatus' => $auditLogSchemaService->getStatus(),
+            'auditLogSchemaInstalled' => $auditLogSchemaService->isInstalled(),
+            'canManageAuditLogs' => canAccessAuditLogs($admin),
             'todayLabel' => $nowDhaka->format('l, d M Y'),
             'adminName' => $admin?->name,
         ];

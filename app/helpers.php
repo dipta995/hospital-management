@@ -12,6 +12,30 @@ function phoneNoRegex()
     return "/^(?=.{11}$)(01[3-9])\d+$/"; // [3-9] for BD phone no
 }
 
+function canAccessAuditLogs($admin = null): bool
+{
+    $admin = $admin ?: auth('admin')->user();
+
+    if (!$admin) {
+        return false;
+    }
+
+    $allowedRoles = ['super admin', 'superadmin', 'admin', 'owner'];
+    $roleNames = method_exists($admin, 'getRoleNames')
+        ? $admin->getRoleNames()->map(fn ($role) => strtolower(trim((string) $role)))->all()
+        : [];
+
+    if (!empty(array_intersect($allowedRoles, $roleNames))) {
+        return true;
+    }
+
+    $username = strtolower(trim((string) ($admin->username ?? '')));
+    $email = strtolower(trim((string) ($admin->email ?? '')));
+
+    return in_array($username, ['superadmin', 'super_admin', 'admin', 'owner'], true)
+        || in_array($email, ['superadmin@email.com', 'admin@email.com', 'owner@email.com'], true);
+}
+
 function redirectRouteHelper($route = null, $message = null)
 {
     if ($route == null) {

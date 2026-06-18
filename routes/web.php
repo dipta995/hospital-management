@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Backend\AdminController;
 use App\Http\Controllers\Backend\ApiController;
+use App\Http\Controllers\Backend\AuditLogController;
 use App\Http\Controllers\Backend\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Backend\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Backend\BranchController;
@@ -116,7 +117,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard/live', [DashboardController::class, 'liveStats'])->name('dashboard.live');
     Route::post('/system/clear-cache', [SystemMaintenanceController::class, 'clearCache'])->name('system.clear-cache');
-    Route::post('/system/install-hr-schema', [SystemMaintenanceController::class, 'installHrSchema'])->name('system.install-hr-schema');
+    Route::post('/system/install-audit-log-schema', [SystemMaintenanceController::class, 'installAuditLogSchema'])->name('system.install-audit-log-schema');
 //    Roles
     Route::resource('roles', RolesController::class, ['names' => 'roles']);
 //    Admins
@@ -176,6 +177,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/report/file-download/{id}', [InvoiceController::class, 'reportfileDownload'])->name('lab.report.file-download');
     Route::get('/invoices/status/{id}', [InvoiceController::class, 'invoiceStatus'])->name('invoices.test.status');
     Route::post('/invoices/due/pay/{id}', [InvoiceController::class, 'invoiceDuePay'])->name('invoices.due-pay');
+    Route::get('/trash', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/trash/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
     Route::resource('invoice_lists', InvoiceListController::class, ['names' => 'invoice_lists']);
     Route::get('reefers/{id}/commission', [ReeferController::class, 'commission'])->name('reefers.commission');

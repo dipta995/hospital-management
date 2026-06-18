@@ -597,32 +597,30 @@
 
         @include('backend.layouts.partials.message')
 
-        @if(!empty($isSuperAdmin))
+        @if(!empty($canManageAuditLogs))
             <div class="dash-hr-card">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                     <div>
                         <h5 class="mb-1">
-                            <i class="fas fa-database text-warning"></i> HR Schedule Database Setup
+                            <i class="fas fa-database text-warning"></i> Audit Log Database Setup
                         </h5>
                         <p class="text-muted mb-2 small">
-                            Super Admin only. Installs employee off-day, leave-day, and attendance summary columns/tables.
+                            Owner, Admin, and Super Admin only. Creates the protected trash/audit table without running migrations.
                         </p>
                         <ul class="small mb-0">
-                            <li>Employee weekly off days: <strong>{{ !empty($hrSchemaStatus['weekly_off_days']) ? 'Installed' : 'Missing' }}</strong></li>
-                            <li>Working hours per day: <strong>{{ !empty($hrSchemaStatus['working_hours_per_day']) ? 'Installed' : 'Missing' }}</strong></li>
-                            <li>Annual leave quota: <strong>{{ !empty($hrSchemaStatus['annual_leave_quota']) ? 'Installed' : 'Missing' }}</strong></li>
-                            <li>Employee leave days table: <strong>{{ !empty($hrSchemaStatus['employee_leave_days_table']) ? 'Installed' : 'Missing' }}</strong></li>
+                            <li>Audit logs table: <strong>{{ !empty($auditLogSchemaStatus['audit_logs_table']) ? 'Installed' : 'Missing' }}</strong></li>
+                            <li>Delete audit records: <strong>Not allowed</strong></li>
                         </ul>
                     </div>
                     <div class="text-end">
-                        @if(!empty($hrSchemaInstalled))
-                            <span class="badge bg-success mb-2 d-inline-block">Schema Ready</span>
+                        @if(!empty($auditLogSchemaInstalled))
+                            <span class="badge bg-success mb-2 d-inline-block">Audit Table Ready</span>
                         @else
-                            <form method="post" action="{{ route('admin.system.install-hr-schema') }}"
-                                  onsubmit="return confirm('Install HR schedule database schema now?')">
+                            <form method="post" action="{{ route('admin.system.install-audit-log-schema') }}"
+                                  onsubmit="return confirm('Create audit log table now?')">
                                 @csrf
                                 <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-cogs"></i> Install HR Schema
+                                    <i class="fas fa-cogs"></i> Install Audit Log Table
                                 </button>
                             </form>
                         @endif

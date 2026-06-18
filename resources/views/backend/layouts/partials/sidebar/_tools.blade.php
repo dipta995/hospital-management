@@ -1,6 +1,8 @@
 @php
+    $canAccessAuditLogs = canAccessAuditLogs($userGuard);
     $hasTools = ($userGuard->can('number_categories.index') || $userGuard->can('number_categories.create'))
-        || ($userGuard->can('phone_numbers.index') || $userGuard->can('phone_numbers.create'));
+        || ($userGuard->can('phone_numbers.index') || $userGuard->can('phone_numbers.create'))
+        || $canAccessAuditLogs;
 @endphp
 @if ($hasTools)
     @include('backend.layouts.partials.sidebar._section-title', [
@@ -49,6 +51,15 @@
                     @endif
                 </ul>
             </div>
+        </li>
+    @endif
+
+    @if ($canAccessAuditLogs)
+        <li class="nav-item {{ Route::is('admin.audit-logs.*') ? 'active' : '' }}" data-sidebar-section="tools">
+            <a class="nav-link" href="{{ route('admin.audit-logs.index') }}">
+                <span class="nav-icon"><i class="fas fa-trash-restore"></i></span>
+                <span class="nav-text">Trash / Audit</span>
+            </a>
         </li>
     @endif
 @endif

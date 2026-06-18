@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Reefer;
 use App\Models\Setting;
+use App\Services\AuditLogService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -365,11 +366,18 @@ class CostController extends Controller
         try {
             if ($row = Cost::where('branch_id', auth()->user()->branch_id)
                 ->find($id)) {
+                $audit = app(AuditLogService::class);
+                $auditRelations = ['category', 'admin', 'invoice', 'employee', 'reeferBy'];
+                $oldSnapshot = $audit->snapshot($row, $auditRelations);
+
                 $row->cost_category_id = $request->cost_category_id;
                 $row->reason = $request->reason;
                 $row->amount = $request->amount;
 
                 if ($row->save()) {
+                    $row->refresh();
+                    $audit->record('cost', 'updated', $row, $oldSnapshot, $audit->snapshot($row, $auditRelations));
+
                     return RedirectHelper::routeSuccess($this->index_route, '<strong>Congratulations!!!</strong> Cost Created Successfully');
 
                 } else {
@@ -403,6 +411,9 @@ class CostController extends Controller
             return response()->json(['status' => 404, 'message' => 'Cost not found']);
         }
 
+        $audit = app(AuditLogService::class);
+        $oldSnapshot = $audit->snapshot($deleteData, ['category', 'admin', 'invoice', 'employee', 'reeferBy']);
+
         if (!empty($deleteData->salary_id)) {
             $salary = \App\Models\EmployeeSalary::where('id', $deleteData->salary_id)->first();
             if ($salary) {
@@ -424,6 +435,8 @@ class CostController extends Controller
         }
 
         if ($deleteData->delete()) {
+            $audit->record('cost', 'deleted', $deleteData, $oldSnapshot, null);
+
             return response()->json([
                 'status' => 200,
                 'message' => 'Cost and related salary deleted successfully!',

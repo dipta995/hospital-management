@@ -14,6 +14,7 @@ use App\Models\Reefer;
 use App\Models\Setting;
 use App\Models\TestReport;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\ReferCommissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -582,7 +583,11 @@ class InvoiceController extends Controller
                 return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> You cannot edit this invoice !");
             }
 
-            \DB::transaction(function () use ($rules, $request, $row) {
+            $audit = app(AuditLogService::class);
+            $auditRelations = ['invoiceList.product', 'paidAmount', 'costs.category', 'reeferDr', 'reeferBy', 'admin'];
+            $oldSnapshot = $audit->snapshot($row, $auditRelations);
+
+            \DB::transaction(function () use ($rules, $request, $row, $audit, $auditRelations, $oldSnapshot) {
                 $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];
                 $row->dr_name = $request['customerDetails']['dr_refer_name'];
                 $row->refer_id = $request['customerDetails']['refer_id'];
@@ -647,6 +652,9 @@ class InvoiceController extends Controller
                         'creation_date' => Carbon::now('Asia/Dhaka')->format('Y-m-d'),
                     ]);
                 }
+
+                $row->refresh();
+                $audit->record('invoice', 'updated', $row, $oldSnapshot, $audit->snapshot($row, $auditRelations));
             });
 
             if ($request->wantsJson() || $request->ajax()) {
@@ -689,7 +697,11 @@ class InvoiceController extends Controller
         $invoice = Invoice::where('branch_id', auth()->user()->branch_id)->find($id);
         if (!is_null($invoice)) {
             try {
+                $audit = app(AuditLogService::class);
+                $oldSnapshot = $audit->snapshot($invoice, ['invoiceList.product', 'paidAmount', 'costs.category', 'reeferDr', 'reeferBy', 'admin']);
+
                 \DB::beginTransaction();
+                $audit->record('invoice', 'deleted', $invoice, $oldSnapshot, null);
                 InvoiceList::where('invoice_id', $invoice->id)->delete();
                 InvoicePayment::where('invoice_id', $invoice->id)->delete();
                 Cost::where('invoice_id', $invoice->id)->delete();

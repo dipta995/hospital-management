@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Services\HrSchemaService;
+use App\Services\AuditLogSchemaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
@@ -34,13 +34,13 @@ class SystemMaintenanceController extends Controller
         return back()->with('success', $message);
     }
 
-    public function installHrSchema(Request $request, HrSchemaService $hrSchemaService)
+    public function installAuditLogSchema(Request $request, AuditLogSchemaService $auditLogSchemaService)
     {
-        if (!auth('admin')->check() || !auth('admin')->user()->hasRole('Super Admin')) {
-            abort(403, 'Only Super Admin can install HR schema.');
+        if (!canAccessAuditLogs(auth('admin')->user())) {
+            abort(403, 'Only Admin, Owner, or Super Admin can install audit log schema.');
         }
 
-        $result = $hrSchemaService->install();
+        $result = $auditLogSchemaService->install();
 
         if ($request->expectsJson()) {
             return response()->json($result, $result['success'] ? 200 : 422);

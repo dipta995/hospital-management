@@ -11,6 +11,7 @@ use App\Models\ReceptPayment;
 use App\Models\CustomerBalance;
 use App\Models\ServiceCategory;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
@@ -240,8 +241,13 @@ class ReceptController extends Controller
 
             // Basic validation
             if (empty($services)) {
+                DB::rollBack();
                 return response()->json(['status' => 422, 'message' => 'No services provided.']);
             }
+
+            $audit = app(AuditLogService::class);
+            $auditRelations = ['user', 'receptList.service', 'receptPayments', 'admit', 'admin'];
+            $oldSnapshot = $audit->snapshot($recept, $auditRelations);
 
             // Update main recept
             $recept->admit_id = $customerDetails['admit_id'] ?? $recept->admit_id;
@@ -266,21 +272,14 @@ class ReceptController extends Controller
                 ]);
             }
 
-            // Payments are now tracked only at admit level; no per-receipt payment rebuild
-        // Per-receipt payments are no longer supported; use admit-level payment on release page instead
-        return response()->json([
-            'status' => 422,
-            'message' => 'Per-receipt payments are disabled. Please use admit release payment.',
-        ]);
-            $payment->paid_amount = $amount;
-            $payment->creation_date = Carbon::now('Asia/Dhaka')->format('Y-m-d');
-            $payment->save();
+            $recept->refresh();
+            $audit->record('recept', 'updated', $recept, $oldSnapshot, $audit->snapshot($recept, $auditRelations));
 
             DB::commit();
 
             return response()->json([
                 'status' => 200,
-                'message' => 'Payment successfully recorded.',
+                'message' => 'Recept updated successfully.',
             ]);
         } catch (QueryException $e) {
             DB::rollBack();
@@ -313,8 +312,27 @@ class ReceptController extends Controller
             return response()->json(['status' => 422, 'message' => 'Cannot delete receipt for a released admit.']);
         }
 
-        if ($deleteData->delete()) {
-            return response()->json(['status' => 200]);
+        try {
+            DB::beginTransaction();
+
+            $audit = app(AuditLogService::class);
+            $audit->record(
+                'recept',
+                'deleted',
+                $deleteData,
+                $audit->snapshot($deleteData, ['user', 'receptList.service', 'receptPayments', 'admit', 'admin']),
+                null
+            );
+
+            if ($deleteData->delete()) {
+                DB::commit();
+                return response()->json(['status' => 200]);
+            }
+
+            DB::rollBack();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 422, 'message' => $e->getMessage()]);
         }
 
         return response()->json(['status' => 422]);
