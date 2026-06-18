@@ -192,9 +192,10 @@
                             $paidPct = $item->total_amount > 0
                                 ? min(100, round(($item->paid_amount_sum_paid_amount / $item->total_amount) * 100))
                                 : 100;
+                            $canEditAnyDate = auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Owner']);
                             $canEditRow = $userGuard->can('invoices.edit')
-                                && (\Carbon\Carbon::parse($item->creation_date)->setTimezone('Asia/Dhaka')->isToday()
-                                    || auth()->user()->hasRole('Owner'));
+                                && ($canEditAnyDate
+                                    || \Carbon\Carbon::parse($item->creation_date)->setTimezone('Asia/Dhaka')->isToday());
                         @endphp
                         <tr id="table-data{{ $item->id }}">
                             <td data-label="Invoice">

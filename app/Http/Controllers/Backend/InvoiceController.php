@@ -516,15 +516,19 @@ class InvoiceController extends Controller
     {
         $this->checkOwnPermission('invoices.edit');
         $data['pageHeader'] = $this->pageHeader;
-        if (!Invoice::withSum('paidAmount', 'paid_amount')->where('admin_id', auth()->id())->where('branch_id', auth()->user()->branch_id)
-            ->find($id)) {
-            if (!auth()->user()->hasRole('Owner')) {
-                return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> This is not Your Invoice !");
-            }
+        $invoice = Invoice::withSum('paidAmount', 'paid_amount')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
 
+        if (!$invoice) {
+            return RedirectHelper::backWithInputFromException();
         }
-        if ($data['edited'] = Invoice::withSum('paidAmount', 'paid_amount')->where('branch_id', auth()->user()->branch_id)
-            ->find($id)) {
+
+        if (!$this->canEditInvoice($invoice)) {
+            return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> You cannot edit this invoice !");
+        }
+
+        if ($data['edited'] = $invoice) {
             $data['products'] = InvoiceList::where('branch_id', auth()->user()->branch_id)
                 ->where('invoice_id', $id)
                 ->get()
@@ -567,10 +571,18 @@ class InvoiceController extends Controller
 //                'products.*.ref_amount' => 'required|numeric',
             ];
             $request->validate($rules);
-            \DB::transaction(function () use ($rules, $request, $id) {
+            $row = Invoice::where('branch_id', auth()->user()->branch_id)
+                ->findOrFail($id);
 
-                $row = Invoice::where('branch_id', auth()->user()->branch_id)
-                    ->findOrFail($id);
+            if (!$this->canEditInvoice($row)) {
+                if ($request->wantsJson() || $request->ajax()) {
+                    return response()->json(['status' => 403, 'message' => 'You cannot edit this invoice.'], 403);
+                }
+
+                return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> You cannot edit this invoice !");
+            }
+
+            \DB::transaction(function () use ($rules, $request, $row) {
                 $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];
                 $row->dr_name = $request['customerDetails']['dr_refer_name'];
                 $row->refer_id = $request['customerDetails']['refer_id'];
@@ -647,6 +659,22 @@ class InvoiceController extends Controller
             return $e;
             return RedirectHelper::backWithInputFromException();
         }
+    }
+
+    private function canEditInvoice(Invoice $invoice): bool
+    {
+        $admin = auth('admin')->user();
+
+        if (!$admin) {
+            return false;
+        }
+
+        if ($admin->hasAnyRole(['Super Admin', 'Admin', 'Owner'])) {
+            return true;
+        }
+
+        return (int) $invoice->admin_id === (int) $admin->id
+            && Carbon::parse($invoice->creation_date, 'Asia/Dhaka')->isSameDay(Carbon::now('Asia/Dhaka'));
     }
 
     /**
