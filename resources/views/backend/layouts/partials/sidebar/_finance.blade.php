@@ -6,7 +6,7 @@
 @endphp
 @if ($hasFinance)
     @include('backend.layouts.partials.sidebar._section-title', [
-        'title' => 'Finance',
+        'title' => t('menu.finance'),
         'sectionClass' => 'section-finance',
         'sectionKey' => 'finance',
         'icon' => 'fa-coins',
@@ -16,45 +16,45 @@
            href="#sidebarFinanceModule" data-bs-toggle="collapse" role="button"
            aria-expanded="{{ $financeActive ? 'true' : 'false' }}" aria-controls="sidebarFinanceModule">
             <span class="nav-icon"><i class="fas fa-wallet"></i></span>
-            <span class="nav-text">Finance Module</span>
+            <span class="nav-text">{{ t('menu.finance_module') }}</span>
         </a>
         <div class="{{ $financeActive ? 'collapse show' : 'collapse' }}" id="sidebarFinanceModule">
             <ul class="nav sub-navbar-nav sidebar-module-inner">
 
                 @if ($userGuard->can('earns.index') || $userGuard->can('earns.create'))
-                    <li class="sub-nav-section">Income</li>
+                    <li class="sub-nav-section">{{ t('menu.income') }}</li>
                     @if ($userGuard->can('earns.create'))
                         <li class="sub-nav-item">
                             <a class="sub-nav-link" href="{{ route('admin.earns.create') }}">
-                                <i class="fas fa-plus-circle fa-fw me-1"></i> New Earn
+                                <i class="fas fa-plus-circle fa-fw me-1"></i> {{ t('menu.new_earn') }}
                             </a>
                         </li>
                     @endif
                     @if ($userGuard->can('earns.index'))
                         <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('admin.earns.index') }}">Earn List</a>
+                            <a class="sub-nav-link" href="{{ route('admin.earns.index') }}">{{ t('menu.earn_list') }}</a>
                         </li>
                     @endif
                 @endif
 
                 @if ($userGuard->can('cost_categories.index') || $userGuard->can('costs.index'))
-                    <li class="sub-nav-section">Expenses (Diagnostic)</li>
+                    <li class="sub-nav-section">{{ t('menu.expenses_diagnostic') }}</li>
                 @endif
                 @if ($userGuard->can('cost_categories.index') || $userGuard->can('cost_categories.create'))
                     <li class="sub-nav-item">
                         <a class="sub-nav-link" href="{{ route('admin.cost_categories.index') }}">
-                            {{ __('language.cost') }} {{ __('language.category') }}
+                            {{ t('cost') }} {{ t('category') }}
                         </a>
                     </li>
                 @endif
                 @if ($userGuard->can('costs.index') || $userGuard->can('costs.create'))
                     @if ($userGuard->can('costs.create'))
                         <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('admin.costs.create') }}">+ New Cost</a>
+                            <a class="sub-nav-link" href="{{ route('admin.costs.create') }}">+ {{ t('menu.new_cost') }}</a>
                         </li>
                     @endif
                     <li class="sub-nav-item">
-                        <a class="sub-nav-link" href="{{ route('admin.costs.index') }}">{{ __('language.cost') }} List</a>
+                        <a class="sub-nav-link" href="{{ route('admin.costs.index') }}">{{ t('menu.cost_list') }}</a>
                     </li>
                 @endif
 

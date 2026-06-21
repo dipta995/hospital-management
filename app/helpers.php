@@ -16,33 +16,20 @@ function canAccessAuditLogs($admin = null): bool
 {
     $admin = $admin ?: auth('admin')->user();
 
-    if (!$admin) {
+    if (!$admin || !method_exists($admin, 'hasRole')) {
         return false;
     }
 
-    $allowedRoles = ['super admin', 'superadmin', 'admin', 'owner'];
-    $roleNames = method_exists($admin, 'getRoleNames')
-        ? $admin->getRoleNames()->map(fn ($role) => strtolower(trim((string) $role)))->all()
-        : [];
-
-    if (!empty(array_intersect($allowedRoles, $roleNames))) {
-        return true;
-    }
-
-    $username = strtolower(trim((string) ($admin->username ?? '')));
-    $email = strtolower(trim((string) ($admin->email ?? '')));
-
-    return in_array($username, ['superadmin', 'super_admin', 'admin', 'owner'], true)
-        || in_array($email, ['superadmin@email.com', 'admin@email.com', 'owner@email.com'], true);
+    return $admin->hasRole('Super Admin');
 }
 
 function redirectRouteHelper($route = null, $message = null)
 {
     if ($route == null) {
-        Alert::toast($message == null ? 'Something went wrong Try again !' : $message, 'error')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.something_wrong') : $message, 'error')->timerProgressBar();
         return back();
     } else {
-        Alert::toast($message == null ? 'Successfully Created !' : $message, 'success')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.created_success') : $message, 'success')->timerProgressBar();
         return redirect()->route($route);
     }
 }
@@ -50,10 +37,10 @@ function redirectRouteHelper($route = null, $message = null)
 function redirectUpdateRoute($route = null, $message = null)
 {
     if ($route == null) {
-        Alert::toast($message == null ? 'Something went wrong Try again !' : $message, 'error')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.something_wrong') : $message, 'error')->timerProgressBar();
         return back();
     } else {
-        Alert::toast($message == null ? 'Successfully Updated !' : $message, 'success')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.updated_success') : $message, 'success')->timerProgressBar();
         return redirect()->route($route);
     }
 }
@@ -61,10 +48,10 @@ function redirectUpdateRoute($route = null, $message = null)
 function redirectRouteHelperWithParams($route = null, $params = null, $message = null)
 {
     if ($route == null) {
-        Alert::toast($message == null ? 'Something went wrong Try again !' : $message, 'error')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.something_wrong') : $message, 'error')->timerProgressBar();
         return back();
     } else {
-        Alert::toast($message == null ? 'Successfully Stored' : $message, 'success')->timerProgressBar();
+        Alert::toast($message == null ? t('messages.stored_success') : $message, 'success')->timerProgressBar();
         return redirect()->route($route, $params);
     }
 }
@@ -424,6 +411,31 @@ function reAgents($invoiceListId) {
     return $text;
 }
 
+
+/**
+ * Translate a language file key (e.g. t('menu.dashboard')).
+ */
+function t(string $key, array $replace = []): string
+{
+    $line = __("language.{$key}", $replace);
+
+    return $line === "language.{$key}" ? $key : $line;
+}
+
+/**
+ * Translate page/module title from English slug or label.
+ */
+function tp(?string $text): string
+{
+    if ($text === null || $text === '') {
+        return '';
+    }
+
+    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', $text), '_'));
+    $line = __("language.pages.{$slug}");
+
+    return $line === "language.pages.{$slug}" ? $text : $line;
+}
 
 function formatPhoneNumber($phone)
 {

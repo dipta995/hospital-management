@@ -1,9 +1,9 @@
 @php
-    $formTitle = $formTitle ?? 'Form';
+    $formTitle = $formTitle ?? t('form.form');
     $formSubtitle = $formSubtitle ?? null;
     $formIcon = $formIcon ?? 'fa-pen-to-square';
     $formBackRoute = $formBackRoute ?? ($pageHeader['index_route'] ?? null);
-    $formBackLabel = $formBackLabel ?? 'Back to List';
+    $formBackLabel = $formBackLabel ?? t('common.back_to_list');
 @endphp
 
 <div class="crud-hero">

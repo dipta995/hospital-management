@@ -81,14 +81,14 @@ class DashboardController extends Controller
             'opd' => $metrics['opd'],
             'alerts' => $this->buildLiveAlerts($metrics['operations'], $metrics['pharmacy']),
             'periods' => [
-                $this->formatPeriodCard('This Week', $metrics['thisWeek']),
-                $this->formatPeriodCard('This Month', $metrics['thisMonth']),
-                $this->formatPeriodCard('Last Week', $metrics['lastWeek']),
-                $this->formatPeriodCard('Last Month', $metrics['lastMonth']),
-                $this->formatPeriodCard('Last Year', $metrics['lastYear']),
+                $this->formatPeriodCard(t('common.this_week'), $metrics['thisWeek']),
+                $this->formatPeriodCard(t('common.this_month'), $metrics['thisMonth']),
+                $this->formatPeriodCard(t('common.last_week'), $metrics['lastWeek']),
+                $this->formatPeriodCard(t('common.last_month'), $metrics['lastMonth']),
+                $this->formatPeriodCard(t('common.last_year'), $metrics['lastYear']),
             ],
             'topTestsToday' => $metrics['topTestsToday']->map(fn ($row) => [
-                'name' => $row->product?->name ?? 'Unknown test',
+                'name' => $row->product?->name ?? t('dashboard.unknown_test'),
                 'line_count' => (int) $row->line_count,
                 'net_amount' => round((float) $row->net_amount, 2),
             ])->values(),
@@ -144,8 +144,8 @@ class DashboardController extends Controller
                 'type' => 'danger',
                 'icon' => 'fa-file-invoice-dollar',
                 'icon_class' => 'text-danger',
-                'title' => 'Patient invoice due',
-                'subtitle' => '৳ '.$fmt($operations['outstanding_due']).' unpaid on invoices',
+                'title' => t('dashboard.patient_invoice_due'),
+                'subtitle' => t('dashboard.unpaid_on_invoices', ['amount' => $fmt($operations['outstanding_due'])]),
                 'url' => route('admin.invoices.index'),
             ];
         }
@@ -155,8 +155,8 @@ class DashboardController extends Controller
                 'type' => 'warn',
                 'icon' => 'fa-user-tie',
                 'icon_class' => 'text-warning',
-                'title' => 'Referrer commission due',
-                'subtitle' => '৳ '.$fmt($operations['refer_fee_due']).' pending payout',
+                'title' => t('dashboard.referrer_commission_due'),
+                'subtitle' => t('dashboard.pending_payout', ['amount' => $fmt($operations['refer_fee_due'])]),
                 'url' => route('admin.reports.references.payment'),
             ];
         }
@@ -166,8 +166,8 @@ class DashboardController extends Controller
                 'type' => 'info',
                 'icon' => 'fa-flask',
                 'icon_class' => 'text-primary',
-                'title' => $operations['pending_lab_tests'].' lab tests pending',
-                'subtitle' => $operations['completed_lab_today'].' completed today',
+                'title' => t('dashboard.lab_tests_pending', ['count' => $operations['pending_lab_tests']]),
+                'subtitle' => t('dashboard.completed_today', ['count' => $operations['completed_lab_today']]),
                 'url' => route('admin.labs.index'),
             ];
         }
@@ -177,8 +177,11 @@ class DashboardController extends Controller
                 'type' => 'warn',
                 'icon' => 'fa-pills',
                 'icon_class' => 'text-warning',
-                'title' => 'Pharmacy stock alert',
-                'subtitle' => $pharmacy['out_of_stock'].' out · '.$pharmacy['low_stock'].' low stock',
+                'title' => t('dashboard.pharmacy_stock_alert'),
+                'subtitle' => t('dashboard.stock_out_low', [
+                    'out' => $pharmacy['out_of_stock'],
+                    'low' => $pharmacy['low_stock'],
+                ]),
                 'url' => route('admin.reports.pharmacy-stock'),
             ];
         }

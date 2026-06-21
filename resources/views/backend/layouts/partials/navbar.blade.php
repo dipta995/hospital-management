@@ -5,7 +5,7 @@
     <div class="container-fluid">
         <div class="navbar-header topbar-navbar">
             <div class="topbar-item topbar-menu-wrap flex-shrink-0">
-                <button type="button" class="button-toggle-menu topbar-button topbar-menu-btn" aria-label="Open menu">
+                <button type="button" class="button-toggle-menu topbar-button topbar-menu-btn" aria-label="{{ t('common.open_menu') }}">
                     <iconify-icon icon="solar:hamburger-menu-broken" class="fs-24 align-middle"></iconify-icon>
                 </button>
             </div>
@@ -18,7 +18,7 @@
                     <div class="topbar-search-wrap">
                         <i class="fas fa-search topbar-search-icon"></i>
                         <input type="search" id="global-patient-search" class="topbar-search-input"
-                               placeholder="Search patient (name / phone)..." autocomplete="off">
+                               placeholder="{{ t('common.search_patient') }}" autocomplete="off">
                         <div id="global-patient-search-results" class="topbar-search-dropdown"></div>
                     </div>
                 </div>
@@ -27,7 +27,7 @@
 
             <div class="topbar-right d-flex align-items-center">
                 <span class="badge bg-danger topbar-sms-badge">
-                    {{ \App\Models\SmsBalance::where('branch_id',auth()->user()->branch_id)->first()->balance ?? 0 }} Point's
+                    {{ \App\Models\SmsBalance::where('branch_id',auth()->user()->branch_id)->first()->balance ?? 0 }} {{ t('common.points') }}
                 </span>
   <!-- Category -->
                 <div class="dropdown topbar-item d-none d-lg-flex">
@@ -46,18 +46,18 @@
                         <iconify-icon icon="solar:bell-bing-broken" class="fs-24 align-middle"></iconify-icon>
                         <span
                             class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">{{ expairyAlertNotificationCount() }}<span
-                                class="visually-hidden">unread messages</span></span>
+                                class="visually-hidden">{{ t('common.unread_messages') }}</span></span>
                     </button>
                     <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end"
                          aria-labelledby="page-header-notifications-dropdown">
                         <div class="p-3 border-top-0 border-start-0 border-end-0 border-dashed border">
                             <div class="row align-items-center">
                                 <div class="col">
-                                    <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
+                                    <h6 class="m-0 fs-16 fw-semibold">{{ t('common.notifications') }}</h6>
                                 </div>
                                 <div class="col-auto">
                                     <a href="javascript: void(0);" class="text-dark text-decoration-underline">
-                                        <small>Clear All</small>
+                                        <small>{{ t('common.clear_all') }}</small>
                                     </a>
                                 </div>
                             </div>
@@ -74,14 +74,14 @@
                             </a>
                         </div>
                         <div class="text-center py-3">
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm">View All Notification <i
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm">{{ t('common.view_all_notifications') }} <i
                                     class="bx bx-right-arrow-alt ms-1"></i></a>
                         </div>
                     </div>
                 </div>
 
                 @if ( Auth::guard('admin')->user()->can('reports.index'))
-                    <button id="openBalanceModal" class="btn btn-info btn-sm" title="Balance">
+                    <button id="openBalanceModal" class="btn btn-info btn-sm" title="{{ t('common.balance') }}">
                         <i class="fas fa-eye"></i>
                     </button>
                 @endif
@@ -90,14 +90,14 @@
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">Current Month Summary</h5>
-                                <button type="button" class="btn-close close-modal" aria-label="Close"></button>
+                                <h5 class="modal-title">{{ t('common.current_month_summary') }}</h5>
+                                <button type="button" class="btn-close close-modal" aria-label="{{ t('common.close') }}"></button>
                             </div>
                             <div class="modal-body">
                                 {!! currentBalanceMonth() !!}
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary close-modal">Close</button>
+                                <button type="button" class="btn btn-secondary close-modal">{{ t('common.close') }}</button>
                             </div>
                         </div>
                     </div>
@@ -112,17 +112,17 @@
                     </button>
                 </div>
 
-                <div class="topbar-user-chip" title="Logged in as {{ $userGuard->name }}">
+                <div class="topbar-user-chip" title="{{ t('common.logged_in_as') }} {{ $userGuard->name }}">
                     <i class="fas fa-user-shield"></i>
                     <div class="topbar-user-text">
-                        <span class="topbar-user-label">Logged in as</span>
+                        <span class="topbar-user-label">{{ t('common.logged_in_as') }}</span>
                         <strong class="topbar-user-name">{{ $userGuard->name }}</strong>
                     </div>
                 </div>
 
-                <a href="{{ route('admin.logout.submit') }}" class="btn btn-outline-danger btn-sm topbar-logout-btn" title="Logout">
+                <a href="{{ route('admin.logout.submit') }}" class="btn btn-outline-danger btn-sm topbar-logout-btn" title="{{ t('common.logout') }}">
                     <i class="bx bx-log-out"></i>
-                    <span class="d-none d-xl-inline">Logout</span>
+                    <span class="d-none d-xl-inline">{{ t('common.logout') }}</span>
                 </a>
             </div>
         </div>
@@ -502,9 +502,9 @@
 <div>
     <div class="offcanvas offcanvas-end border-0" tabindex="-1" id="theme-settings-offcanvas">
         <div class="d-flex align-items-center bg-primary p-3 offcanvas-header">
-            <h5 class="text-white m-0">Theme Settings</h5>
+            <h5 class="text-white m-0">{{ t('common.theme_settings') }}</h5>
             <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="offcanvas"
-                    aria-label="Close"></button>
+                    aria-label="{{ t('common.close') }}"></button>
         </div>
 
         <div class="offcanvas-body p-0">
@@ -659,7 +659,7 @@
 
     var render = function (rows) {
         if (!rows.length) {
-            dropdown.innerHTML = '<div class="p-3 small text-muted text-center">No patients found</div>';
+            dropdown.innerHTML = '<div class="p-3 small text-muted text-center">' + @json(t('common.no_patients_found')) + '</div>';
             dropdown.classList.add('show');
             return;
         }

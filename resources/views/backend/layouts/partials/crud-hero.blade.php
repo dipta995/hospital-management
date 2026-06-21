@@ -1,9 +1,9 @@
 @php
-    $heroTitle = $heroTitle ?? ($pageHeader['title'] ?? 'List');
+    $heroTitle = $heroTitle ?? tp($pageHeader['title'] ?? 'List');
     $heroSubtitle = $heroSubtitle ?? null;
     $heroIcon = $heroIcon ?? 'fa-list';
     $heroCreateRoute = $heroCreateRoute ?? ($pageHeader['create_route'] ?? null);
-    $heroCreateLabel = $heroCreateLabel ?? 'Add New';
+    $heroCreateLabel = $heroCreateLabel ?? t('common.add_new');
 @endphp
 
 <div class="crud-hero">
@@ -12,7 +12,7 @@
             <i class="fas {{ $heroIcon }}"></i>
         </div>
         <div>
-            <h1 class="crud-hero-title">{{ $heroTitle }}</h1>
+            <h1 class="crud-hero-title">{{ is_string($heroTitle) ? (str_starts_with($heroTitle, 'language.') ? t(substr($heroTitle, 9)) : $heroTitle) : $heroTitle }}</h1>
             @if(!empty($heroSubtitle))
                 <p class="crud-hero-subtitle">{{ $heroSubtitle }}</p>
             @endif

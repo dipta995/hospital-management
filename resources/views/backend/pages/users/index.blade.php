@@ -14,7 +14,7 @@
             $heroActions = '<button type="button" class="btn-crud-primary opencreateUser" data-target-input="dr_refer_name"><i class="fas fa-plus"></i> Quick Add Patient</button>';
         @endphp
         @include('backend.layouts.partials.crud-hero', [
-            'heroTitle' => 'Patients',
+            'heroTitle' => tp('Patients'),
             'heroSubtitle' => 'Search patients, manage records and quick actions',
             'heroIcon' => 'fa-user-injured',
             'heroActions' => $heroActions,

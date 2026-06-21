@@ -6,7 +6,7 @@
 @endphp
 @if ($hasTools)
     @include('backend.layouts.partials.sidebar._section-title', [
-        'title' => 'Tools',
+        'title' => t('menu.tools'),
         'sectionClass' => 'section-tools',
         'sectionKey' => 'tools',
         'icon' => 'fa-toolbox',
@@ -18,15 +18,15 @@
                href="#sidebarNumberCategory" data-bs-toggle="collapse" role="button"
                aria-expanded="{{ Route::is('admin.number_categories.*') ? 'true' : 'false' }}" aria-controls="sidebarNumberCategory">
                 <span class="nav-icon"><i class="fas fa-list-ol"></i></span>
-                <span class="nav-text">Number Categories</span>
+                <span class="nav-text">{{ t('menu.number_categories') }}</span>
             </a>
             <div class="{{ Route::is('admin.number_categories.*') ? 'collapse show' : 'collapse' }}" id="sidebarNumberCategory">
                 <ul class="nav sub-navbar-nav">
                     @if ($userGuard->can('number_categories.create'))
-                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.number_categories.create') }}">{{ __('language.create') }}</a></li>
+                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.number_categories.create') }}">{{ t('create') }}</a></li>
                     @endif
                     @if ($userGuard->can('number_categories.index'))
-                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.number_categories.index') }}">{{ __('language.list') }}</a></li>
+                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.number_categories.index') }}">{{ t('list') }}</a></li>
                     @endif
                 </ul>
             </div>
@@ -39,15 +39,15 @@
                href="#sidebarPhoneNumber" data-bs-toggle="collapse" role="button"
                aria-expanded="{{ Route::is('admin.phone_numbers.*') ? 'true' : 'false' }}" aria-controls="sidebarPhoneNumber">
                 <span class="nav-icon"><i class="fas fa-phone-alt"></i></span>
-                <span class="nav-text">Phone Numbers</span>
+                <span class="nav-text">{{ t('menu.phone_numbers') }}</span>
             </a>
             <div class="{{ Route::is('admin.phone_numbers.*') ? 'collapse show' : 'collapse' }}" id="sidebarPhoneNumber">
                 <ul class="nav sub-navbar-nav">
                     @if ($userGuard->can('phone_numbers.create'))
-                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.phone_numbers.create') }}">{{ __('language.create') }}</a></li>
+                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.phone_numbers.create') }}">{{ t('create') }}</a></li>
                     @endif
                     @if ($userGuard->can('phone_numbers.index'))
-                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.phone_numbers.index') }}">{{ __('language.list') }}</a></li>
+                        <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.phone_numbers.index') }}">{{ t('list') }}</a></li>
                     @endif
                 </ul>
             </div>
@@ -58,7 +58,7 @@
         <li class="nav-item {{ Route::is('admin.audit-logs.*') ? 'active' : '' }}" data-sidebar-section="tools">
             <a class="nav-link" href="{{ route('admin.audit-logs.index') }}">
                 <span class="nav-icon"><i class="fas fa-trash-restore"></i></span>
-                <span class="nav-text">Trash / Audit</span>
+                <span class="nav-text">{{ t('menu.trash_audit') }}</span>
             </a>
         </li>
     @endif

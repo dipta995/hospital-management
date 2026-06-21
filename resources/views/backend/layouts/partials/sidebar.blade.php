@@ -10,7 +10,7 @@
         </a>
     </div>
 
-    <button type="button" class="button-sm-hover" aria-label="Show Full Sidebar">
+    <button type="button" class="button-sm-hover" aria-label="{{ t('common.show_full_sidebar') }}">
         <iconify-icon icon="solar:hamburger-menu-broken" class="button-sm-hover-icon"></iconify-icon>
     </button>
 
@@ -21,9 +21,9 @@
                 <div class="px-3 py-2">
                     <div class="input-group">
                         <input id="sidebarSearchInput" type="search" class="form-control form-control-sm"
-                               placeholder="Search menu..." aria-label="Search sidebar" autocomplete="off">
+                               placeholder="{{ t('common.search_menu') }}" aria-label="{{ t('common.search') }}" autocomplete="off">
                         <button id="sidebarSearchVoiceBtn" class="btn btn-sm btn-outline-secondary" type="button"
-                                title="Voice search">
+                                title="{{ t('common.voice_search') }}">
                             <i class="fas fa-microphone"></i>
                         </button>
                     </div>
@@ -183,7 +183,7 @@
                 });
             } else if (voiceBtn) {
                 voiceBtn.disabled = true;
-                voiceBtn.title = 'Voice search not supported in this browser';
+                voiceBtn.title = @json(t('common.voice_search_unsupported'));
                 voiceBtn.classList.add('disabled');
             }
 

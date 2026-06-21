@@ -1,6 +1,6 @@
 @php
-    $reportTitle = $reportTitle ?? ($pageHeader['title'] ?? 'Report');
-    $reportSubtitle = $reportSubtitle ?? 'Filter by date and export when needed';
+    $reportTitle = $reportTitle ?? tp($pageHeader['title'] ?? 'Report');
+    $reportSubtitle = $reportSubtitle ?? t('common.filter_by_date');
     $reportIcon = $reportIcon ?? 'fa-chart-line';
     $resetRoute = $resetRoute ?? null;
 @endphp
@@ -15,7 +15,7 @@
         </div>
         @if(!empty($resetRoute))
             <div class="inv-hero-actions">
-                <a href="{{ $resetRoute }}" class="inv-btn-glass"><i class="fas fa-sync-alt"></i> Reset filters</a>
+                <a href="{{ $resetRoute }}" class="inv-btn-glass"><i class="fas fa-sync-alt"></i> {{ t('common.reset_filters') }}</a>
             </div>
         @endif
     </div>

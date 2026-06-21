@@ -97,11 +97,11 @@
                                         @enderror
                                     </div>
                                     <div class="form-group col-md-6">
-                                        <label>Language<strong class="text-danger">*</strong></label>
+                                        <label>{{ t('common.language') }}<strong class="text-danger">*</strong></label>
                                         <select class="form-control" id="language" name="language" >
-                                            <option value="">Choose Language</option>
-                                            <option @selected(old('language', $edited->language) == 'en') value="en">English</option>
-                                            <option @selected(old('language', $edited->language) == 'bn') value="bn">Bangle</option>
+                                            <option value="">{{ t('common.choose_language') }}</option>
+                                            <option @selected(old('language', $edited->language) == 'en') value="en">{{ t('common.english') }}</option>
+                                            <option @selected(old('language', $edited->language) == 'bn') value="bn">{{ t('common.bangla') }}</option>
                                         </select>
                                     </div>
                                     @error('language')

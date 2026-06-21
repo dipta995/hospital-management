@@ -37,7 +37,7 @@ class SystemMaintenanceController extends Controller
     public function installAuditLogSchema(Request $request, AuditLogSchemaService $auditLogSchemaService)
     {
         if (!canAccessAuditLogs(auth('admin')->user())) {
-            abort(403, 'Only Admin, Owner, or Super Admin can install audit log schema.');
+            abort(403, 'Only Super Admin can install audit log schema.');
         }
 
         $result = $auditLogSchemaService->install();

@@ -1,6 +1,6 @@
 @extends('backend.layouts.master')
 @section('title')
-    Dashboard
+    {{ t('dashboard.title') }}
 @endsection
 
 @push('styles')
@@ -562,6 +562,7 @@
     @php
         $userGuard = Auth::guard('admin')->user();
         $fmt = fn ($n) => number_format((float) $n, 2);
+        $d = fn ($key, $replace = []) => t('dashboard.'.$key, $replace);
     @endphp
 
     <div class="inv-page container-fluid py-3">
@@ -572,23 +573,23 @@
                 <div class="inv-hero-left">
                     <div class="inv-hero-icon"><i class="fas fa-chart-line"></i></div>
                     <div>
-                        <h1 class="inv-hero-title">Dashboard</h1>
+                        <h1 class="inv-hero-title">{{ $d('title') }}</h1>
                         <p class="inv-hero-sub">
                             @if(!empty($adminName))
-                                Welcome, {{ $adminName }} ·
+                                {{ $d('welcome_user', ['name' => $adminName]) }} ·
                             @endif
-                            {{ $todayLabel ?? now()->format('l, d M Y') }} · Full page live · updates every 3 seconds
+                            {{ $todayLabel ?? now()->format('l, d M Y') }} · {{ $d('live_updates') }}
                         </p>
                     </div>
                 </div>
                 <div class="inv-hero-actions">
                     <span class="inv-btn-glass" id="dash-live-status" style="cursor: default;">
                         <span class="dash-live-dot d-inline-block me-1" style="vertical-align: middle;"></span>
-                        Live · <span id="dash-live-clock">—</span>
+                        {{ t('common.live') }} · <span id="dash-live-clock">—</span>
                     </span>
                     @if($userGuard && $userGuard->can('invoices.create'))
                         <a href="{{ route('admin.invoices.create') }}" class="inv-btn-white">
-                            <i class="fas fa-plus"></i> New Invoice
+                            <i class="fas fa-plus"></i> {{ $d('new_invoice') }}
                         </a>
                     @endif
                 </div>
@@ -602,25 +603,25 @@
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                     <div>
                         <h5 class="mb-1">
-                            <i class="fas fa-database text-warning"></i> Audit Log Database Setup
+                            <i class="fas fa-database text-warning"></i> {{ $d('audit_setup') }}
                         </h5>
                         <p class="text-muted mb-2 small">
-                            Owner, Admin, and Super Admin only. Creates the protected trash/audit table without running migrations.
+                            {{ $d('audit_setup_sub') }}
                         </p>
                         <ul class="small mb-0">
-                            <li>Audit logs table: <strong>{{ !empty($auditLogSchemaStatus['audit_logs_table']) ? 'Installed' : 'Missing' }}</strong></li>
-                            <li>Delete audit records: <strong>Not allowed</strong></li>
+                            <li>{{ $d('audit_table') }} <strong>{{ !empty($auditLogSchemaStatus['audit_logs_table']) ? $d('installed') : $d('missing') }}</strong></li>
+                            <li>{{ $d('delete_audit_not_allowed') }} <strong>{{ $d('not_allowed') }}</strong></li>
                         </ul>
                     </div>
                     <div class="text-end">
                         @if(!empty($auditLogSchemaInstalled))
-                            <span class="badge bg-success mb-2 d-inline-block">Audit Table Ready</span>
+                            <span class="badge bg-success mb-2 d-inline-block">{{ $d('audit_table_ready') }}</span>
                         @else
                             <form method="post" action="{{ route('admin.system.install-audit-log-schema') }}"
-                                  onsubmit="return confirm('Create audit log table now?')">
+                                  onsubmit="return confirm(@json(t('dashboard.install_audit_table').'?'))">
                                 @csrf
                                 <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-cogs"></i> Install Audit Log Table
+                                    <i class="fas fa-cogs"></i> {{ $d('install_audit_table') }}
                                 </button>
                             </form>
                         @endif
@@ -644,51 +645,51 @@
                 <div class="dash-live-head">
                     <span class="dash-live-badge">
                         <span class="dash-live-dot"></span>
-                        Real-time Dashboard
+                        {{ $d('realtime') }}
                     </span>
-                    <span class="dash-live-updated">Last updated: <strong id="dash-live-updated">just now</strong></span>
+                    <span class="dash-live-updated">{{ $d('last_updated') }} <strong id="dash-live-updated">{{ t('common.just_now') }}</strong></span>
                 </div>
                 <div class="dash-live-main">
                     <div class="dash-live-total-wrap">
-                        <div class="dash-live-total-label">Patients being handled now</div>
+                        <div class="dash-live-total-label">{{ $d('patients_handling_now') }}</div>
                         <div class="dash-live-total" id="dash-live-handling" data-live="patients.handling_now">
                             {{ $patients['handling_now'] ?? 0 }}
                         </div>
                     </div>
                     <div class="dash-live-chips">
                         <div class="dash-live-chip">
-                            <div class="dash-live-chip-label"><i class="fas fa-user-md me-1"></i> OPD Queue</div>
+                            <div class="dash-live-chip-label"><i class="fas fa-user-md me-1"></i> {{ $d('opd_queue') }}</div>
                             <div class="dash-live-chip-value" data-live="patients.opd_queue">{{ $patients['opd_queue'] ?? 0 }}</div>
                             <div class="dash-live-chip-sub">
-                                <span data-live="patients.opd_pending">{{ $patients['opd_pending'] ?? 0 }}</span> waiting ·
-                                <span data-live="patients.opd_checking">{{ $patients['opd_checking'] ?? 0 }}</span> checking
+                                <span data-live="patients.opd_pending">{{ $patients['opd_pending'] ?? 0 }}</span> {{ $d('waiting') }} ·
+                                <span data-live="patients.opd_checking">{{ $patients['opd_checking'] ?? 0 }}</span> {{ $d('checking') }}
                             </div>
                         </div>
                         <div class="dash-live-chip">
-                            <div class="dash-live-chip-label"><i class="fas fa-procedures me-1"></i> IPD Admitted</div>
+                            <div class="dash-live-chip-label"><i class="fas fa-procedures me-1"></i> {{ $d('ipd_admitted') }}</div>
                             <div class="dash-live-chip-value" data-live="patients.ipd_active">{{ $patients['ipd_active'] ?? 0 }}</div>
-                            <div class="dash-live-chip-sub">Currently in hospital</div>
+                            <div class="dash-live-chip-sub">{{ $d('currently_in_hospital') }}</div>
                         </div>
                         <div class="dash-live-chip">
-                            <div class="dash-live-chip-label"><i class="fas fa-flask me-1"></i> Lab Pending</div>
+                            <div class="dash-live-chip-label"><i class="fas fa-flask me-1"></i> {{ $d('lab_pending') }}</div>
                             <div class="dash-live-chip-value" data-live="patients.lab_pending">{{ $patients['lab_pending'] ?? 0 }}</div>
-                            <div class="dash-live-chip-sub">Tests awaiting result</div>
+                            <div class="dash-live-chip-sub">{{ $d('tests_awaiting_result') }}</div>
                         </div>
                         <div class="dash-live-chip">
-                            <div class="dash-live-chip-label"><i class="fas fa-hand-holding-usd me-1"></i> Today Collection</div>
+                            <div class="dash-live-chip-label"><i class="fas fa-hand-holding-usd me-1"></i> {{ $d('today_collection') }}</div>
                             <div class="dash-live-chip-value">৳ <span data-live="today.collection.total" data-live-fmt="money">{{ $fmt($today['collection']['total']) }}</span></div>
-                            <div class="dash-live-chip-sub">Updates as payments come in</div>
+                            <div class="dash-live-chip-sub">{{ $d('updates_as_payments') }}</div>
                         </div>
                     </div>
                 </div>
                 <div class="dash-live-footfall">
                     <i class="fas fa-walking me-1"></i>
-                    Today's footfall:
+                    {{ $d('today_footfall') }}
                     <strong data-live="patients.today_footfall">{{ $patients['today_footfall'] ?? 0 }}</strong>
-                    patients
-                    (<span data-live="patients.today_invoices">{{ $patients['today_invoices'] ?? 0 }}</span> invoices ·
+                    {{ $d('patients') }}
+                    (<span data-live="patients.today_invoices">{{ $patients['today_invoices'] ?? 0 }}</span> {{ $d('invoices') }} ·
                     <span data-live="patients.opd_total_today">{{ $patients['opd_total_today'] ?? 0 }}</span> OPD ·
-                    <span data-live="pharmacy.sales_today">{{ $pharmacy['sales_today'] ?? 0 }}</span> pharmacy)
+                    <span data-live="pharmacy.sales_today">{{ $pharmacy['sales_today'] ?? 0 }}</span> {{ $d('pharmacy') }})
                 </div>
             </div>
 
@@ -701,8 +702,8 @@
             {{-- Patient intelligence --}}
             <div class="inv-panel mb-3" id="dash-patient-panel">
                 <div class="inv-panel-head" style="cursor: default;">
-                    <h6><i class="fas fa-users me-2 text-primary"></i> Patient Intelligence</h6>
-                    <small class="text-muted">Special · Regular · New · Predict who may return</small>
+                    <h6><i class="fas fa-users me-2 text-primary"></i> {{ $d('patient_intelligence') }}</h6>
+                    <small class="text-muted">{{ $d('patient_intelligence_sub') }}</small>
                 </div>
                 <div class="p-3">
                     <div class="dash-segment-row" id="dash-segment-row">
@@ -710,7 +711,7 @@
                             <div class="dash-segment-chip {{ $key }}">
                                 <div>
                                     <div class="count" data-live="patientInsights.today_summary.{{ $key }}">{{ $piToday[$key] ?? 0 }}</div>
-                                    <div class="label">{{ $label }} today</div>
+                                    <div class="label">{{ $label }} {{ $d('today') }}</div>
                                 </div>
                             </div>
                         @endforeach
@@ -729,8 +730,8 @@
                             <div class="dash-predict info">
                                 <div class="dash-predict-icon"><i class="fas fa-info-circle"></i></div>
                                 <div>
-                                    <strong>Building patient patterns</strong>
-                                    <div class="small text-muted">More visits = smarter special/regular detection</div>
+                                    <strong>{{ $d('building_patterns') }}</strong>
+                                    <div class="small text-muted">{{ $d('building_patterns_sub') }}</div>
                                 </div>
                             </div>
                         @endforelse
@@ -738,16 +739,16 @@
 
                     <div class="dash-patient-grid">
                         <div>
-                            <h6 class="mb-2 fw-bold"><i class="fas fa-user-clock me-1 text-primary"></i> Today's Patients</h6>
+                            <h6 class="mb-2 fw-bold"><i class="fas fa-user-clock me-1 text-primary"></i> {{ $d('todays_patients') }}</h6>
                             <div class="table-responsive">
                                 <table class="inv-table table table-sm mb-0">
                                     <thead>
                                     <tr>
-                                        <th>Patient</th>
-                                        <th>Type</th>
-                                        <th class="text-end">Visits</th>
-                                        <th class="text-end">Spent</th>
-                                        <th>Prediction</th>
+                                        <th>{{ t('common.patient') }}</th>
+                                        <th>{{ $d('type') }}</th>
+                                        <th class="text-end">{{ $d('visits') }}</th>
+                                        <th class="text-end">{{ $d('spent') }}</th>
+                                        <th>{{ $d('prediction') }}</th>
                                     </tr>
                                     </thead>
                                     <tbody id="dash-today-patients-body">
@@ -763,17 +764,17 @@
                                             <td><small class="text-muted">{{ $row['prediction'] }}</small></td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="5" class="text-center text-muted py-3">No patient activity yet today</td></tr>
+                                        <tr><td colspan="5" class="text-center text-muted py-3">{{ $d('no_patient_activity') }}</td></tr>
                                     @endforelse
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-2 fw-bold"><i class="fas fa-chart-pie me-1 text-primary"></i> Today's Mix</h6>
+                            <h6 class="mb-2 fw-bold"><i class="fas fa-chart-pie me-1 text-primary"></i> {{ $d('todays_mix') }}</h6>
                             <div id="dash-patient-segment-chart"></div>
                             <div class="small text-muted mt-2 text-center">
-                                <span data-live="patientInsights.active_patients">{{ $pi['active_patients'] ?? 0 }}</span> active patients (last 12 months)
+                                <span data-live="patientInsights.active_patients">{{ $pi['active_patients'] ?? 0 }}</span> {{ $d('active_patients_12m') }}
                             </div>
                         </div>
                     </div>
@@ -784,12 +785,12 @@
                 <div class="inv-kpi">
                     <div class="inv-kpi-icon collection"><i class="fas fa-hand-holding-usd"></i></div>
                     <div>
-                        <div class="inv-kpi-label">Today's Collection</div>
+                        <div class="inv-kpi-label">{{ $d('today_collection') }}</div>
                         <div class="inv-kpi-value">৳ <span data-live="today.collection.total" data-live-fmt="money">{{ $fmt($today['collection']['total']) }}</span></div>
                         @if(isset($comparisons['collection_vs_yesterday']))
                             <span class="dash-trend {{ $trendClass($comparisons['collection_vs_yesterday']) }}" id="dash-trend-collection">
                                 <i class="fas {{ $trendIcon($comparisons['collection_vs_yesterday']) }}"></i>
-                                {{ abs($comparisons['collection_vs_yesterday']) }}% vs yesterday
+                                {{ abs($comparisons['collection_vs_yesterday']) }}% {{ $d('vs_yesterday') }}
                             </span>
                         @endif
                     </div>
@@ -797,21 +798,21 @@
                 <div class="inv-kpi">
                     <div class="inv-kpi-icon cost"><i class="fas fa-receipt"></i></div>
                     <div>
-                        <div class="inv-kpi-label">Today's Cost</div>
+                        <div class="inv-kpi-label">{{ $d('todays_cost') }}</div>
                         <div class="inv-kpi-value">৳ <span data-live="today.cost" data-live-fmt="money">{{ $fmt($today['cost']) }}</span></div>
                     </div>
                 </div>
                 <div class="inv-kpi">
                     <div class="inv-kpi-icon net"><i class="fas fa-wallet"></i></div>
                     <div>
-                        <div class="inv-kpi-label">Today's Net</div>
+                        <div class="inv-kpi-label">{{ $d('todays_net') }}</div>
                         <div class="inv-kpi-value {{ $today['net'] < 0 ? 'text-danger' : '' }}" id="dash-kpi-net-value">
                             ৳ <span data-live="today.net" data-live-fmt="money">{{ $fmt($today['net']) }}</span>
                         </div>
                         @if(isset($comparisons['net_vs_yesterday']))
                             <span class="dash-trend {{ $trendClass($comparisons['net_vs_yesterday']) }}" id="dash-trend-net">
                                 <i class="fas {{ $trendIcon($comparisons['net_vs_yesterday']) }}"></i>
-                                {{ abs($comparisons['net_vs_yesterday']) }}% vs yesterday
+                                {{ abs($comparisons['net_vs_yesterday']) }}% {{ $d('vs_yesterday') }}
                             </span>
                         @endif
                     </div>
@@ -819,12 +820,12 @@
                 <div class="inv-kpi">
                     <div class="inv-kpi-icon week"><i class="fas fa-calendar-week"></i></div>
                     <div>
-                        <div class="inv-kpi-label">This Week Net</div>
+                        <div class="inv-kpi-label">{{ $d('this_week_net') }}</div>
                         <div class="inv-kpi-value">৳ <span data-live="thisWeek.net" data-live-fmt="money">{{ $fmt($thisWeek['net']) }}</span></div>
                         @if(isset($comparisons['net_week_vs_last_week']))
                             <span class="dash-trend {{ $trendClass($comparisons['net_week_vs_last_week']) }}" id="dash-trend-week">
                                 <i class="fas {{ $trendIcon($comparisons['net_week_vs_last_week']) }}"></i>
-                                {{ abs($comparisons['net_week_vs_last_week']) }}% vs last week
+                                {{ abs($comparisons['net_week_vs_last_week']) }}% {{ $d('vs_last_week') }}
                             </span>
                         @endif
                     </div>
@@ -832,12 +833,12 @@
                 <div class="inv-kpi">
                     <div class="inv-kpi-icon month"><i class="fas fa-calendar-alt"></i></div>
                     <div>
-                        <div class="inv-kpi-label">This Month Net</div>
+                        <div class="inv-kpi-label">{{ $d('this_month_net') }}</div>
                         <div class="inv-kpi-value">৳ <span data-live="thisMonth.net" data-live-fmt="money">{{ $fmt($thisMonth['net']) }}</span></div>
                         @if(isset($comparisons['net_month_vs_last_month']))
                             <span class="dash-trend {{ $trendClass($comparisons['net_month_vs_last_month']) }}" id="dash-trend-month">
                                 <i class="fas {{ $trendIcon($comparisons['net_month_vs_last_month']) }}"></i>
-                                {{ abs($comparisons['net_month_vs_last_month']) }}% vs last month
+                                {{ abs($comparisons['net_month_vs_last_month']) }}% {{ $d('vs_last_month') }}
                             </span>
                         @endif
                     </div>
@@ -850,8 +851,8 @@
                     <a href="{{ route('admin.invoices.index') }}" class="dash-alert danger">
                         <div class="dash-alert-icon text-danger"><i class="fas fa-file-invoice-dollar"></i></div>
                         <div>
-                            <strong>Patient invoice due</strong>
-                            <div class="small text-muted">৳ <span data-live="operations.outstanding_due" data-live-fmt="money">{{ $fmt($operations['outstanding_due']) }}</span> unpaid on invoices</div>
+                            <strong>{{ $d('patient_invoice_due') }}</strong>
+                            <div class="small text-muted">৳ <span data-live="operations.outstanding_due" data-live-fmt="money">{{ $fmt($operations['outstanding_due']) }}</span> {{ $d('invoice_due_suffix') }}</div>
                         </div>
                     </a>
                 @endif
@@ -859,8 +860,8 @@
                     <a href="{{ route('admin.reports.references.payment') }}" class="dash-alert warn">
                         <div class="dash-alert-icon text-warning"><i class="fas fa-user-tie"></i></div>
                         <div>
-                            <strong>Referrer commission due</strong>
-                            <div class="small text-muted">৳ <span data-live="operations.refer_fee_due" data-live-fmt="money">{{ $fmt($operations['refer_fee_due']) }}</span> pending payout</div>
+                            <strong>{{ $d('referrer_commission_due') }}</strong>
+                            <div class="small text-muted">৳ <span data-live="operations.refer_fee_due" data-live-fmt="money">{{ $fmt($operations['refer_fee_due']) }}</span> {{ $d('payout_suffix') }}</div>
                         </div>
                     </a>
                 @endif
@@ -868,8 +869,8 @@
                     <a href="{{ route('admin.labs.index') }}" class="dash-alert info">
                         <div class="dash-alert-icon text-primary"><i class="fas fa-flask"></i></div>
                         <div>
-                            <strong><span data-live="operations.pending_lab_tests">{{ $operations['pending_lab_tests'] }}</span> lab tests pending</strong>
-                            <div class="small text-muted"><span data-live="operations.completed_lab_today">{{ $operations['completed_lab_today'] }}</span> completed today</div>
+                            <strong><span data-live="operations.pending_lab_tests">{{ $operations['pending_lab_tests'] }}</span> {{ $d('lab_tests_pending_label') }}</strong>
+                            <div class="small text-muted"><span data-live="operations.completed_lab_today">{{ $operations['completed_lab_today'] }}</span> {{ $d('completed_today_label') }}</div>
                         </div>
                     </a>
                 @endif
@@ -877,8 +878,8 @@
                     <a href="{{ route('admin.reports.pharmacy-stock') }}" class="dash-alert warn">
                         <div class="dash-alert-icon text-warning"><i class="fas fa-pills"></i></div>
                         <div>
-                            <strong>Pharmacy stock alert</strong>
-                            <div class="small text-muted"><span data-live="pharmacy.out_of_stock">{{ $pharmacy['out_of_stock'] }}</span> out · <span data-live="pharmacy.low_stock">{{ $pharmacy['low_stock'] }}</span> low stock</div>
+                            <strong>{{ $d('pharmacy_stock_alert') }}</strong>
+                            <div class="small text-muted"><span data-live="pharmacy.out_of_stock">{{ $pharmacy['out_of_stock'] }}</span> {{ $d('stock_out') }} · <span data-live="pharmacy.low_stock">{{ $pharmacy['low_stock'] }}</span> {{ $d('stock_low') }}</div>
                         </div>
                     </a>
                 @endif
@@ -887,22 +888,22 @@
             {{-- Quick actions --}}
             <div class="dash-quick-grid">
                 @if($userGuard->can('invoices.create'))
-                    <a href="{{ route('admin.invoices.create') }}" class="dash-quick"><i class="fas fa-file-medical"></i> New Invoice</a>
+                    <a href="{{ route('admin.invoices.create') }}" class="dash-quick"><i class="fas fa-file-medical"></i> {{ $d('new_invoice') }}</a>
                 @endif
                 @if($userGuard->can('pharmacy_sales.create'))
-                    <a href="{{ route('admin.pharmacy_sales.create') }}" class="dash-quick"><i class="fas fa-cash-register"></i> Pharmacy Sale</a>
+                    <a href="{{ route('admin.pharmacy_sales.create') }}" class="dash-quick"><i class="fas fa-cash-register"></i> {{ $d('pharmacy_sale') }}</a>
                 @endif
                 @if($userGuard->can('admits.index'))
-                    <a href="{{ route('admin.admits.index') }}" class="dash-quick"><i class="fas fa-procedures"></i> Admits</a>
+                    <a href="{{ route('admin.admits.index') }}" class="dash-quick"><i class="fas fa-procedures"></i> {{ t('menu.admits') }}</a>
                 @endif
                 @if($userGuard->can('reports.index'))
-                    <a href="{{ route('admin.reports.collections') }}" class="dash-quick"><i class="fas fa-chart-bar"></i> Collections</a>
+                    <a href="{{ route('admin.reports.collections') }}" class="dash-quick"><i class="fas fa-chart-bar"></i> {{ $d('collections') }}</a>
                 @endif
                 @if($userGuard->can('reports.index'))
-                    <a href="{{ route('admin.reports.balance') }}" class="dash-quick"><i class="fas fa-balance-scale"></i> Balance</a>
+                    <a href="{{ route('admin.reports.balance') }}" class="dash-quick"><i class="fas fa-balance-scale"></i> {{ t('common.balance') }}</a>
                 @endif
                 @if($userGuard->can('doctor_serials.index'))
-                    <a href="{{ route('admin.doctor_serials.index') }}" class="dash-quick"><i class="fas fa-list-ol"></i> Doctor Serial</a>
+                    <a href="{{ route('admin.doctor_serials.index') }}" class="dash-quick"><i class="fas fa-list-ol"></i> {{ $d('doctor_serial') }}</a>
                 @endif
             </div>
 
@@ -1169,8 +1170,8 @@
             <div class="inv-panel">
                 <div class="p-5 text-center">
                     <i class="fas fa-home fa-3x text-muted mb-3"></i>
-                    <h3>Welcome</h3>
-                    <p class="text-muted mb-0">You don't have permission to view dashboard analytics.</p>
+                    <h3>{{ t('common.welcome') }}</h3>
+                    <p class="text-muted mb-0">{{ $d('no_permission') }}</p>
                 </div>
             </div>
         @endif

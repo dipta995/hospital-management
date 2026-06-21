@@ -83,7 +83,7 @@ class AuditLogController extends Controller
         $admin = auth('admin')->user();
 
         if (!canAccessAuditLogs($admin)) {
-            abort(403, 'You are not allowed to view trash records.');
+            abort(403, 'Only Super Admin can view trash records.');
         }
     }
 }
