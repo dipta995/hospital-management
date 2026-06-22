@@ -17,6 +17,7 @@ use App\Models\ReceptPayment;
 use App\Models\SmsBalance;
 use App\Services\AuditLogSchemaService;
 use App\Services\PatientInsightService;
+use App\Services\SchemaMigrationRegistryService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -24,15 +25,15 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(AuditLogSchemaService $auditLogSchemaService)
+    public function index(SchemaMigrationRegistryService $schemaRegistry)
     {
         $nowDhaka = Carbon::now('Asia/Dhaka');
         $branchId = auth()->user()->branch_id;
         $admin = auth('admin')->user();
 
         $data = [
-            'auditLogSchemaStatus' => $auditLogSchemaService->getStatus(),
-            'auditLogSchemaInstalled' => $auditLogSchemaService->isInstalled(),
+            'schemaModules' => $schemaRegistry->getSummary(),
+            'canManageSystemSchema' => canManageSystemSchema($admin),
             'canManageAuditLogs' => canAccessAuditLogs($admin),
             'todayLabel' => $nowDhaka->format('l, d M Y'),
             'adminName' => $admin?->name,
@@ -187,6 +188,11 @@ class DashboardController extends Controller
         }
 
         return $alerts;
+    }
+
+    public function buildMetricsForAi(int $branchId): array
+    {
+        return $this->buildMetrics($branchId, Carbon::now('Asia/Dhaka'));
     }
 
     private function buildMetrics(int $branchId, Carbon $nowDhaka): array

@@ -76,6 +76,10 @@
     .sidebar-module-hr > .nav-link.active,
     .sidebar-module-hr > .nav-link:not(.collapsed) { background: rgba(37, 99, 235, 0.14); color: #1d4ed8; }
 
+    .sidebar-module-ai > .nav-link { background: rgba(15, 118, 110, 0.08); }
+    .sidebar-module-ai > .nav-link.active,
+    .sidebar-module-ai > .nav-link:not(.collapsed) { background: rgba(15, 118, 110, 0.15); color: #0f766e; }
+
     /* Sub-section labels inside mega-menus */
     .sub-nav-section {
         padding: 10px 16px 4px 20px;

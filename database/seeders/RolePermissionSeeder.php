@@ -485,6 +485,16 @@ class RolePermissionSeeder extends Seeder
                 ]
             ],
 
+            [
+                'group_name' => 'ai',
+                'permissions' => [
+                    'ai.reports',
+                    'ai.health',
+                    'ai.chat',
+                    'ai.analytics',
+                ]
+            ],
+
 
         ];
 

@@ -41,6 +41,7 @@
             @include('backend.layouts.partials.sidebar._pharmacy')
             @include('backend.layouts.partials.sidebar._finance')
             @include('backend.layouts.partials.sidebar._reports')
+            @include('backend.layouts.partials.sidebar._ai')
             @include('backend.layouts.partials.sidebar._hr')
             @include('backend.layouts.partials.sidebar._inventory')
             @include('backend.layouts.partials.sidebar._admin')

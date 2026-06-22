@@ -24,6 +24,15 @@ Default admin login is created by seeders (`RolePermissionSeeder`). Check `datab
 
 Admin panel: `/admin/login`
 
+## Documentation (ব্যবহারকারী গাইড)
+
+**Admin panel:** `/admin/help` — module-wise guides with search, EN/BN toggle, step-by-step instructions.
+
+| | |
+|--|--|
+| Index | [docs/README.md](docs/README.md) |
+| Edit content | `lang/en/documentation.php` · `lang/bn/documentation.php` |
+
 ## Main modules
 
 | Module | Path prefix | Notes |
@@ -65,7 +74,9 @@ Unknown subdomains use the `default` block (falls back to `DB_*` from `.env`). L
 ## Maintenance (Super Admin only)
 
 - Clear cache: `POST /admin/system/clear-cache`
-- Install HR schema columns: `POST /admin/system/install-hr-schema`
+- System schema updates: Dashboard → **System Updates** → Apply (safe, additive only)
+- Install HR schema: Dashboard or `POST /admin/system/install-hr-schema`
+- Full guide: [docs/en/USER_GUIDE.md](docs/en/USER_GUIDE.md#13-system-updates-super-admin) · [docs/bn/USER_GUIDE.md](docs/bn/USER_GUIDE.md#১৩-সিস্টেম-আপডেট-super-admin)
 
 ## Development
 

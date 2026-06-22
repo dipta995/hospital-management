@@ -19,6 +19,7 @@ class InvoiceList extends Model
         'discount_price',
         'refer_fee',
         'test_report',
+        'ai_summary',
         'document',
         'status',
     ];

@@ -104,6 +104,7 @@
 </script>
 @endif
 @stack('scripts')
+@include('backend.layouts.partials.ai-chat-widget')
 
 </body>
 

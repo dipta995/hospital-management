@@ -104,7 +104,7 @@
                                 <th>Test Name</th>
                                 <th>Price</th>
                                 <th>Status</th>
-                                <th class="text-end">Downloads</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -137,6 +137,12 @@
                                                        href="{{ route('admin.lab.report.pdf-preview', $item->id) }}" title="Report">
                                                         <i class="fas fa-file-pdf"></i>
                                                     </a>
+                                                    @if(Auth::guard('admin')->user()?->can('ai.reports'))
+                                                    <button type="button" class="inv-act view ai-report-summary-btn border-0 bg-transparent"
+                                                            data-line-id="{{ $item->id }}" title="{{ t('ai.report_summary') }}">
+                                                        <i class="fas fa-file-alt"></i>
+                                                    </button>
+                                                    @endif
                                                 @endif
                                             @else
                                                 <span class="text-muted small">—</span>
@@ -233,4 +239,113 @@
             </div>
         </div>
     @endif
+
+    @if(Auth::guard('admin')->user()?->can('ai.reports'))
+    <div class="modal fade" id="aiReportSummaryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ t('ai.report_summary') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="ai-report-summary-loading" class="text-muted d-none"><i class="fas fa-spinner fa-spin"></i> {{ t('common.loading') }}</div>
+                    <div id="ai-report-summary-meta" class="mb-3 d-none"></div>
+                    <div id="ai-report-summary-flags" class="mb-3 d-none"></div>
+                    <div id="ai-report-summary-content" style="white-space: pre-wrap;"></div>
+                    <div id="ai-report-summary-followup" class="mt-3 small text-muted d-none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 @endsection
+
+@push('scripts')
+@if(Auth::guard('admin')->user()?->can('ai.reports'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modalEl = document.getElementById('aiReportSummaryModal');
+    var modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+    var content = document.getElementById('ai-report-summary-content');
+    var loading = document.getElementById('ai-report-summary-loading');
+    var meta = document.getElementById('ai-report-summary-meta');
+    var flags = document.getElementById('ai-report-summary-flags');
+    var followup = document.getElementById('ai-report-summary-followup');
+    var url = @json(route('admin.ai.report-summary'));
+    var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    var labels = {
+        interpretation: @json(t('ai.interpretation')),
+        abnormalities: @json(t('ai.abnormal_findings')),
+        followUp: @json(t('ai.follow_up')),
+        none: @json(t('ai.no_abnormalities')),
+    };
+
+    var renderReport = function (data) {
+        if (meta) {
+            meta.classList.remove('d-none');
+            meta.innerHTML = '<span class="badge bg-dark">' + (data.test_name || 'Test') + '</span>' +
+                (data.flag_count > 0 ? ' <span class="badge bg-danger ms-1">' + data.flag_count + ' flagged</span>' : '');
+        }
+        if (flags) {
+            var abn = data.abnormalities || [];
+            if (abn.length) {
+                flags.classList.remove('d-none');
+                flags.innerHTML = '<div class="fw-semibold small mb-2">' + labels.abnormalities + '</div>' +
+                    abn.map(function (f) {
+                        return '<div class="alert alert-warning py-2 px-3 small mb-2">' +
+                            '<strong>' + f.parameter + '</strong>: ' + (f.value != null ? f.value + ' ' + (f.unit || '') : f.status) +
+                            ' <span class="text-muted">(ref ' + f.reference + ')</span></div>';
+                    }).join('');
+            } else {
+                flags.classList.add('d-none');
+            }
+        }
+        if (content && data.summary) {
+            if (data.interpretation) {
+                content.innerHTML = '<div class="small text-muted mb-2">' + labels.interpretation + '</div>' +
+                    '<div>' + data.interpretation + '</div><hr class="my-3">' + data.summary;
+            } else {
+                content.textContent = data.summary;
+            }
+        }
+        if (followup && data.follow_up) {
+            followup.classList.remove('d-none');
+            followup.innerHTML = '<strong>' + labels.followUp + ':</strong> ' + data.follow_up;
+        }
+    };
+
+    document.querySelectorAll('.ai-report-summary-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var lineId = btn.getAttribute('data-line-id');
+            if (!lineId || !modal) return;
+            if (content) content.textContent = '';
+            [meta, flags, followup].forEach(function (el) { if (el) { el.classList.add('d-none'); el.innerHTML = ''; } });
+            if (loading) loading.classList.remove('d-none');
+            modal.show();
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ invoice_list_id: parseInt(lineId, 10) }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(renderReport)
+                .catch(function () {
+                    if (content) content.textContent = @json(t('ai.request_failed'));
+                })
+                .finally(function () {
+                    if (loading) loading.classList.add('d-none');
+                });
+        });
+    });
+});
+</script>
+@endif
+@endpush

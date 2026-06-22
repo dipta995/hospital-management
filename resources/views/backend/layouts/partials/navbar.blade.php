@@ -11,8 +11,6 @@
             </div>
 
             <div class="topbar-left d-flex align-items-center">
-                @include('backend.layouts.partials.topbar-quick-links', ['topbarQuickLinksMode' => 'desktop'])
-
                 @if($userGuard->can('users.index'))
                 <div class="topbar-patient-search d-none d-md-block">
                     <div class="topbar-search-wrap">
@@ -120,6 +118,10 @@
                     </div>
                 </div>
 
+                <a href="{{ route('admin.help.index') }}" class="btn btn-outline-secondary btn-sm me-2" title="{{ t('help.menu') }}">
+                    <i class="fas fa-circle-question"></i>
+                    <span class="d-none d-xl-inline ms-1">{{ t('help.menu') }}</span>
+                </a>
                 <a href="{{ route('admin.logout.submit') }}" class="btn btn-outline-danger btn-sm topbar-logout-btn" title="{{ t('common.logout') }}">
                     <i class="bx bx-log-out"></i>
                     <span class="d-none d-xl-inline">{{ t('common.logout') }}</span>
@@ -127,7 +129,7 @@
             </div>
         </div>
 
-        @include('backend.layouts.partials.topbar-quick-links', ['topbarQuickLinksMode' => 'mobile'])
+        @include('backend.layouts.partials.topbar-quick-links')
     </div>
 </header>
 
@@ -147,12 +149,14 @@
         flex: 1 1 auto;
         min-width: 0;
         gap: 8px;
+        justify-content: flex-end;
     }
 
     .topbar-patient-search {
-        flex: 0 1 280px;
-        min-width: 180px;
-        max-width: 320px;
+        flex: 0 1 360px;
+        min-width: 200px;
+        max-width: 420px;
+        width: 100%;
     }
 
     .topbar-search-wrap {
@@ -237,123 +241,146 @@
         color: #1d4ed8;
     }
 
-    .tb-quick-nav {
+    .tb-quick-bar {
         display: flex;
-        align-items: center;
-        gap: 6px;
-        min-width: 0;
-        flex: 1 1 auto;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        padding: 2px 4px;
+        align-items: stretch;
+        gap: 4px;
+        width: 100%;
+        border-top: 1px solid #e8edf3;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        padding: 8px 4px 10px;
+        position: relative;
     }
 
-    .tb-quick-nav::-webkit-scrollbar { display: none; }
+    .tb-quick-bar::before,
+    .tb-quick-bar::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        bottom: 10px;
+        width: 28px;
+        pointer-events: none;
+        z-index: 2;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
 
-    .tb-quick-link {
+    .tb-quick-bar::before {
+        left: 36px;
+        background: linear-gradient(90deg, #f8fafc 30%, transparent);
+    }
+
+    .tb-quick-bar::after {
+        right: 36px;
+        background: linear-gradient(270deg, #f8fafc 30%, transparent);
+    }
+
+    .tb-quick-bar.can-scroll-left::before,
+    .tb-quick-bar.can-scroll-right::after {
+        opacity: 1;
+    }
+
+    .tb-quick-bar-track {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tb-quick-bar-track::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .tb-quick-bar-track::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    .tb-quick-bar-inner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: max-content;
+        min-width: 100%;
+        padding: 2px 6px;
+    }
+
+    .tb-quick-item {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        padding: 7px 12px;
-        border-radius: 999px;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 12px;
         text-decoration: none;
         font-size: 0.8rem;
         font-weight: 700;
         white-space: nowrap;
         flex-shrink: 0;
-        border: 1px solid transparent;
-        transition: transform 0.12s ease, box-shadow 0.12s ease;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #334155;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
     }
 
-    .tb-quick-link:hover {
+    .tb-quick-item:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
         color: inherit;
     }
 
-    .tb-quick-link-icon {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
+    .tb-quick-item-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.68rem;
-    }
-
-    .tb-quick-link--patients { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
-    .tb-quick-link--patients .tb-quick-link-icon { background: #334155; color: #fff; }
-    .tb-quick-link--invoices { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-    .tb-quick-link--invoices .tb-quick-link-icon { background: #059669; color: #fff; }
-    .tb-quick-link--admits { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-    .tb-quick-link--admits .tb-quick-link-icon { background: #64748b; color: #fff; }
-    .tb-quick-link--recepts { background: #fffbeb; color: #b45309; border-color: #fde68a; }
-    .tb-quick-link--recepts .tb-quick-link-icon { background: #f59e0b; color: #fff; }
-    .tb-quick-link--lab { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
-    .tb-quick-link--lab .tb-quick-link-icon { background: #4f46e5; color: #fff; }
-    .tb-quick-link--cost { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
-    .tb-quick-link--cost .tb-quick-link-icon { background: #0f172a; color: #fff; }
-
-    .tb-quick-link.is-active {
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-    }
-
-    .tb-quick-strip {
-        border-top: 1px solid #eef2f7;
-        background: linear-gradient(180deg, #ffffff, #f8fafc);
-        padding: 8px 0 10px;
-        margin: 0 -0.65rem;
-        padding-left: 0.65rem;
-        padding-right: 0.65rem;
-    }
-
-    .tb-quick-strip-scroll {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        padding: 0 0.65rem;
-    }
-
-    .tb-quick-strip-scroll::-webkit-scrollbar { display: none; }
-
-    .tb-quick-chip {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        min-width: 68px;
-        padding: 8px 10px;
-        border-radius: 14px;
-        text-decoration: none;
-        font-size: 0.68rem;
-        font-weight: 700;
-        line-height: 1.1;
+        font-size: 0.72rem;
         flex-shrink: 0;
-        border: 1px solid #e2e8f0;
-        background: #fff;
-        color: #475569;
-        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
     }
 
-    .tb-quick-chip i {
-        font-size: 1rem;
-    }
+    .tb-quick-item--patients .tb-quick-item-icon { background: #334155; color: #fff; }
+    .tb-quick-item--invoices .tb-quick-item-icon { background: #059669; color: #fff; }
+    .tb-quick-item--admits .tb-quick-item-icon { background: #2563eb; color: #fff; }
+    .tb-quick-item--recepts .tb-quick-item-icon { background: #f59e0b; color: #fff; }
+    .tb-quick-item--lab .tb-quick-item-icon { background: #4f46e5; color: #fff; }
+    .tb-quick-item--cost .tb-quick-item-icon { background: #7e22ce; color: #fff; }
 
-    .tb-quick-chip--patients i { color: #334155; }
-    .tb-quick-chip--invoices i { color: #059669; }
-    .tb-quick-chip--admits i { color: #64748b; }
-    .tb-quick-chip--recepts i { color: #d97706; }
-    .tb-quick-chip--lab i { color: #4f46e5; }
-    .tb-quick-chip--cost i { color: #7e22ce; }
-
-    .tb-quick-chip.is-active {
+    .tb-quick-item.is-active {
         border-color: #93c5fd;
         background: #eff6ff;
         color: #1d4ed8;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .tb-quick-scroll {
+        flex: 0 0 32px;
+        width: 32px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #fff;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .tb-quick-scroll:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    .tb-quick-scroll[hidden] {
+        display: none !important;
     }
 
     .topbar-right {
@@ -414,9 +441,21 @@
     }
 
     @media (max-width: 1400px) {
-        .tb-quick-link {
+        .tb-quick-item {
             font-size: 0.76rem;
-            padding: 6px 10px;
+            padding: 7px 12px;
+        }
+
+        .topbar-user-chip {
+            max-width: 160px;
+        }
+    }
+
+    @media (max-width: 1199.98px) {
+        .tb-quick-item-label {
+            max-width: 88px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     }
 
@@ -435,6 +474,12 @@
         .topbar-left {
             grid-column: 2;
             min-width: 0;
+            justify-content: stretch;
+        }
+
+        .topbar-patient-search {
+            flex: 1 1 auto;
+            max-width: none;
         }
 
         .topbar-right {
@@ -694,3 +739,37 @@
 })();
 </script>
 @endif
+
+<script>
+(function () {
+    document.querySelectorAll('[data-tb-quick-bar]').forEach(function (bar) {
+        var track = bar.querySelector('[data-tb-quick-track]');
+        var prev = bar.querySelector('[data-tb-quick-prev]');
+        var next = bar.querySelector('[data-tb-quick-next]');
+        if (!track) return;
+
+        var update = function () {
+            var maxScroll = track.scrollWidth - track.clientWidth;
+            var canScroll = maxScroll > 4;
+            var atStart = track.scrollLeft <= 4;
+            var atEnd = track.scrollLeft >= maxScroll - 4;
+
+            bar.classList.toggle('can-scroll-left', canScroll && !atStart);
+            bar.classList.toggle('can-scroll-right', canScroll && !atEnd);
+
+            if (prev) prev.hidden = !canScroll || atStart;
+            if (next) next.hidden = !canScroll || atEnd;
+        };
+
+        var scrollBy = function (dir) {
+            track.scrollBy({ left: dir * Math.max(180, track.clientWidth * 0.55), behavior: 'smooth' });
+        };
+
+        prev?.addEventListener('click', function () { scrollBy(-1); });
+        next?.addEventListener('click', function () { scrollBy(1); });
+        track.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        update();
+    });
+})();
+</script>

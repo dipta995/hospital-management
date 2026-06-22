@@ -179,6 +179,58 @@
             margin-bottom: 20px;
         }
 
+        .dash-schema-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .dash-schema-module {
+            background: var(--inv-surface);
+            border: 1px solid var(--inv-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .dash-schema-module.installed {
+            border-color: #bbf7d0;
+        }
+
+        .dash-schema-status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            list-style: none;
+            padding: 0;
+            margin: 0 0 10px;
+        }
+
+        .dash-schema-status li {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .dash-schema-status li.ok {
+            background: #ecfdf5;
+            color: #047857;
+        }
+
+        .dash-ai-content {
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: #334155;
+        }
+
+        .dash-ai-empty {
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
         .dash-trend {
             display: inline-flex;
             align-items: center;
@@ -598,33 +650,40 @@
 
         @include('backend.layouts.partials.message')
 
-        @if(!empty($canManageAuditLogs))
-            <div class="dash-hr-card">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                    <div>
-                        <h5 class="mb-1">
-                            <i class="fas fa-database text-warning"></i> {{ $d('audit_setup') }}
-                        </h5>
-                        <p class="text-muted mb-2 small">
-                            {{ $d('audit_setup_sub') }}
-                        </p>
-                        <ul class="small mb-0">
-                            <li>{{ $d('audit_table') }} <strong>{{ !empty($auditLogSchemaStatus['audit_logs_table']) ? $d('installed') : $d('missing') }}</strong></li>
-                            <li>{{ $d('delete_audit_not_allowed') }} <strong>{{ $d('not_allowed') }}</strong></li>
-                        </ul>
-                    </div>
-                    <div class="text-end">
-                        @if(!empty($auditLogSchemaInstalled))
-                            <span class="badge bg-success mb-2 d-inline-block">{{ $d('audit_table_ready') }}</span>
-                        @else
-                            <form method="post" action="{{ route('admin.system.install-audit-log-schema') }}"
-                                  onsubmit="return confirm(@json(t('dashboard.install_audit_table').'?'))">
-                                @csrf
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-cogs"></i> {{ $d('install_audit_table') }}
-                                </button>
-                            </form>
-                        @endif
+        @if(!empty($canManageSystemSchema))
+            <div class="inv-panel mb-3">
+                <div class="inv-panel-head d-flex justify-content-between align-items-center" style="cursor: default;">
+                    <h6 class="mb-0"><i class="fas fa-database me-2 text-secondary"></i> {{ $d('schema_maintenance') }}</h6>
+                    <span class="badge bg-light text-dark border">{{ $d('super_admin_only') }}</span>
+                </div>
+                <div class="p-3">
+                    <div class="dash-schema-grid">
+                        @foreach($schemaModules ?? [] as $module)
+                            <div class="dash-schema-module {{ !empty($module['installed']) ? 'installed' : '' }}">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <strong class="small">{{ $module['label'] }}</strong>
+                                    @if(!empty($module['installed']))
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ $d('ready') }}</span>
+                                    @else
+                                        <span class="badge bg-light text-secondary border">{{ $d('pending') }}</span>
+                                    @endif
+                                </div>
+                                <ul class="dash-schema-status">
+                                    @foreach($module['status_labels'] ?? [] as $item)
+                                        <li class="{{ !empty($item['ok']) ? 'ok' : '' }}">{{ $item['label'] }}</li>
+                                    @endforeach
+                                </ul>
+                                @if(empty($module['installed']))
+                                    <form method="post" action="{{ route('admin.system.install-schema', $module['key']) }}"
+                                          onsubmit="return confirm(@json($d('schema_install_confirm')))">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-dark">
+                                            <i class="fas fa-arrow-up"></i> {{ $d('install_schema') }}
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -780,6 +839,24 @@
                     </div>
                 </div>
             </div>
+
+            @if($userGuard->can('ai.analytics'))
+            <div class="inv-panel mb-3" id="dash-ai-insights-panel">
+                <div class="inv-panel-head d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor: default;">
+                    <h6 class="mb-0"><i class="fas fa-chart-line me-2 text-primary"></i> {{ $d('ai_business_analytics') }}</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="dash-ai-refresh" title="{{ $d('ai_refresh') }}">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="p-3 position-relative">
+                    <div id="dash-ai-insights-loading" class="text-muted small d-none">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <div id="dash-ai-insights-content" class="dash-ai-content dash-ai-empty">—</div>
+                    <div class="small text-muted mt-2 text-end" id="dash-ai-insights-meta"></div>
+                </div>
+            </div>
+            @endif
 
             <div class="inv-kpi-grid">
                 <div class="inv-kpi">
@@ -1507,6 +1584,58 @@
 
                 fetchLive();
                 startPolling();
+
+                @if($userGuard && $userGuard->can('ai.analytics'))
+                var aiInsightsUrl = @json(route('admin.dashboard.ai-insights'));
+                var aiContent = document.getElementById('dash-ai-insights-content');
+                var aiMeta = document.getElementById('dash-ai-insights-meta');
+                var aiLoading = document.getElementById('dash-ai-insights-loading');
+                var aiRefresh = document.getElementById('dash-ai-refresh');
+
+                var loadAiInsights = function (refresh) {
+                    if (!aiContent) return;
+                    if (aiLoading) aiLoading.classList.remove('d-none');
+                    var url = aiInsightsUrl + (refresh ? '?refresh=1' : '');
+                    fetch(url, {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    })
+                        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+                        .then(function (data) {
+                            if (!aiContent) return;
+                            var html = '';
+                            if (data.health_score != null) {
+                                html += '<div class="mb-2"><span class="badge bg-dark">Health ' + data.health_score + '/100</span></div>';
+                            }
+                            if (data.priority_actions && data.priority_actions.length) {
+                                html += '<ul class="small mb-2 ps-3">';
+                                data.priority_actions.slice(0, 3).forEach(function (a) {
+                                    html += '<li><strong>' + a.title + '</strong> — ' + a.detail + '</li>';
+                                });
+                                html += '</ul>';
+                            }
+                            if (data.insights) {
+                                html += '<div style="white-space:pre-wrap">' + data.insights + '</div>';
+                            }
+                            aiContent.innerHTML = html || '—';
+                            aiContent.classList.remove('dash-ai-empty');
+                            if (aiMeta && data.generated_at) {
+                                aiMeta.textContent = data.generated_at;
+                            }
+                        })
+                        .catch(function () {
+                            if (aiContent) aiContent.textContent = @json(t('ai.request_failed'));
+                        })
+                        .finally(function () {
+                            if (aiLoading) aiLoading.classList.add('d-none');
+                        });
+                };
+
+                loadAiInsights(false);
+                if (aiRefresh) {
+                    aiRefresh.addEventListener('click', function () { loadAiInsights(true); });
+                }
+                @endif
             });
         </script>
     @endif

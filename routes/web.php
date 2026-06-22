@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Backend\AdminController;
+use App\Http\Controllers\Backend\AiController;
+use App\Http\Controllers\Backend\AiModuleController;
 use App\Http\Controllers\Backend\ApiController;
 use App\Http\Controllers\Backend\AuditLogController;
 use App\Http\Controllers\Backend\Auth\AuthenticatedSessionController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Backend\ServiceCategoryController;
 use App\Http\Controllers\Backend\ServiceController;
 use App\Http\Controllers\Backend\CostCategoryController;
 use App\Http\Controllers\Backend\CostController;
+use App\Http\Controllers\Backend\DocumentationController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DoctorRoomController;
 use App\Http\Controllers\Backend\DoctorSerialController;
@@ -114,10 +117,23 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin'], function () {
 // Backend Start
 Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admin', 'subscription.access']], function () {
 
+    Route::get('/help', [DocumentationController::class, 'index'])->name('help.index');
+    Route::get('/help/{locale}/{module}', [DocumentationController::class, 'show'])->name('help.show')->where(['locale' => 'en|bn', 'module' => '[a-z_]+']);
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard/live', [DashboardController::class, 'liveStats'])->name('dashboard.live');
+    Route::get('/dashboard/ai-insights', [AiController::class, 'businessInsights'])->name('dashboard.ai-insights');
     Route::post('/system/clear-cache', [SystemMaintenanceController::class, 'clearCache'])->name('system.clear-cache');
+    Route::get('/system/schema-status', [SystemMaintenanceController::class, 'schemaStatus'])->name('system.schema-status');
     Route::post('/system/install-audit-log-schema', [SystemMaintenanceController::class, 'installAuditLogSchema'])->name('system.install-audit-log-schema');
+    Route::post('/system/install-hr-schema', [SystemMaintenanceController::class, 'installHrSchema'])->name('system.install-hr-schema');
+    Route::post('/system/install-schema/{key}', [SystemMaintenanceController::class, 'installSchema'])->name('system.install-schema');
+    Route::get('/ai', [AiModuleController::class, 'index'])->name('ai.index');
+    Route::post('/ai/report-summary', [AiController::class, 'reportSummary'])->name('ai.report-summary');
+    Route::post('/ai/health-explain', [AiController::class, 'healthExplain'])->name('ai.health-explain');
+    Route::post('/ai/chat', [AiController::class, 'chat'])->name('ai.chat');
+    Route::get('/ai/chat/history', [AiController::class, 'chatHistory'])->name('ai.chat.history');
+    Route::get('/ai/chat/suggestions', [AiController::class, 'chatSuggestions'])->name('ai.chat.suggestions');
+    Route::get('/ai/advanced-analytics', [AiController::class, 'advancedAnalytics'])->name('ai.advanced-analytics');
 //    Roles
     Route::resource('roles', RolesController::class, ['names' => 'roles']);
 //    Admins

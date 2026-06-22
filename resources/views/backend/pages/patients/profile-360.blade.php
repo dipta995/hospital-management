@@ -160,6 +160,32 @@
             <div class="text-muted mt-1">{{ $profile['prediction'] }}</div>
         </div>
 
+        @if(Auth::guard('admin')->user()?->can('ai.health'))
+        <div class="inv-panel mb-3" id="p360-ai-health-panel">
+            <div class="inv-panel-head d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor: default;">
+                <h6 class="mb-0"><i class="fas fa-notes-medical me-2 text-primary"></i> {{ t('ai.health_explanation') }}</h6>
+                <button type="button" class="btn btn-sm btn-dark" id="p360-ai-explain-btn">
+                    {{ t('ai.generate') }}
+                </button>
+            </div>
+            <div class="p-3">
+                <div id="p360-ai-risk-meter" class="d-none mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-semibold">{{ t('ai.risk_score') }}</span>
+                        <span id="p360-ai-risk-label" class="badge bg-secondary">—</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div id="p360-ai-risk-bar" class="progress-bar" style="width:0%"></div>
+                    </div>
+                </div>
+                <div id="p360-ai-factors" class="mb-3 d-none"></div>
+                <div id="p360-ai-care-plan" class="mb-3 d-none"></div>
+                <div id="p360-ai-health-loading" class="text-muted small d-none"><i class="fas fa-spinner fa-spin"></i></div>
+                <div id="p360-ai-health-content" class="text-muted small">—</div>
+            </div>
+        </div>
+        @endif
+
         <div class="p360-grid">
             <div>
                 <div class="inv-panel mb-3">
@@ -258,3 +284,86 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+@if(Auth::guard('admin')->user()?->can('ai.health'))
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('p360-ai-explain-btn');
+    var content = document.getElementById('p360-ai-health-content');
+    var loading = document.getElementById('p360-ai-health-loading');
+    var riskMeter = document.getElementById('p360-ai-risk-meter');
+    var riskBar = document.getElementById('p360-ai-risk-bar');
+    var riskLabel = document.getElementById('p360-ai-risk-label');
+    var factorsEl = document.getElementById('p360-ai-factors');
+    var careEl = document.getElementById('p360-ai-care-plan');
+    var url = @json(route('admin.ai.health-explain')) + '?' + @json(http_build_query(array_filter(['phone' => request('phone'), 'user_id' => request('user_id')])));
+    var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    var labels = {
+        care: @json(t('ai.care_plan')),
+        riskHigh: @json(t('ai.risk_high')),
+        riskModerate: @json(t('ai.risk_moderate')),
+        riskLow: @json(t('ai.risk_low')),
+    };
+
+    var riskClass = function (level) {
+        if (level === 'high') return { bar: 'bg-danger', badge: 'bg-danger', text: labels.riskHigh };
+        if (level === 'moderate') return { bar: 'bg-warning', badge: 'bg-warning text-dark', text: labels.riskModerate };
+        return { bar: 'bg-success', badge: 'bg-success', text: labels.riskLow };
+    };
+
+    btn?.addEventListener('click', function () {
+        if (loading) loading.classList.remove('d-none');
+        btn.disabled = true;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.risk_score != null && riskMeter && riskBar && riskLabel) {
+                    riskMeter.classList.remove('d-none');
+                    var rc = riskClass(data.risk_level);
+                    riskBar.style.width = data.risk_score + '%';
+                    riskBar.className = 'progress-bar ' + rc.bar;
+                    riskLabel.className = 'badge ' + rc.badge;
+                    riskLabel.textContent = data.risk_score + '/100 — ' + rc.text;
+                }
+                if (factorsEl && data.factors && data.factors.length) {
+                    factorsEl.classList.remove('d-none');
+                    factorsEl.innerHTML = data.factors.map(function (f) {
+                        return '<div class="alert alert-light border py-2 px-3 small mb-2">' +
+                            '<span class="badge bg-secondary me-1">' + f.impact + '</span> ' +
+                            '<strong>' + f.label + '</strong> — ' + f.detail + '</div>';
+                    }).join('');
+                }
+                if (careEl && data.care_plan && data.care_plan.length) {
+                    careEl.classList.remove('d-none');
+                    careEl.innerHTML = '<div class="small fw-semibold mb-2">' + labels.care + '</div><ul class="small mb-0">' +
+                        data.care_plan.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
+                }
+                if (content && data.content) {
+                    content.textContent = data.content;
+                    content.classList.remove('text-muted', 'small');
+                    content.style.lineHeight = '1.65';
+                    content.style.fontSize = '0.9rem';
+                    content.style.color = '#334155';
+                }
+            })
+            .catch(function () {
+                if (content) content.textContent = @json(t('ai.request_failed'));
+            })
+            .finally(function () {
+                if (loading) loading.classList.add('d-none');
+                btn.disabled = false;
+            });
+    });
+});
+</script>
+@endif
+@endpush

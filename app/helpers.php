@@ -14,6 +14,11 @@ function phoneNoRegex()
 
 function canAccessAuditLogs($admin = null): bool
 {
+    return canManageSystemSchema($admin);
+}
+
+function canManageSystemSchema($admin = null): bool
+{
     $admin = $admin ?: auth('admin')->user();
 
     if (!$admin || !method_exists($admin, 'hasRole')) {

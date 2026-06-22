@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Services\AuditLogSchemaService;
+use App\Services\SchemaMigrationRegistryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
@@ -34,20 +34,42 @@ class SystemMaintenanceController extends Controller
         return back()->with('success', $message);
     }
 
-    public function installAuditLogSchema(Request $request, AuditLogSchemaService $auditLogSchemaService)
+    public function installAuditLogSchema(Request $request, SchemaMigrationRegistryService $schemaRegistry)
     {
-        if (!canAccessAuditLogs(auth('admin')->user())) {
-            abort(403, 'Only Super Admin can install audit log schema.');
+        return $this->installSchema($request, 'audit_logs', $schemaRegistry);
+    }
+
+    public function installHrSchema(Request $request, SchemaMigrationRegistryService $schemaRegistry)
+    {
+        return $this->installSchema($request, 'hr_schedule', $schemaRegistry);
+    }
+
+    public function schemaStatus(SchemaMigrationRegistryService $schemaRegistry)
+    {
+        if (!canManageSystemSchema(auth('admin')->user())) {
+            abort(403, 'Only Super Admin can view schema status.');
         }
 
-        $result = $auditLogSchemaService->install();
+        return response()->json([
+            'success' => true,
+            'modules' => $schemaRegistry->getSummary(),
+        ]);
+    }
+
+    public function installSchema(Request $request, string $key, SchemaMigrationRegistryService $schemaRegistry)
+    {
+        if (!canManageSystemSchema(auth('admin')->user())) {
+            abort(403, 'Only Super Admin can install database schema updates.');
+        }
+
+        $result = $schemaRegistry->install($key);
 
         if ($request->expectsJson()) {
-            return response()->json($result, $result['success'] ? 200 : 422);
+            return response()->json($result, ($result['success'] ?? false) ? 200 : 422);
         }
 
-        $type = $result['success'] ? 'success' : 'error';
+        $type = ($result['success'] ?? false) ? 'success' : 'error';
 
-        return back()->with($type, $result['message']);
+        return back()->with($type, $result['message'] ?? 'Schema update failed.');
     }
 }
