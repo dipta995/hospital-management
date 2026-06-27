@@ -28,6 +28,15 @@ function canManageSystemSchema($admin = null): bool
     return $admin->hasRole('Super Admin');
 }
 
+function pendingSchemaUpdatesCount(): int
+{
+    if (!canManageSystemSchema()) {
+        return 0;
+    }
+
+    return app(\App\Services\SchemaMigrationRegistryService::class)->pendingCount();
+}
+
 function redirectRouteHelper($route = null, $message = null)
 {
     if ($route == null) {

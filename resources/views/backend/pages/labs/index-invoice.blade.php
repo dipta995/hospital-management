@@ -1,148 +1,161 @@
 @extends('backend.layouts.master')
 @section('title')
-    List of {{ $pageHeader['title'] }}
-    @php
-        $userGuard = Auth::guard('admin')->user();
-    @endphp
+    Lab Queue
 @endsection
 @push('styles')
-
+    @include('backend.layouts.partials.lab-styles')
 @endpush
 @section('admin-content')
-    <!-- partial -->
-    <div class="main-panel">
-        <div class="content-wrapper">
-            <div class="row">
+    @php
+        $stats = $labStats ?? [];
+        $todayDefault = !request()->filled('start_date') && !request()->filled('end_date');
+    @endphp
+    <div class="lab-page crud-page container-fluid py-3">
+        @include('backend.layouts.partials.crud-hero', [
+            'heroTitle' => 'Lab Queue',
+            'heroSubtitle' => ($todayDefault ? "Today's invoices" : 'Filtered invoices') . ' · Process tests and upload reports',
+            'heroIcon' => 'fa-flask',
+        ])
 
-                <div class="col-lg-12 grid-margin stretch-card">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="card-title">{{ $pageHeader['title'] }}'s List</h4>
-                            <p class="card-description">
-                                @include('backend.layouts.partials.message')
+        @include('backend.layouts.partials.message')
 
-                            </p>
-                            <form action="" method="GET" class="mb-4">
-                                <div class="row">
-                                    <div class="col-md-2">
-                                        <label for="start_date">Start Date:</label>
-                                        <input type="date" name="start_date" id="start_date" class="form-control"
-                                               value="{{ request('start_date') }}">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label for="end_date">End Date:</label>
-                                        <input type="date" name="end_date" id="end_date" class="form-control"
-                                               value="{{ request('end_date') }}">
-                                    </div>
-
-
-                                    <div class="col-md-2">
-                                        <label for="end_date">Invoice:</label>
-                                        <input type="text" name="invoice_number" id="invoice_number"
-                                               class="form-control"
-                                               value="{{ request('invoice_number') }}">
-                                    </div>
-                                    <div class="col-md-3 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-primary">Filter</button>
-                                        <a href="{{ route('admin.invoices.index') }}" class="btn btn-secondary ms-2">Reset</a>
-                                    </div>
-                                </div>
-                            </form>
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                    <tr>
-                                        <th># [Patient Id] ~ Name</th>
-                                        <th>Tests</th>
-                                        <th>LAB</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    @forelse($datas as $item)
-                                        <tr id="table-data{{ $item->id }}">
-                                            <td>{{ $loop->index + 1 }}. {{ $item->invoice_number }} [{{ $item->patient_no }}]
-                                                <hr>
-                                                {{ $item->patient_name ?? 'NA'}}</td>
-                                            <td>
-                                                @foreach($item->tests as $product)
-                                                    @php
-                                                        $status = $product->status;
-                                                        $complete = \App\Models\InvoiceList::$statusArray[2];
-                                                        $processing = \App\Models\InvoiceList::$statusArray[1];
-                                                        $badgeClass = 'bg-dark';
-                                                        if ($status === $complete) {
-                                                            $badgeClass = 'bg-success';
-                                                        } elseif ($status === $processing) {
-                                                            $badgeClass = 'bg-warning';
-                                                        }
-                                                    @endphp
-                                                    <span class="badge {{ $badgeClass }}">{{ $product->product->name }} </span>
-                                                @endforeach
-                                            </td>
-
-
-
-                                            <td>
-                                                <strong
-                                                    class="badge  {{ $item->isFullyProcessed() ? 'bg-success' : 'bg-warning' }}">{{ $item->isFullyProcessed() ? 'Complete' : 'Pending' }}</strong>
-                                            </td>
-
-                                            <td>
-                                                <a target="_blank"
-                                                   href="{{ route('admin.invoices.pdf-preview',$item->id) }}"
-                                                   class="badge bg-danger"><i class="fas fa-file-pdf"></i></a>
-                                                <a href="{{ route('admin.labs.show',$item->id) }}"
-                                                   class="badge bg-success"><i class="fas fa-eye"></i></a>
-
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <td>No record Found <a href="{{ route($pageHeader['create_route']) }}"
-                                                                   class="badge btn-info">Create</a></td>
-                                        </tr>
-                                    @endforelse
-
-                                    </tbody>
-                                </table>
-                                <div class="d-flex justify-content-end">
-                                    {!! $datas->appends(request()->query())->links() !!}
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="lab-kpi-grid">
+            <div class="lab-kpi">
+                <div class="lab-kpi-label">Invoices</div>
+                <div class="lab-kpi-value">{{ $stats['invoices'] ?? 0 }}</div>
+                <div class="lab-kpi-sub">In current filter</div>
+            </div>
+            <div class="lab-kpi">
+                <div class="lab-kpi-label">Pending Queue</div>
+                <div class="lab-kpi-value">{{ $stats['pending_invoices'] ?? 0 }}</div>
+                <div class="lab-kpi-sub">Invoices with open tests</div>
+            </div>
+            <div class="lab-kpi">
+                <div class="lab-kpi-label">Completed</div>
+                <div class="lab-kpi-value">{{ $stats['complete_invoices'] ?? 0 }}</div>
+                <div class="lab-kpi-sub">All tests done</div>
+            </div>
+            <div class="lab-kpi">
+                <div class="lab-kpi-label">Tests</div>
+                <div class="lab-kpi-value">{{ ($stats['tests_pending'] ?? 0) + ($stats['tests_processing'] ?? 0) }}</div>
+                <div class="lab-kpi-sub">
+                    {{ $stats['tests_pending'] ?? 0 }} pending ·
+                    {{ $stats['tests_processing'] ?? 0 }} processing ·
+                    {{ $stats['tests_complete'] ?? 0 }} done
                 </div>
-
             </div>
         </div>
 
+        <div class="crud-card">
+            <form method="GET" class="crud-toolbar">
+                <div class="row g-2 align-items-end w-100">
+                    <div class="col-md-2">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Invoice Number</label>
+                        <input type="text" name="invoice_number" class="form-control" value="{{ request('invoice_number') }}"
+                               placeholder="Search invoice...">
+                    </div>
+                    <div class="col-md-5 d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i> Filter</button>
+                        <a href="{{ route('admin.labs.index') }}" class="btn btn-outline-secondary">Reset</a>
+                        <a href="{{ route('admin.labs.tests') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-vial me-1"></i> Test Queue
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="lab-status-guide px-1">
+                <span class="guide-label">Test status:</span>
+                <span class="lab-badge pending">Pending</span>
+                <span class="lab-badge processing">Processing</span>
+                <span class="lab-badge complete">Complete</span>
+                <span class="guide-label ms-2">Invoice lab:</span>
+                <span class="lab-badge invoice-pending">Open</span>
+                <span class="lab-badge invoice-complete">Complete</span>
+            </div>
+
+            <div class="crud-table-wrap">
+                <div class="table-responsive">
+                    <table class="table crud-table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Patient / Invoice</th>
+                            <th>Tests</th>
+                            <th>Lab Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($datas as $item)
+                            @php
+                                $labComplete = $item->isFullyProcessed();
+                            @endphp
+                            <tr id="table-data{{ $item->id }}">
+                                <td>{{ $datas->firstItem() + $loop->index }}</td>
+                                <td class="lab-patient-cell">
+                                    <strong>{{ $item->patient_name ?? 'N/A' }}</strong>
+                                    <div class="lab-patient-meta">
+                                        Invoice {{ $item->invoice_number }} · ID {{ $item->patient_no }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="lab-test-tags">
+                                        @foreach($item->tests as $product)
+                                            @php
+                                                $badgeClass = match ($product->status) {
+                                                    \App\Models\InvoiceList::$statusArray[0] => 'pending',
+                                                    \App\Models\InvoiceList::$statusArray[1] => 'processing',
+                                                    \App\Models\InvoiceList::$statusArray[2] => 'complete',
+                                                    default => 'rejected',
+                                                };
+                                            @endphp
+                                            <span class="lab-badge {{ $badgeClass }}" title="{{ $product->status }}">
+                                                {{ $product->product->name ?? 'Test' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="lab-badge {{ $labComplete ? 'invoice-complete' : 'invoice-pending' }}">
+                                        {{ $labComplete ? 'Complete' : 'Open' }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="lab-crud-actions justify-content-end">
+                                        <a target="_blank" href="{{ route('admin.invoices.pdf-preview', $item->id) }}"
+                                           class="lab-btn pdf" title="Invoice PDF"><i class="fas fa-file-pdf"></i></a>
+                                        <a href="{{ route('admin.labs.show', $item->id) }}"
+                                           class="lab-btn view" title="Open Lab Work"><i class="fas fa-flask"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="lab-empty">
+                                    <i class="fas fa-vial d-block mb-2 fs-4"></i>
+                                    No lab invoices found for this filter.
+                                </td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if($datas->hasPages())
+                <div class="d-flex justify-content-end p-3 border-top">
+                    {!! $datas->appends(request()->query())->links() !!}
+                </div>
+            @endif
+        </div>
     </div>
-    <!-- main-panel ends -->
 @endsection
-
-@push('scripts')
-<script>
-    document.getElementById('due_filter').addEventListener('change', function() {
-        const dueValue = this.value;
-        const currentUrl = new URL(window.location.href);
-
-        // Update the URL with the new 'due' query parameter
-        currentUrl.searchParams.set('due', dueValue);
-
-        // Redirect to the updated URL
-        window.location.href = currentUrl.toString();
-    });
-</script>
-<script>
-    document.getElementById('dueToggle').addEventListener('change', function () {
-        const value = this.value;
-        document.getElementById('normalTable').style.display = value === 'due' ? 'none' : '';
-        document.getElementById('dueTable').style.display = value === 'due' ? '' : 'none';
-    });
-</script>
-@endpush
-

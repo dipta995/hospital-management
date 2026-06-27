@@ -58,6 +58,9 @@
                 @if ($userGuard->can('reports.show'))
                     <li class="sub-nav-section">{{ t('common.other') }}</li>
                     <li class="sub-nav-item">
+                        <a class="sub-nav-link" href="{{ route('admin.reports.upcoming-tests') }}">{{ t('menu.upcoming_tests') }}</a>
+                    </li>
+                    <li class="sub-nav-item">
                         <a class="sub-nav-link" href="{{ route('admin.reports.costs') }}">{{ t('menu.cost_report') }}</a>
                     </li>
                     <li class="sub-nav-item">

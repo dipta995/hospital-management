@@ -33,6 +33,7 @@ class DashboardController extends Controller
 
         $data = [
             'schemaModules' => $schemaRegistry->getSummary(),
+            'pendingSchemaCount' => $schemaRegistry->pendingCount(),
             'canManageSystemSchema' => canManageSystemSchema($admin),
             'canManageAuditLogs' => canAccessAuditLogs($admin),
             'todayLabel' => $nowDhaka->format('l, d M Y'),

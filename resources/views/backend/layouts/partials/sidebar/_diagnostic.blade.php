@@ -3,7 +3,7 @@
         || ($userGuard->can('products.index') || $userGuard->can('products.create'))
         || ($userGuard->can('invoices.index') || $userGuard->can('invoices.create'))
         || ($userGuard->can('labs.index'));
-    $diagnosticActive = Route::is('admin.categories.*', 'admin.products.*', 'admin.invoices.*', 'admin.labs.*');
+    $diagnosticActive = Route::is('admin.categories.*', 'admin.products.*', 'admin.invoices.*', 'admin.labs.*', 'admin.labs.tests');
 @endphp
 @if ($hasDiagnostic)
     @include('backend.layouts.partials.sidebar._section-title', [
@@ -61,7 +61,12 @@
                     <li class="sub-nav-section">{{ t('menu.lab_reports') }}</li>
                     <li class="sub-nav-item">
                         <a class="sub-nav-link" href="{{ route('admin.labs.index') }}">
-                            <i class="fas fa-flask fa-fw me-1"></i> {{ t('lab') }}
+                            <i class="fas fa-flask fa-fw me-1"></i> {{ t('menu.lab_queue') }}
+                        </a>
+                    </li>
+                    <li class="sub-nav-item">
+                        <a class="sub-nav-link" href="{{ route('admin.labs.tests') }}">
+                            <i class="fas fa-vial fa-fw me-1"></i> {{ t('menu.lab_tests') }}
                         </a>
                     </li>
                 @endif

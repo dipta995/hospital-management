@@ -165,7 +165,7 @@
         <div class="ai-schema-note">
             <i class="fas fa-database text-warning me-1"></i>
             {{ t('ai.schema_pending') }}
-            <a href="{{ route('admin.home') }}" class="fw-semibold">{{ t('ai.go_dashboard_updates') }}</a>
+            <a href="{{ route('admin.system.updates') }}" class="fw-semibold">{{ t('ai.go_dashboard_updates') }}</a>
         </div>
     @endif
 

@@ -806,4 +806,52 @@ class ReportController extends Controller
         return view('backend.pages.reports.pharmacy-stock', $data);
     }
 
+    public function upcomingTests(Request $request)
+    {
+        $this->checkOwnPermission('reports.index');
+
+        $data['pageHeader'] = [
+            'title' => 'Upcoming Tests',
+            'sub_title' => '',
+            'plural_name' => 'upcoming-tests',
+            'singular_name' => 'Upcoming Test',
+            'base_url' => url('admin/reports/upcoming-tests'),
+        ];
+
+        $nowDhaka = Carbon::now('Asia/Dhaka');
+        $query = InvoiceList::with(['invoice.reeferDr', 'product'])
+            ->where('branch_id', auth()->user()->branch_id)
+            ->whereNotNull('followup_date');
+
+        if (!$request->filled('start_date') && !$request->filled('end_date')) {
+            $query->whereDate('followup_date', '>=', $nowDhaka->toDateString());
+            $data['filterStart'] = $nowDhaka->toDateString();
+            $data['filterEnd'] = '';
+            $data['dateRangeLabel'] = 'From today onward';
+        } else {
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('followup_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->whereDate('followup_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->whereDate('followup_date', '<=', $request->end_date);
+            }
+            $data['filterStart'] = $request->start_date;
+            $data['filterEnd'] = $request->end_date;
+            $data['dateRangeLabel'] = trim(($request->start_date ?? '') . ' — ' . ($request->end_date ?? ''));
+        }
+
+        if ($request->filled('invoice_number')) {
+            $query->whereHas('invoice', function ($q) use ($request) {
+                $q->where('invoice_number', $request->invoice_number);
+            });
+        }
+
+        $data['datas'] = $query->orderBy('followup_date', 'asc')
+            ->orderBy('id', 'desc')
+            ->paginate(30);
+
+        return view('backend.pages.reports.upcoming-tests', $data);
+    }
+
 }

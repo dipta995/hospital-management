@@ -12,12 +12,14 @@ use App\Models\PurchaseItem;
 use App\Models\ReagentTrack;
 use App\Models\Setting;
 use App\Models\TestReport;
+use App\Services\LabFollowupSchemaService;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 
 class LabController extends Controller
 {
@@ -81,7 +83,7 @@ class LabController extends Controller
         } elseif ($request->filled('start_date')) {
             $query->where('created_at', '>=', $request->start_date);
         } elseif ($request->filled('end_date')) {
-            $query->where('created_at', '>=', $request->end_date);
+            $query->where('created_at', '<=', $request->end_date);
         }
 
         $query = $query->whereHas('invoice', function ($query) use ($request) {
@@ -126,8 +128,26 @@ class LabController extends Controller
         if ($request->filled('invoice_number')) {
             $query->where('invoice_number', $request->invoice_number);
         }
-        // Clone the query before executing
-        $queryTotal = clone $query;
+
+        $invoiceIds = (clone $query)->pluck('id');
+        $data['labStats'] = [
+            'invoices' => $invoiceIds->count(),
+            'pending_invoices' => (clone $query)->whereHas('tests', fn ($q) => $q->whereIn('status', [
+                InvoiceList::$statusArray[0],
+                InvoiceList::$statusArray[1],
+            ]))->count(),
+            'complete_invoices' => (clone $query)->whereDoesntHave('tests', fn ($q) => $q->whereIn('status', [
+                InvoiceList::$statusArray[0],
+                InvoiceList::$statusArray[1],
+                InvoiceList::$statusArray[3],
+            ]))->whereHas('tests')->count(),
+            'tests_pending' => InvoiceList::where('branch_id', auth()->user()->branch_id)
+                ->whereIn('invoice_id', $invoiceIds)->where('status', InvoiceList::$statusArray[0])->count(),
+            'tests_processing' => InvoiceList::where('branch_id', auth()->user()->branch_id)
+                ->whereIn('invoice_id', $invoiceIds)->where('status', InvoiceList::$statusArray[1])->count(),
+            'tests_complete' => InvoiceList::where('branch_id', auth()->user()->branch_id)
+                ->whereIn('invoice_id', $invoiceIds)->where('status', InvoiceList::$statusArray[2])->count(),
+        ];
         $data['datas'] = $query->orderBy('id', 'desc')->paginate(30);
 
         return view('backend.pages.labs.index-invoice', $data);
@@ -188,12 +208,21 @@ class LabController extends Controller
     {
         $this->checkOwnPermission('labs.index');
         $data['pageHeader'] = $this->pageHeader;
-        if ($data['singleData'] = Invoice::where('branch_id', auth()->user()->branch_id)
+        if ($data['singleData'] = Invoice::with(['invoiceList.product'])
+            ->where('branch_id', auth()->user()->branch_id)
             ->find($id)) {
-            $data['reports'] = TestReport::where('invoice_id', $id)->get();
-            $data['purchaseItems'] = PurchaseItem::where('branch_id', auth()->user()->branch_id)
+            $data['reports'] = TestReport::with(['invoiceItem.product'])
+                ->where('invoice_id', $id)
+                ->get();
+            $data['purchaseItems'] = PurchaseItem::with('item')
+                ->where('branch_id', auth()->user()->branch_id)
                 ->whereColumn('quantity', '>', 'quantity_spend')
-                ->get()->unique('item_id')
+                ->orderBy('expiry_date')
+                ->get();
+            $data['followupSchemaReady'] = app(LabFollowupSchemaService::class)->isInstalled();
+            $data['upcomingFollowups'] = $data['singleData']->invoiceList
+                ->filter(fn ($line) => !empty($line->followup_date))
+                ->sortBy('followup_date')
                 ->values();
             return view('backend.pages.labs.show', $data);
         } else {
@@ -215,8 +244,8 @@ class LabController extends Controller
     {
         $this->checkOwnPermission('labs.edit');
         $data['pageHeader'] = $this->pageHeader;
-        if ($data['edited'] = InvoiceList::where('branch_id', auth()->user()->branch_id)
-            ->where('admin_id', auth()->id())
+        if ($data['edited'] = InvoiceList::with(['product', 'invoice'])
+            ->where('branch_id', auth()->user()->branch_id)
             ->find($id)) {
             return view('backend.pages.labs.edit', $data);
         } else {
@@ -297,6 +326,8 @@ class LabController extends Controller
             $newStatus = InvoiceList::$statusArray[1];
         } else if (InvoiceList::$statusArray[1] == $row->status) {
             $newStatus = InvoiceList::$statusArray[2];
+        } else {
+            $newStatus = $row->status;
         }
         $row->status = $newStatus;
         $row->admin_id = auth()->id();
@@ -323,37 +354,113 @@ class LabController extends Controller
 
     public function updateItem(Request $request, $invoiceItemId)
     {
-        foreach ($request->items as $item) {
-            $row = PurchaseItem::find($item);
-//    $row->quantity = $request->quantity;
-            $row->quantity_spend = $row->quantity_spend + 1;
-            $row->save();
-            $data = new ReagentTrack();
-            $data->admin_id = auth()->id();
-            $data->branch_id = auth()->user()->branch_id;
-            $data->purchase_item_id = $item;
-            $data->invoice_list_id = $invoiceItemId;
-            $data->save();
+        $this->checkOwnPermission('labs.edit');
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*' => 'required|integer|exists:purchase_items,id',
+        ]);
+
+        InvoiceList::where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($invoiceItemId);
+
+        $branchId = auth()->user()->branch_id;
+        $adminId = auth()->id();
+
+        try {
+            DB::transaction(function () use ($request, $invoiceItemId, $branchId, $adminId) {
+                foreach ($request->items as $purchaseItemId) {
+                    $row = PurchaseItem::with('item')
+                        ->where('branch_id', $branchId)
+                        ->where('id', $purchaseItemId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$row) {
+                        throw new \RuntimeException('Selected reagent is not available for this branch.');
+                    }
+
+                    if ($row->quantity_spend >= $row->quantity) {
+                        $name = $row->item->name ?? 'Reagent';
+                        throw new \RuntimeException("Insufficient stock for {$name}. Remaining: 0");
+                    }
+
+                    $row->quantity_spend = $row->quantity_spend + 1;
+                    $row->save();
+
+                    ReagentTrack::create([
+                        'admin_id' => $adminId,
+                        'branch_id' => $branchId,
+                        'purchase_item_id' => $purchaseItemId,
+                        'invoice_list_id' => $invoiceItemId,
+                    ]);
+                }
+            });
+
+            return RedirectHelper::back('<strong>Success!</strong> Reagent added successfully.');
+        } catch (\RuntimeException $exception) {
+            return RedirectHelper::backWithInputFromException($exception->getMessage());
+        } catch (\Throwable $exception) {
+            return RedirectHelper::backWithInputFromException();
         }
-        return RedirectHelper::back();
+    }
 
+    public function updateInvoiceItemFollowup(Request $request, $invoiceItemId)
+    {
+        if (!auth('admin')->user()?->can('labs.edit') && !auth('admin')->user()?->can('labs.index')) {
+            abort(403);
+        }
 
+        if (!app(LabFollowupSchemaService::class)->isInstalled()) {
+            return RedirectHelper::backWithInputFromException('Lab follow-up columns are not installed. Apply System Updates → Lab Follow-up Notes.');
+        }
+
+        $request->validate([
+            'note' => 'nullable|string|max:1000',
+            'followup_date' => 'nullable|date',
+        ]);
+
+        $invoiceItem = InvoiceList::where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($invoiceItemId);
+
+        $invoiceItem->note = $request->note;
+        $invoiceItem->followup_date = $request->followup_date ?: null;
+        $invoiceItem->save();
+
+        return RedirectHelper::back('<strong>Updated!</strong> Test note and follow-up date saved successfully.');
     }
 
     public function DeleteReagetntTrack($id)
     {
         $this->checkOwnPermission('labs.delete');
-       $deleteData = ReagentTrack::find($id);
 
-        if (!is_null($deleteData)) {
-            if ($deleteData->delete()) {
-                $row = PurchaseItem::find($deleteData->purchase_item_id);
-                $row->quantity_spend = $row->quantity_spend - 1;
-                $row->save();
-                return RedirectHelper::back('<strong>Congratulations!!!</strong> Reagent delete Successfully');
-            } else {
-                return RedirectHelper::backWithInput();
-            }
+        $deleteData = ReagentTrack::where('branch_id', auth()->user()->branch_id)
+            ->find($id);
+
+        if (is_null($deleteData)) {
+            return RedirectHelper::backWithInputFromException('<strong>Sorry!</strong> Reagent record not found.');
+        }
+
+        try {
+            DB::transaction(function () use ($deleteData) {
+                $row = PurchaseItem::where('branch_id', auth()->user()->branch_id)
+                    ->where('id', $deleteData->purchase_item_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$deleteData->delete()) {
+                    throw new \RuntimeException('Could not delete reagent record.');
+                }
+
+                if ($row && $row->quantity_spend > 0) {
+                    $row->quantity_spend = $row->quantity_spend - 1;
+                    $row->save();
+                }
+            });
+
+            return RedirectHelper::back('<strong>Success!</strong> Reagent removed and stock restored.');
+        } catch (\Throwable $exception) {
+            return RedirectHelper::backWithInputFromException();
         }
     }
 

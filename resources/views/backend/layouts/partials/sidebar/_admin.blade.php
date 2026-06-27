@@ -1,7 +1,9 @@
 @php
     $hasAdmin = ($userGuard->can('branches.index') || $userGuard->can('branches.create'))
         || ($userGuard->can('roles.index') || $userGuard->can('roles.create'))
-        || ($userGuard->can('admins.index') || $userGuard->can('admins.create'));
+        || ($userGuard->can('admins.index') || $userGuard->can('admins.create'))
+        || canManageSystemSchema($userGuard);
+    $pendingSchema = pendingSchemaUpdatesCount();
 @endphp
 @if ($hasAdmin)
     @include('backend.layouts.partials.sidebar._section-title', [
@@ -59,6 +61,19 @@
                     <li class="sub-nav-item"><a class="sub-nav-link" href="{{ route('admin.admins.index') }}">{{ t('list') }}</a></li>
                 </ul>
             </div>
+        </li>
+    @endif
+
+    @if (canManageSystemSchema($userGuard))
+        <li class="nav-item" data-sidebar-section="admin">
+            <a class="nav-link {{ Route::is('admin.system.updates') ? 'active' : '' }}"
+               href="{{ route('admin.system.updates') }}">
+                <span class="nav-icon"><i class="fas fa-database"></i></span>
+                <span class="nav-text">{{ t('menu.system_updates') }}</span>
+                @if($pendingSchema > 0)
+                    <span class="badge bg-warning text-dark ms-1">{{ $pendingSchema }}</span>
+                @endif
+            </a>
         </li>
     @endif
 @endif

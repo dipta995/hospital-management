@@ -53,7 +53,39 @@ class SystemMaintenanceController extends Controller
         return response()->json([
             'success' => true,
             'modules' => $schemaRegistry->getSummary(),
+            'pending_count' => $schemaRegistry->pendingCount(),
         ]);
+    }
+
+    public function updates(SchemaMigrationRegistryService $schemaRegistry)
+    {
+        if (!canManageSystemSchema(auth('admin')->user())) {
+            abort(403, 'Only Super Admin can manage system updates.');
+        }
+
+        return view('backend.pages.system.updates', [
+            'schemaModules' => $schemaRegistry->getSummary(),
+            'pendingCount' => $schemaRegistry->pendingCount(),
+        ]);
+    }
+
+    public function installAllPending(Request $request, SchemaMigrationRegistryService $schemaRegistry)
+    {
+        if (!canManageSystemSchema(auth('admin')->user())) {
+            abort(403, 'Only Super Admin can install database schema updates.');
+        }
+
+        $result = $schemaRegistry->installAllPending();
+
+        if ($request->expectsJson()) {
+            return response()->json($result, ($result['success'] ?? false) ? 200 : 422);
+        }
+
+        $type = ($result['success'] ?? false) ? 'success' : 'error';
+
+        return redirect()
+            ->route('admin.system.updates')
+            ->with($type, $result['message'] ?? 'Schema update failed.');
     }
 
     public function installSchema(Request $request, string $key, SchemaMigrationRegistryService $schemaRegistry)

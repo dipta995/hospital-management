@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\PharmacyProduct;
 use App\Models\Product;
+use App\Models\ProductParameter;
 use App\Models\Reefer;
 use App\Models\Service;
 use App\Models\Setting;
@@ -30,6 +31,19 @@ class ApiController extends Controller
             ->get(['name', 'price', 'reefer_fee', 'category_id', 'id as productID']);
 
         return response()->json($products);
+    }
+
+    public function getProductParameters($id)
+    {
+        $product = Product::with('parameters')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->find($id);
+
+        if (!$product) {
+            return response()->json([]);
+        }
+
+        return response()->json($product->parameters);
     }
 
     public function getPharmacyProducts(Request $request)

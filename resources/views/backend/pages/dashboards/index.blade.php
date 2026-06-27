@@ -652,39 +652,25 @@
 
         @if(!empty($canManageSystemSchema))
             <div class="inv-panel mb-3">
-                <div class="inv-panel-head d-flex justify-content-between align-items-center" style="cursor: default;">
+                <div class="inv-panel-head d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor: default;">
                     <h6 class="mb-0"><i class="fas fa-database me-2 text-secondary"></i> {{ $d('schema_maintenance') }}</h6>
-                    <span class="badge bg-light text-dark border">{{ $d('super_admin_only') }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                        @if(($pendingSchemaCount ?? 0) > 0)
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                {{ $d('schema_pending_count', ['count' => $pendingSchemaCount]) }}
+                            </span>
+                        @endif
+                        <a href="{{ route('admin.system.updates') }}" class="btn btn-sm btn-outline-dark">
+                            <i class="fas fa-external-link-alt me-1"></i> {{ $d('open_schema_updates') }}
+                        </a>
+                    </div>
                 </div>
                 <div class="p-3">
-                    <div class="dash-schema-grid">
-                        @foreach($schemaModules ?? [] as $module)
-                            <div class="dash-schema-module {{ !empty($module['installed']) ? 'installed' : '' }}">
-                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-                                    <strong class="small">{{ $module['label'] }}</strong>
-                                    @if(!empty($module['installed']))
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle">{{ $d('ready') }}</span>
-                                    @else
-                                        <span class="badge bg-light text-secondary border">{{ $d('pending') }}</span>
-                                    @endif
-                                </div>
-                                <ul class="dash-schema-status">
-                                    @foreach($module['status_labels'] ?? [] as $item)
-                                        <li class="{{ !empty($item['ok']) ? 'ok' : '' }}">{{ $item['label'] }}</li>
-                                    @endforeach
-                                </ul>
-                                @if(empty($module['installed']))
-                                    <form method="post" action="{{ route('admin.system.install-schema', $module['key']) }}"
-                                          onsubmit="return confirm(@json($d('schema_install_confirm')))">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-dark">
-                                            <i class="fas fa-arrow-up"></i> {{ $d('install_schema') }}
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
+                    @include('backend.layouts.partials.schema-updates-panel', [
+                        'schemaModules' => $schemaModules ?? [],
+                        'pendingCount' => $pendingSchemaCount ?? 0,
+                        'compact' => true,
+                    ])
                 </div>
             </div>
         @endif

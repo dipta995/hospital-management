@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\TestReport;
-use App\Models\TestReportDemo;
 use App\Models\Invoice;
+use App\Models\InvoiceList;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
@@ -42,6 +42,33 @@ class TestReportController extends Controller
     }
 
     /**
+     * Lab staff use this flow from the Lab page; allow labs.edit as well as test_reports.* permissions.
+     */
+    protected function checkTestReportPermission(string $testReportPermission, ?string $labPermission = 'labs.edit'): void
+    {
+        if ($this->user->can($testReportPermission)) {
+            return;
+        }
+
+        if ($labPermission && $this->user->can($labPermission)) {
+            return;
+        }
+
+        abort(403, 'Unauthorized Access');
+    }
+
+    protected function syncInvoiceListReport(?int $invoiceListId, string $reportHtml): void
+    {
+        if (!$invoiceListId) {
+            return;
+        }
+
+        InvoiceList::where('branch_id', auth()->user()->branch_id)
+            ->where('id', $invoiceListId)
+            ->update(['test_report' => $reportHtml]);
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
@@ -61,108 +88,26 @@ class TestReportController extends Controller
      */
     public function create()
     {
-        $this->checkOwnPermission('test_reports.create');
+        $this->checkTestReportPermission('test_reports.create');
         $data['pageHeader'] = $this->pageHeader;
-        $invoiceId = request('invoiceId');
-        $data['invoiceId'] = $invoiceId;
+        $data['invoiceId'] = request('invoiceId');
         $data['testReport'] = request('testReport');
-        // When an invoice is provided, always show that invoice's tests
-        // on the left, and attach any matching templates from TestReportDemo.
-        if ($invoiceId) {
-            $invoice = Invoice::with(['invoiceList.product.category', 'invoiceList.product.parameters'])
-                ->where('branch_id', auth()->user()->branch_id)
-                ->find($invoiceId);
 
-            $data['invoice'] = $invoice;
+        if ($data['invoiceId']) {
+            $data['invoice'] = Invoice::where('branch_id', auth()->user()->branch_id)
+                ->find($data['invoiceId']);
 
-            if ($invoice) {
-                $data['reportDemo'] = $invoice->invoiceList->map(function ($item) {
-                    $product = $item->product;
-                    if (!$product) {
-                        return null;
-                    }
-
-                    $name = $product->name; // e.g. "CBC(1002)"
-                    $normalized = preg_replace('/\\s*\([^)]*\)$/', '', $name); // e.g. "CBC"
-
-                    // Prefer any existing saved report on the invoice item.
-                    // If not available, build from product description + parameter table.
-                    $baseReport = trim((string) ($item->test_report ?? ''));
-                    if ($baseReport === '') {
-                        $description = trim((string) ($product->description ?? ''));
-                        $parameterTemplate = $this->buildParameterTemplate($product);
-
-                        if ($description !== '' && $parameterTemplate !== '') {
-                            $baseReport = $description . '<br><br>' . $parameterTemplate;
-                        } elseif ($parameterTemplate !== '') {
-                            $baseReport = $parameterTemplate;
-                        } else {
-                            $baseReport = $description;
-                        }
-                    }
-
-                    $categoryName = optional($product->category)->name ?? 'Others';
-
-                    return (object) [
-                        'id' => $item->id,
-                        'name' => $name,
-                        'type' => $categoryName,
-                        'test_report' => $baseReport,
-                    ];
-                })->filter()->values();
-            } else {
-                // If invoice not found, fall back to all templates
-                $data['reportDemo'] = TestReportDemo::all();
-            }
+            $data['tests'] = $data['invoice']
+                ? InvoiceList::with(['product.category', 'product.parameters'])
+                    ->where('invoice_id', $data['invoiceId'])
+                    ->get()
+                : collect();
         } else {
             $data['invoice'] = null;
-            $data['reportDemo'] = TestReportDemo::all();
+            $data['tests'] = collect();
         }
 
-        if (request()->query('testReport')) {
-            $data['edited'] = TestReportDemo::findOrFail(request()->query('testReport'));
-        }
         return view('backend.pages.test_reports.create', $data);
-    }
-
-    private function buildParameterTemplate($product): string
-    {
-        if (!$product || !$product->relationLoaded('parameters')) {
-            return '';
-        }
-
-        $rowsHtml = '';
-        foreach ($product->parameters as $parameter) {
-            $name = e((string) ($parameter->parameter ?? ''));
-            $unit = e((string) ($parameter->unit ?? ''));
-            $referenceRange = e((string) ($parameter->reference_range ?? ''));
-
-            if ($name === '' && $unit === '' && $referenceRange === '') {
-                continue;
-            }
-
-            $rowsHtml .= '<tr>'
-                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($name !== '' ? $name : '-') . '</td>'
-                . '<td style="padding:6px;border:1px solid #d1d5db;">&nbsp;</td>'
-                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($unit !== '' ? $unit : '-') . '</td>'
-                . '<td style="padding:6px;border:1px solid #d1d5db;">' . ($referenceRange !== '' ? $referenceRange : '-') . '</td>'
-                . '</tr>';
-        }
-
-        if ($rowsHtml === '') {
-            return '';
-        }
-
-        return '<p><strong>Parameters</strong></p>'
-            . '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-            . '<thead><tr>'
-            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Parameter</th>'
-            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Result</th>'
-            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Unit</th>'
-            . '<th style="text-align:left;padding:6px;border:1px solid #d1d5db;">Reference Range</th>'
-            . '</tr></thead>'
-            . '<tbody>' . $rowsHtml . '</tbody>'
-            . '</table>';
     }
 
     /**
@@ -173,12 +118,13 @@ class TestReportController extends Controller
      */
     public function store(Request $request)
     {
-//        return $request;
-        $this->checkOwnPermission('test_reports.create');
+        $this->checkTestReportPermission('test_reports.create');
         $rules = [
-//            'name' => 'required|max:200',
             'report' => 'required',
         ];
+        if ($request->filled('invoiceId')) {
+            $rules['testReport'] = 'required|integer';
+        }
         $request->validate($rules);
         try {
             $row = new TestReport();
@@ -188,6 +134,7 @@ class TestReportController extends Controller
             $row->report = $request->report;
 
             if ($row->save()) {
+                $this->syncInvoiceListReport((int) $request->testReport, (string) $request->report);
                 return RedirectHelper::routeSuccessWithSubParam('admin.labs.show',$request->invoiceId, '<strong>Congratulations!!!</strong> TestReport Created Successfully');
 
             } else {
@@ -220,7 +167,7 @@ class TestReportController extends Controller
      */
     public function edit($id)
     {
-        $this->checkOwnPermission('test_reports.edit');
+        $this->checkTestReportPermission('test_reports.edit');
         $data['pageHeader'] = $this->pageHeader;
         if($data['edited'] = TestReport::find($id)) {
         return view('backend.pages.test_reports.edit', $data);
@@ -238,7 +185,7 @@ class TestReportController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->checkOwnPermission('test_reports.edit');
+        $this->checkTestReportPermission('test_reports.edit');
             $request->validate([
                 'report' => 'required',
             ]);
@@ -246,7 +193,8 @@ class TestReportController extends Controller
                 if($row = TestReport::find($id)){
                     $row->report = $request->report;
                     if ($row->save()) {
-                    return RedirectHelper::routeSuccessWithSubParam('admin.labs.show',$row->invoice_id, '<strong>Congratulations!!!</strong> TestReport Created Successfully');
+                    $this->syncInvoiceListReport((int) $row->test_report_id, (string) $request->report);
+                    return RedirectHelper::routeSuccessWithSubParam('admin.labs.show',$row->invoice_id, '<strong>Congratulations!!!</strong> TestReport Updated Successfully');
 
                 } else {
                     return RedirectHelper::backWithInput();
@@ -286,6 +234,7 @@ class TestReportController extends Controller
 
     public function reportPdfPreview($id)
     {
+        $this->checkTestReportPermission('test_reports.index', 'labs.index');
         $data['pageHeader'] = $this->pageHeader;
         $data['invoice'] = TestReport::with('invoice')->find($id);
         $qrCode = new QrCode($data['invoice']->id);

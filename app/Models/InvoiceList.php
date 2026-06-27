@@ -21,6 +21,8 @@ class InvoiceList extends Model
         'test_report',
         'ai_summary',
         'document',
+        'note',
+        'followup_date',
         'status',
     ];
     public static $statusArray = ['Pending', 'Processing', 'Complete', 'Rejected'];

@@ -23,6 +23,7 @@ use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Schema;
 
 class InvoiceController extends Controller
 {
@@ -901,6 +902,29 @@ class InvoiceController extends Controller
             ->max(fn($row) => (int)$row->patient_no);
         return $latestPatientNo + 1;
 
+    }
+
+    public function updateFollowup(Request $request)
+    {
+        $this->checkOwnPermission('labs.index');
+
+        $request->validate([
+            'invoice_id' => 'required|integer',
+            'note' => 'nullable|string|max:1000',
+            'followup_date' => 'nullable|date',
+        ]);
+
+        $invoice = Invoice::where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($request->invoice_id);
+
+        $invoice->note = $request->note;
+        $invoice->delivery_at = $request->followup_date;
+        if (Schema::hasColumn('invoices', 'followup_date')) {
+            $invoice->followup_date = $request->followup_date;
+        }
+        $invoice->save();
+
+        return RedirectHelper::back('<strong>Updated!</strong> Invoice note and follow-up date saved.');
     }
 
 

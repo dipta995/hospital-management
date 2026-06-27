@@ -9,6 +9,7 @@ class SchemaMigrationRegistryService
         private HrSchemaService $hrSchemaService,
         private PharmacySchemaService $pharmacySchemaService,
         private AiSchemaService $aiSchemaService,
+        private LabFollowupSchemaService $labFollowupSchemaService,
     ) {}
 
     public function all(): array
@@ -18,6 +19,7 @@ class SchemaMigrationRegistryService
             $this->hrScheduleModule(),
             $this->pharmacyStatusModule(),
             $this->aiFeaturesModule(),
+            $this->labFollowupModule(),
         ];
     }
 
@@ -47,6 +49,55 @@ class SchemaMigrationRegistryService
                 'status_labels' => $this->formatStatusLabels($module['status_labels'], $status),
             ];
         }, $this->all());
+    }
+
+    public function pendingCount(): int
+    {
+        return count(array_filter($this->getSummary(), fn (array $module) => empty($module['installed'])));
+    }
+
+    public function installAllPending(): array
+    {
+        $results = [];
+        $installed = 0;
+        $failed = 0;
+
+        foreach ($this->all() as $module) {
+            if ($module['destructive'] || $module['installed']()) {
+                continue;
+            }
+
+            $result = $module['install']();
+            $success = (bool) ($result['success'] ?? false);
+            $results[] = [
+                'key' => $module['key'],
+                'label' => $module['label'],
+                'success' => $success,
+                'message' => $result['message'] ?? ($success ? 'Installed.' : 'Failed.'),
+            ];
+
+            if ($success) {
+                $installed++;
+            } else {
+                $failed++;
+            }
+        }
+
+        if ($installed === 0 && $failed === 0) {
+            return [
+                'success' => true,
+                'message' => 'All schema updates are already installed.',
+                'results' => [],
+            ];
+        }
+
+        return [
+            'success' => $failed === 0,
+            'message' => $failed === 0
+                ? "{$installed} update(s) applied successfully."
+                : "{$installed} applied, {$failed} failed. Check details below.",
+            'results' => $results,
+        ];
     }
 
     public function install(string $key): array
@@ -153,6 +204,23 @@ class SchemaMigrationRegistryService
                 'ai_chat_messages_table' => 'AI chat messages table',
                 'ai_insights_table' => 'AI insights cache table',
                 'invoice_lists_ai_summary_column' => 'Report summary column',
+            ],
+        ];
+    }
+
+    private function labFollowupModule(): array
+    {
+        return [
+            'key' => 'lab_followup',
+            'label' => 'Lab Follow-up Notes',
+            'description' => 'Per-test note and follow-up date columns on invoice test lines.',
+            'destructive' => false,
+            'status' => fn () => $this->labFollowupSchemaService->getStatus(),
+            'installed' => fn () => $this->labFollowupSchemaService->isInstalled(),
+            'install' => fn () => $this->labFollowupSchemaService->install(),
+            'status_labels' => [
+                'invoice_lists_note_column' => 'Test line note column',
+                'invoice_lists_followup_date_column' => 'Test line follow-up date column',
             ],
         ];
     }

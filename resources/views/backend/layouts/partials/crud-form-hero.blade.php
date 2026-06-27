@@ -3,6 +3,7 @@
     $formSubtitle = $formSubtitle ?? null;
     $formIcon = $formIcon ?? 'fa-pen-to-square';
     $formBackRoute = $formBackRoute ?? ($pageHeader['index_route'] ?? null);
+    $formBackUrl = $formBackUrl ?? null;
     $formBackLabel = $formBackLabel ?? t('common.back_to_list');
 @endphp
 
@@ -19,9 +20,9 @@
         </div>
     </div>
 
-    @if(!empty($formBackRoute))
+    @if(!empty($formBackUrl) || !empty($formBackRoute))
         <div class="crud-hero-actions">
-            <a href="{{ route($formBackRoute) }}" class="btn-crud-light">
+            <a href="{{ $formBackUrl ?? route($formBackRoute) }}" class="btn-crud-light">
                 <i class="fas fa-arrow-left"></i> {{ $formBackLabel }}
             </a>
         </div>

@@ -123,7 +123,9 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/dashboard/live', [DashboardController::class, 'liveStats'])->name('dashboard.live');
     Route::get('/dashboard/ai-insights', [AiController::class, 'businessInsights'])->name('dashboard.ai-insights');
     Route::post('/system/clear-cache', [SystemMaintenanceController::class, 'clearCache'])->name('system.clear-cache');
+    Route::get('/system/updates', [SystemMaintenanceController::class, 'updates'])->name('system.updates');
     Route::get('/system/schema-status', [SystemMaintenanceController::class, 'schemaStatus'])->name('system.schema-status');
+    Route::post('/system/install-all-schema', [SystemMaintenanceController::class, 'installAllPending'])->name('system.install-all-schema');
     Route::post('/system/install-audit-log-schema', [SystemMaintenanceController::class, 'installAuditLogSchema'])->name('system.install-audit-log-schema');
     Route::post('/system/install-hr-schema', [SystemMaintenanceController::class, 'installHrSchema'])->name('system.install-hr-schema');
     Route::post('/system/install-schema/{key}', [SystemMaintenanceController::class, 'installSchema'])->name('system.install-schema');
@@ -193,6 +195,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/report/file-download/{id}', [InvoiceController::class, 'reportfileDownload'])->name('lab.report.file-download');
     Route::get('/invoices/status/{id}', [InvoiceController::class, 'invoiceStatus'])->name('invoices.test.status');
     Route::post('/invoices/due/pay/{id}', [InvoiceController::class, 'invoiceDuePay'])->name('invoices.due-pay');
+    Route::post('/invoices/followup/update', [InvoiceController::class, 'updateFollowup'])->name('invoices.followup.update');
     Route::get('/trash', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('/trash/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
@@ -243,9 +246,11 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
 
     Route::resource('payments', PaymentController::class, ['names' => 'payments']);
     Route::resource('suppliers', SupplierController::class, ['names' => 'suppliers']);
+    Route::get('labs/tests', [LabController::class, 'indexTest'])->name('labs.tests');
     Route::resource('labs', LabController::class, ['names' => 'labs']);
     Route::get('/labs/status/{id}', [LabController::class, 'labTestStatus'])->name('lab.test.status');
     Route::post('labs/update-item/{invoiceItemId}', [LabController::class, 'updateItem'])->name('lab.update-item');
+    Route::post('labs/followup/update/{invoiceItemId}', [LabController::class, 'updateInvoiceItemFollowup'])->name('lab.followup.update');
     Route::get('labs/reagent-delete/{reagent_track_id}', [LabController::class, 'DeleteReagetntTrack'])->name('lab.delete-reagetnt-track');
 
     Route::get('doctor-serials/next-serial/{reefer}', [DoctorSerialController::class, 'nextSerialAjax'])->name('doctor_serials.next');
@@ -260,6 +265,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/reports/balance', [ReportController::class, 'balance'])->name('reports.balance');
     Route::get('/reports/balance-day-wise', [ReportController::class, 'balanceDayWise'])->name('reports.balance-day-wise');
     Route::get('/reports/categories', [ReportController::class, 'categories'])->name('reports.categories');
+    Route::get('/reports/upcoming-tests', [ReportController::class, 'upcomingTests'])->name('reports.upcoming-tests');
     Route::get('/reports/references', [ReportController::class, 'references'])->name('reports.references');
     Route::get('/reports/references/payment', [ReportController::class, 'referencesPayment'])->name('reports.references.payment');
     Route::get('/reports/references/doctor', [ReportController::class, 'referencesDoctor'])->name('reports.references.doctor');
@@ -275,6 +281,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
 //    API FOR AJAX
 
     Route::get('/get-products', [ApiController::class, 'getProducts']);
+    Route::get('/get-product-parameters/{id}', [ApiController::class, 'getProductParameters'])->name('products.parameters');
     Route::get('/get-pharmacy-products', [ApiController::class, 'getPharmacyProducts']);
     Route::get('/get-services', [ApiController::class, 'getServices']);
     Route::get('/get-doctors', [ApiController::class, 'getDoctors']);
