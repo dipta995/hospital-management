@@ -277,21 +277,13 @@
     </style>
 </head>
 <body>
-    @php
-        $companyName = \App\Models\Setting::getGuest('company_name');
-    @endphp
-
     <nav class="landing-nav py-3">
         <div class="container d-flex justify-content-between align-items-center">
             <a href="{{ url('/') }}" class="brand-mark">
                 <span class="brand-icon"><i class="fas fa-hospital-alt"></i></span>
                 <span class="brand-text-wrap">
                     <strong>Hospital Management Software</strong>
-                    @if($companyName)
-                        <small>{{ $companyName }}</small>
-                    @else
-                        <small>Complete hospital operations platform</small>
-                    @endif
+                    <small>Complete hospital operations platform</small>
                 </span>
             </a>
             <div class="d-flex gap-2">
@@ -450,7 +442,7 @@
 
     <footer class="landing-footer">
         <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span>&copy; {{ date('Y') }} Hospital Management Software{{ $companyName ? ' — ' . $companyName : '' }}</span>
+            <span>&copy; {{ date('Y') }} Hospital Management Software</span>
             <span>Powered by <a href="https://dreammake-soft.com" target="_blank" rel="noopener">DreamMake Soft</a></span>
         </div>
     </footer>
