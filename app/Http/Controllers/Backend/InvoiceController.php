@@ -718,6 +718,32 @@ class InvoiceController extends Controller
 
     }
 
+    public function deletePreview($id)
+    {
+        $this->checkOwnPermission('invoices.delete');
+
+        $invoice = Invoice::with(['invoiceList.product', 'reeferDr'])
+            ->withSum('paidAmount', 'paid_amount')
+            ->where('branch_id', auth()->user()->branch_id)
+            ->findOrFail($id);
+
+        $products = $invoice->invoiceList->map(function ($line) {
+            return [
+                'product_name' => $line->product->name ?? 'Test',
+                'price' => $line->price,
+            ];
+        })->values()->all();
+
+        $html = view('backend.layouts.partials.invoice-slip-card', [
+            'slipVariant' => 'delete',
+            'slipInvoice' => $invoice,
+            'slipProducts' => $products,
+            'slipPaid' => (float) ($invoice->paid_amount_sum_paid_amount ?? 0),
+        ])->render();
+
+        return response()->json(['html' => $html]);
+    }
+
     public function pdfPreview($id)
     {
         $data['invoice'] = Invoice::where('branch_id', auth()->user()->branch_id)

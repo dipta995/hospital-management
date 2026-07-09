@@ -1228,4 +1228,228 @@
             max-width: 100%;
         }
     }
+
+    /* ── Invoice slip compare (old vs new) ── */
+    .inv-compare-section {
+        margin-bottom: 1.25rem;
+    }
+
+    .inv-compare-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .inv-compare-head h2 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .inv-compare-head p {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 0.88rem;
+    }
+
+    .inv-compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .inv-slip-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+        background: #fff;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .inv-slip-old {
+        border-color: #f59e0b;
+        background: linear-gradient(180deg, #fffbeb 0%, #ffffff 120px);
+    }
+
+    .inv-slip-new {
+        border-color: #14b8a6;
+        background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 120px);
+    }
+
+    .inv-slip-delete {
+        border-color: #ef4444;
+        background: linear-gradient(180deg, #fef2f2 0%, #ffffff 120px);
+    }
+
+    .swal2-popup.app-delete-popup .inv-slip-card {
+        text-align: left;
+        margin: 0 auto 10px;
+        max-width: 100%;
+    }
+
+    .inv-slip-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 16px 10px;
+        border-bottom: 1px dashed rgba(15, 23, 42, 0.12);
+    }
+
+    .inv-slip-card-label {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .inv-slip-card-sub {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .inv-slip-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 72px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+    }
+
+    .inv-slip-status.is-paid { background: #dcfce7; color: #166534; }
+    .inv-slip-status.is-due { background: #fee2e2; color: #991b1b; }
+    .inv-slip-status.is-over { background: #dbeafe; color: #1d4ed8; }
+
+    .inv-slip-card-body {
+        padding: 14px 16px 16px;
+    }
+
+    .inv-slip-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+        margin-bottom: 12px;
+    }
+
+    .inv-slip-meta span {
+        display: block;
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+
+    .inv-slip-meta strong {
+        display: block;
+        font-size: 0.88rem;
+        color: #0f172a;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .inv-slip-tests-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+
+    .inv-slip-tests {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+        max-height: 180px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .inv-slip-tests li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.82rem;
+    }
+
+    .inv-slip-tests li:last-child { border-bottom: none; }
+
+    .inv-slip-test-name {
+        flex: 1;
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    .inv-slip-test-price {
+        color: #0f766e;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .inv-slip-empty {
+        justify-content: center;
+        color: #94a3b8;
+        font-style: italic;
+    }
+
+    .inv-slip-totals {
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 10px;
+    }
+
+    .inv-slip-total-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 4px 0;
+        font-size: 0.84rem;
+        color: #475569;
+    }
+
+    .inv-slip-total-row strong {
+        color: #0f172a;
+        font-size: 0.92rem;
+    }
+
+    .inv-slip-total-row.highlight {
+        margin-top: 4px;
+        padding-top: 8px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .inv-slip-total-row.highlight strong {
+        font-size: 1.05rem;
+        color: #b45309;
+    }
+
+    .inv-slip-new .inv-slip-total-row.highlight strong {
+        color: #0f766e;
+    }
+
+    .inv-slip-test-changed {
+        background: #fff7ed;
+    }
+
+    .inv-slip-test-new {
+        background: #ecfdf5;
+    }
+
+    @media (max-width: 991.98px) {
+        .inv-compare-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>

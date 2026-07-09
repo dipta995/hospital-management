@@ -280,7 +280,7 @@
 
                                     @if ($userGuard->can('invoices.delete'))
                                         <a href="javascript:void(0)" class="inv-act del" title="Delete"
-                                           onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
+                                           onclick="invoiceDataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     @else

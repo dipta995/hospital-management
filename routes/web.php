@@ -190,6 +190,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
 
     Route::resource('products', ProductController::class, ['names' => 'products']);
     Route::resource('invoices', InvoiceController::class, ['names' => 'invoices']);
+    Route::get('/invoices/delete-preview/{id}', [InvoiceController::class, 'deletePreview'])->name('invoices.delete-preview');
     Route::get('/invoices/pdf-preview/{id}', [InvoiceController::class, 'pdfPreview'])->name('invoices.pdf-preview');
     Route::get('/report/pdf-preview/{id}', [InvoiceController::class, 'reportPdfPreview'])->name('lab.report.pdf-preview');
     Route::get('/report/file-download/{id}', [InvoiceController::class, 'reportfileDownload'])->name('lab.report.file-download');

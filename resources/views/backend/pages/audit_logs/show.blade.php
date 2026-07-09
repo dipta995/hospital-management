@@ -5,6 +5,7 @@
 @endsection
 
 @push('styles')
+    @include('backend.layouts.partials.invoice-styles')
     <style>
         .audit-json {
             background: #0f172a;
@@ -142,6 +143,50 @@
                 </div>
             </div>
         </div>
+
+        @if($log->module === 'invoice' && ($invoiceSlipOld || $invoiceSlipNew))
+            <div class="inv-compare-section mb-3">
+                <div class="inv-compare-head">
+                    <div>
+                        <h2><i class="fas fa-columns me-2"></i>{{ app()->getLocale() === 'bn' ? 'পুরনো ও নতুন ইনভয়েস তুলনা' : 'Old vs New Invoice Slip' }}</h2>
+                        <p>{{ app()->getLocale() === 'bn' ? 'বামে আগের বিল, ডানে পরের বিল — সহজে বুঝতে পারবেন' : 'Left = before, Right = after — easy to understand' }}</p>
+                    </div>
+                </div>
+                <div class="inv-compare-grid">
+                    @if($invoiceSlipOld)
+                        @include('backend.layouts.partials.invoice-slip-card', [
+                            'slipVariant' => 'old',
+                            'slipInvoice' => $invoiceSlipOld['invoice'],
+                            'slipProducts' => $invoiceSlipOld['products'],
+                            'slipPaid' => $invoiceSlipOld['paid'],
+                        ])
+                    @endif
+
+                    @if($invoiceSlipNew)
+                        @include('backend.layouts.partials.invoice-slip-card', [
+                            'slipVariant' => 'new',
+                            'slipInvoice' => $invoiceSlipNew['invoice'],
+                            'slipProducts' => $invoiceSlipNew['products'],
+                            'slipPaid' => $invoiceSlipNew['paid'],
+                        ])
+                    @elseif($log->action === 'deleted')
+                        <div class="inv-slip-card inv-slip-delete">
+                            <div class="inv-slip-card-head">
+                                <div>
+                                    <div class="inv-slip-card-label">{{ app()->getLocale() === 'bn' ? 'নতুন অবস্থা' : 'After' }}</div>
+                                    <div class="inv-slip-card-sub">{{ app()->getLocale() === 'bn' ? 'রেকর্ড মুছে ফেলা হয়েছে' : 'Record was deleted' }}</div>
+                                </div>
+                                <span class="inv-slip-status is-due">{{ app()->getLocale() === 'bn' ? 'মুছে ফেলা' : 'DELETED' }}</span>
+                            </div>
+                            <div class="inv-slip-card-body text-center py-4 text-muted">
+                                <i class="fas fa-trash-alt fa-2x mb-2 d-block text-danger"></i>
+                                {{ app()->getLocale() === 'bn' ? 'এই ইনভয়েসটি মুছে ফেলা হয়েছে' : 'This invoice has been deleted' }}
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
 
         <div class="row g-3 mb-3">
             <div class="col-md-6">

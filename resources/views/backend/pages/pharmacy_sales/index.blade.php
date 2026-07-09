@@ -152,17 +152,3 @@
         @endif
     @endforeach
 @endsection
-
-@push('scripts')
-<script>
-    function pharmSaleDelete(id, baseUrl) {
-        if (!confirm('Delete this sale? Stock will not auto-restore.')) return;
-        let form = document.createElement('form');
-        form.method = 'POST';
-        form.action = baseUrl + '/' + id;
-        form.innerHTML = '@csrf @method("DELETE")';
-        document.body.appendChild(form);
-        form.submit();
-    }
-</script>
-@endpush

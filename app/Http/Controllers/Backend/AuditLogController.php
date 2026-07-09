@@ -73,8 +73,21 @@ class AuditLogController extends Controller
             abort(404);
         }
 
+        $slipService = app(\App\Services\AuditSlipViewService::class);
+        $invoiceSlipOld = null;
+        $invoiceSlipNew = null;
+
+        if ($auditLog->module === 'invoice') {
+            $invoiceSlipOld = $slipService->invoiceSlipFromAudit($auditLog->old_values);
+            $invoiceSlipNew = $auditLog->action === 'deleted'
+                ? null
+                : $slipService->invoiceSlipFromAudit($auditLog->new_values);
+        }
+
         return view('backend.pages.audit_logs.show', [
             'log' => $auditLog->load('admin'),
+            'invoiceSlipOld' => $invoiceSlipOld,
+            'invoiceSlipNew' => $invoiceSlipNew,
         ]);
     }
 

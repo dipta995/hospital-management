@@ -210,25 +210,6 @@
             hospitalModal.addEventListener('shown.bs.modal', initCostCategorySelect);
         }
 
-        function costDataDelete(id, baseUrl) {
-            if (!confirm('Are you sure you want to delete this cost?')) return;
-
-            $.ajax({
-                url: baseUrl + '/' + id,
-                type: 'DELETE',
-                data: {_token: '{{ csrf_token() }}'},
-                success: function (response) {
-                    $('#table-data' + id).remove();
-                    if (response.employee_id) {
-                        updateEmployeeAfterCost(response.employee_id);
-                    }
-                },
-                error: function () {
-                    alert('Error deleting cost');
-                }
-            });
-        }
-
         function updateEmployeeAfterCost(employeeId) {
             $.ajax({
                 url: '/admin/employees/' + employeeId + '/after-cost',
@@ -238,5 +219,6 @@
                 }
             });
         }
+        window.updateEmployeeAfterCost = updateEmployeeAfterCost;
     </script>
 @endpush
