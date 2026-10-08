@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Services\SecurityService;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -77,6 +78,7 @@ class RolesController extends Controller
         $request->validate([
             'name' => 'required|max:100|unique:roles'
         ]);
+        $this->guardSecurityPermissions((array) $request->permissions);
         $role = Role::create(['name' => $request->name, 'guard_name' => 'admin']);
         $permissions = $request->permissions;
         if ($role) {
@@ -141,6 +143,11 @@ class RolesController extends Controller
         $permissions = $request->permissions;
 
         if ($role) {
+            if (in_array($role->name, SecurityService::APPROVER_ROLES, true) && !auth('admin')->user()->hasRole('Super Admin')) {
+                abort(403, 'Only Super Admin can change Owner / Super Admin roles.');
+            }
+            $this->guardSecurityPermissions((array) $permissions, $role);
+
             // Update the role name
             $role->name = $request->name;
             $role->save();
@@ -173,10 +180,37 @@ class RolesController extends Controller
         $deleteData = Role::find($id);
 
         if (!is_null($deleteData)) {
+            if (in_array($deleteData->name, SecurityService::APPROVER_ROLES, true) && !auth('admin')->user()->hasRole('Super Admin')) {
+                return response()->json(['status' => 403, 'message' => 'Only Super Admin can delete Owner / Super Admin roles.']);
+            }
             if ($deleteData->delete()) {
                 return response()->json(['status' => 200]);
             } else {
                 return response()->json(['status' => 422]);
+            }
+        }
+    }
+
+    /**
+     * Only Super Admin, or someone who already holds a security permission, may grant or revoke it.
+     */
+    private function guardSecurityPermissions(array $requestedIds, ?Role $role = null): void
+    {
+        $actor = auth('admin')->user();
+        if ($actor->hasRole('Super Admin')) {
+            return;
+        }
+
+        $requestedIds = array_map('intval', $requestedIds);
+        $currentIds = $role ? $role->permissions()->pluck('id')->map(fn ($id) => (int) $id)->all() : [];
+        $securityPermissions = Permission::where('guard_name', 'admin')
+            ->whereIn('name', array_keys(SecurityService::PERMISSIONS))
+            ->get();
+
+        foreach ($securityPermissions as $permission) {
+            $changed = in_array((int) $permission->id, $requestedIds, true) !== in_array((int) $permission->id, $currentIds, true);
+            if ($changed && !$actor->checkPermissionTo($permission->name, 'admin')) {
+                abort(403, "{$permission->name} permission দেওয়া/সরানোর অনুমতি আপনার নেই। শুধু Super Admin বা যার নিজের এই permission আছে সে দিতে পারে।");
             }
         }
     }

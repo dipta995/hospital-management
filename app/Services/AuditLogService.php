@@ -18,15 +18,14 @@ class AuditLogService
         return $this->normalize($model->toArray());
     }
 
-    public function record(string $module, string $action, Model $model, ?array $oldValues, ?array $newValues): ?AuditLog
+    public function record(string $module, string $action, Model $model, ?array $oldValues, ?array $newValues, ?string $reason = null): ?AuditLog
     {
-        if (!Schema::hasTable('audit_logs')) {
+        if (!$this->tableReady()) {
             return null;
         }
 
         $admin = auth('admin')->user();
-
-        return AuditLog::create([
+        $attributes = [
             'branch_id' => $model->branch_id ?? $admin?->branch_id,
             'admin_id' => $admin?->id,
             'module' => $module,
@@ -38,7 +37,42 @@ class AuditLogService
             'changes' => $this->changes($oldValues ?? [], $newValues ?? []),
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
-        ]);
+        ];
+
+        if ($this->hasReasonColumn()) {
+            $reason = trim((string) ($reason ?? request()?->input('audit_reason', '')));
+            $attributes['reason'] = $reason !== '' ? mb_substr($reason, 0, 1000) : null;
+        }
+
+        return AuditLog::create($attributes);
+    }
+
+    /**
+     * Cached per database because tenants switch databases per request.
+     */
+    public function tableReady(): bool
+    {
+        return $this->schemaFlag('table', fn () => Schema::hasTable('audit_logs'));
+    }
+
+    public function hasReasonColumn(): bool
+    {
+        return $this->tableReady()
+            && $this->schemaFlag('reason', fn () => Schema::hasColumn('audit_logs', 'reason'));
+    }
+
+    private static array $schemaCache = [];
+
+    private function schemaFlag(string $key, callable $resolver): bool
+    {
+        $cacheKey = config('database.connections.mysql.database') . '.' . $key;
+
+        return self::$schemaCache[$cacheKey] ??= (bool) $resolver();
+    }
+
+    public static function flushSchemaCache(): void
+    {
+        self::$schemaCache = [];
     }
 
     public function changes(array $oldValues, array $newValues): array

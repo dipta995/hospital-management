@@ -10,6 +10,8 @@ class SchemaMigrationRegistryService
         private PharmacySchemaService $pharmacySchemaService,
         private AiSchemaService $aiSchemaService,
         private LabFollowupSchemaService $labFollowupSchemaService,
+        private PaymentGatewayMigrationService $paymentGatewaySchemaService,
+        private SecuritySchemaService $securitySchemaService,
     ) {}
 
     public function all(): array
@@ -20,6 +22,8 @@ class SchemaMigrationRegistryService
             $this->pharmacyStatusModule(),
             $this->aiFeaturesModule(),
             $this->labFollowupModule(),
+            $this->paymentGatewayModule(),
+            $this->securityModule(),
         ];
     }
 
@@ -67,7 +71,7 @@ class SchemaMigrationRegistryService
                 continue;
             }
 
-            $result = $module['install']();
+            $result = $this->runInstall($module);
             $success = (bool) ($result['success'] ?? false);
             $results[] = [
                 'key' => $module['key'],
@@ -95,9 +99,26 @@ class SchemaMigrationRegistryService
             'success' => $failed === 0,
             'message' => $failed === 0
                 ? "{$installed} update(s) applied successfully."
-                : "{$installed} applied, {$failed} failed. Check details below.",
+                : "{$installed} applied, {$failed} failed: " . collect($results)
+                    ->where('success', false)
+                    ->map(fn ($r) => $r['label'] . ' — ' . $r['message'])
+                    ->implode(' | '),
             'results' => $results,
         ];
+    }
+
+    private function runInstall(array $module): array
+    {
+        try {
+            return $module['install']();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'success' => false,
+                'message' => 'Migration failed: ' . \Illuminate\Support\Str::limit($e->getMessage(), 300),
+            ];
+        }
     }
 
     public function install(string $key): array
@@ -118,7 +139,7 @@ class SchemaMigrationRegistryService
             ];
         }
 
-        return $module['install']();
+        return $this->runInstall($module);
     }
 
     private function formatStatusLabels(array $labels, array $status): array
@@ -221,6 +242,47 @@ class SchemaMigrationRegistryService
             'status_labels' => [
                 'invoice_lists_note_column' => 'Test line note column',
                 'invoice_lists_followup_date_column' => 'Test line follow-up date column',
+            ],
+        ];
+    }
+
+    private function paymentGatewayModule(): array
+    {
+        return [
+            'key' => 'payment_gateway',
+            'label' => 'Subscription & Payment Gateway',
+            'description' => 'Subscription tables, PayStation online payment, subscription invoice and SMS alert columns. Creates missing tables/columns only; existing data is kept.',
+            'destructive' => false,
+            'status' => fn () => $this->paymentGatewaySchemaService->getStatus(),
+            'installed' => fn () => $this->paymentGatewaySchemaService->isInstalled(),
+            'install' => fn () => $this->paymentGatewaySchemaService->install(),
+            'status_labels' => [
+                'subscriptions_table' => 'Subscriptions table',
+                'payment_requests_table' => 'Payment requests table',
+                'payment_amount_column' => 'Subscription amount column',
+                'admin_id_column' => 'Request admin column',
+                'gateway_columns' => 'Gateway columns',
+                'invoice_columns' => 'Invoice & SMS columns',
+            ],
+        ];
+    }
+
+    private function securityModule(): array
+    {
+        return [
+            'key' => 'security',
+            'label' => 'Security (Cancel request, Cash closing, Login history)',
+            'description' => 'Creates invoice cancel request, cash closing and login history tables, adds a reason column to the trash log, and installs security permissions (Owner roles get them; trash delete is given to nobody).',
+            'destructive' => false,
+            'status' => fn () => $this->securitySchemaService->getStatus(),
+            'installed' => fn () => $this->securitySchemaService->isFullyInstalled(),
+            'install' => fn () => $this->securitySchemaService->install(),
+            'status_labels' => [
+                'invoice_cancel_requests' => 'Cancel requests table',
+                'cash_closings' => 'Cash closings table',
+                'login_histories' => 'Login history table',
+                'audit_reason_column' => 'Trash reason column',
+                'permissions' => 'Security permissions',
             ],
         ];
     }

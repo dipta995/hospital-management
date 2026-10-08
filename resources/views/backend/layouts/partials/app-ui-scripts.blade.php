@@ -13,13 +13,23 @@
         'tip_print' => t('common.action_tip_print'),
         'tip_invoice' => t('common.action_tip_invoice'),
         'tip_pay' => t('common.action_tip_pay'),
+        'reason_label' => 'কারণ লিখুন',
+        'reason_placeholder' => 'যেমন: ভুল টেস্ট যোগ হয়েছিল',
+        'reason_required' => 'কারণ না লিখলে এগোনো যাবে না।',
+        'cancel_request_title' => 'Cancel request পাঠাবেন?',
+        'cancel_request_text' => 'Owner বা Super Admin approve করলে invoice বাতিল হবে।',
+        'cancel_request_yes' => 'Request পাঠান',
+        'cancel_pending' => 'Cancel চাওয়া হয়েছে',
+        'cancel_waiting' => 'Cancel request পাঠানো আছে, approve-এর অপেক্ষায়',
     ];
+    $appUiReasonRequired = auth('admin')->check() && app(\App\Services\SecurityService::class)->reasonRequired();
 @endphp
 <script>
 (function (window, $) {
     'use strict';
 
     var LABELS = @json($appUiLabels);
+    var REASON_REQUIRED = @json($appUiReasonRequired);
 
     var ICON_TIP_MAP = [
         { match: /fa-trash|fa-trash-alt/, label: LABELS.tip_delete },
@@ -74,16 +84,44 @@
     function confirmDelete(options) {
         options = options || {};
 
+        var reasonRequired = options.askReason === 'required' || (options.askReason && REASON_REQUIRED);
+
         if (typeof Swal === 'undefined') {
+            if (options.askReason) {
+                var typed = window.prompt((options.title || LABELS.delete_title) + '\n' + LABELS.reason_label + ':');
+                if (typed === null) {
+                    return;
+                }
+                if (reasonRequired && !typed.trim()) {
+                    window.alert(LABELS.reason_required);
+                    return;
+                }
+                if (typeof options.onConfirm === 'function') {
+                    options.onConfirm(typed.trim());
+                }
+                return;
+            }
             if (window.confirm(options.title || LABELS.delete_title)) {
                 if (typeof options.onConfirm === 'function') {
-                    options.onConfirm();
+                    options.onConfirm('');
                 }
             }
             return;
         }
 
-        Swal.fire({
+        var reasonInput = options.askReason ? {
+            input: 'textarea',
+            inputLabel: LABELS.reason_label + (reasonRequired ? ' *' : ''),
+            inputPlaceholder: LABELS.reason_placeholder,
+            inputAttributes: { maxlength: 1000 },
+            inputValidator: function (value) {
+                if (reasonRequired && !(value || '').trim()) {
+                    return LABELS.reason_required;
+                }
+            },
+        } : {};
+
+        Swal.fire(Object.assign({
             title: options.title || LABELS.delete_title,
             text: options.html ? undefined : (options.text || LABELS.delete_text),
             html: options.html ? (options.html + '<p class="mt-3 mb-0 text-center text-muted" style="font-size:0.9rem">' + (options.text || LABELS.delete_text) + '</p>') : undefined,
@@ -99,11 +137,29 @@
             customClass: {
                 popup: 'app-delete-popup',
             },
-        }).then(function (result) {
+        }, reasonInput)).then(function (result) {
             if (result.isConfirmed && typeof options.onConfirm === 'function') {
-                options.onConfirm();
+                options.onConfirm(typeof result.value === 'string' ? result.value.trim() : '');
             }
         });
+    }
+
+    function markCancelPending(id) {
+        var row = document.getElementById('table-data' + id);
+        if (!row) {
+            return;
+        }
+        row.classList.add('table-danger');
+        var badge = document.createElement('span');
+        badge.className = 'badge bg-danger';
+        badge.innerHTML = '<i class="fas fa-ban"></i> ' + LABELS.cancel_pending;
+        if (row.cells[0]) {
+            row.cells[0].append(document.createElement('br'), badge);
+        }
+        var button = row.querySelector('.cancel-request-btn, .inv-act.del');
+        if (button) {
+            button.outerHTML = '<span class="inv-act" title="' + LABELS.cancel_waiting + '" style="background:#e2e8f0;color:#475569;"><i class="fas fa-hourglass-half"></i></span>';
+        }
     }
 
     function iconTipFromClass(className) {
@@ -198,7 +254,9 @@
             title: options.title,
             text: options.text,
             html: options.previewHtml,
-            onConfirm: function () {
+            confirmText: options.confirmText,
+            askReason: options.askReason,
+            onConfirm: function (reason) {
                 if (options.useFormSubmit) {
                     var form = document.createElement('form');
                     form.method = 'POST';
@@ -218,6 +276,11 @@
                         'Accept': 'application/json',
                     },
                     success: function (response) {
+                        if (response && (response.status === 202 || response.status === '202')) {
+                            markCancelPending(options.id);
+                            toastSuccess(response.message || LABELS.cancel_pending);
+                            return;
+                        }
                         var ok = response && (response.status === 200 || response.status === '200' || response.success === true);
                         if (options.removeRow !== false && ok) {
                             $('#table-data' + options.id).remove();
@@ -235,23 +298,27 @@
                                 location.reload();
                             }
                         } else {
-                            toastError(response && response.message ? response.message : LABELS.delete_failed);
+                            toastError(response && (response.error || response.message) ? (response.error || response.message) : LABELS.delete_failed);
                         }
                     },
                     error: function (xhr) {
-                        var message = xhr.responseJSON && xhr.responseJSON.message
-                            ? xhr.responseJSON.message
-                            : LABELS.something_wrong;
-                        toastError(message);
+                        var json = xhr.responseJSON || {};
+                        toastError(json.error || json.message || LABELS.something_wrong);
                     },
                 };
 
                 if (options.method === 'GET') {
                     ajaxOptions.type = 'GET';
                     ajaxOptions.data = { _token: token };
+                } else if (options.method === 'POST') {
+                    ajaxOptions.type = 'POST';
+                    ajaxOptions.data = { _token: token };
                 } else {
                     ajaxOptions.type = 'POST';
                     ajaxOptions.data = { _token: token, _method: 'DELETE' };
+                }
+                if (options.askReason) {
+                    ajaxOptions.data.audit_reason = reason || '';
                 }
 
                 $.ajax(ajaxOptions);
@@ -283,6 +350,7 @@
             useFormSubmit: options.useFormSubmit,
             treatNoStatusAsSuccess: options.treatNoStatusAsSuccess,
             removeRow: options.removeRow,
+            askReason: options.askReason,
         });
     };
 
@@ -308,6 +376,7 @@
     window.costDataDelete = function (id, baseUrl) {
         dataDelete(id, baseUrl, {
             treatNoStatusAsSuccess: true,
+            askReason: true,
             onSuccess: function (response) {
                 if (response && response.employee_id && typeof window.updateEmployeeAfterCost === 'function') {
                     window.updateEmployeeAfterCost(response.employee_id);
@@ -341,11 +410,25 @@
                     previewHtml: response.html || '',
                     title: LABELS.delete_title,
                     text: LABELS.delete_text,
+                    askReason: true,
                 });
             },
             error: function () {
-                dataDelete(id, baseUrl);
+                dataDelete(id, baseUrl, { askReason: true });
             },
+        });
+    };
+
+    window.invoiceCancelRequest = function (id, baseUrl) {
+        deleteRequest({
+            id: id,
+            url: baseUrl + '/' + id + '/cancel-request',
+            method: 'POST',
+            title: LABELS.cancel_request_title,
+            text: LABELS.cancel_request_text,
+            confirmText: LABELS.cancel_request_yes,
+            askReason: 'required',
+            removeRow: false,
         });
     };
 

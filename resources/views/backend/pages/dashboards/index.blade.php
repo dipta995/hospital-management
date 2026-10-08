@@ -650,19 +650,49 @@
 
         @include('backend.layouts.partials.message')
 
+        @if(!empty($securityOverview))
+            @include('backend.pages.dashboards.partials.security-overview')
+        @endif
+
         @if(!empty($canManageSystemSchema))
             <div class="inv-panel mb-3">
                 <div class="inv-panel-head d-flex justify-content-between align-items-center flex-wrap gap-2" style="cursor: default;">
                     <h6 class="mb-0"><i class="fas fa-database me-2 text-secondary"></i> {{ $d('schema_maintenance') }}</h6>
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
                         @if(($pendingSchemaCount ?? 0) > 0)
                             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
                                 {{ $d('schema_pending_count', ['count' => $pendingSchemaCount]) }}
                             </span>
+                            <form method="POST" action="{{ route('admin.system.install-all-schema') }}" class="d-inline"
+                                  onsubmit="return confirm(@json($d('schema_install_all_confirm')))">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-bolt me-1"></i> {{ $d('install_all_schema') }}
+                                </button>
+                            </form>
+                        @endif
+                        @if($userGuard && $userGuard->hasRole('Super Admin'))
+                            <form method="POST" action="{{ route('admin.system.clear-cache') }}" class="d-inline"
+                                  onsubmit="return confirm(@json($d('clear_app_cache_confirm')))">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-broom me-1"></i> {{ $d('clear_app_cache') }}
+                                </button>
+                            </form>
                         @endif
                         <a href="{{ route('admin.system.updates') }}" class="btn btn-sm btn-outline-dark">
                             <i class="fas fa-external-link-alt me-1"></i> {{ $d('open_schema_updates') }}
                         </a>
+                        @if($userGuard && $userGuard->hasRole('Super Admin'))
+                            @php $smsCfg = config('sms'); @endphp
+                            <form method="POST" action="{{ route('admin.payment-gateway.test-sms') }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-primary"
+                                        @if(empty($smsCfg['enabled'])) disabled title="SMS বন্ধ আছে (SMS_ENABLED=false)" @endif>
+                                    <i class="fas fa-sms me-1"></i> Test SMS ({{ !empty($smsCfg['enabled']) ? ($smsCfg['driver'] ?? 'log') : 'OFF' }})
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
                 <div class="p-3">

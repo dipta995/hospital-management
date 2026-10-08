@@ -385,6 +385,8 @@ return [
         'schema_updates_page_sub' => 'Install new database columns and tables after deploying code to the server.',
         'schema_safe_note' => 'These updates only add missing columns or tables. They do not delete or modify existing patient, invoice, or lab data.',
         'open_schema_updates' => 'Open System Updates',
+        'clear_app_cache' => 'Clear Cache',
+        'clear_app_cache_confirm' => 'Clear config, route, view and application cache? Do this after deploying new code or changing .env.',
         'super_admin_only' => 'Super Admin',
         'ready' => 'Ready',
         'pending' => 'Pending',

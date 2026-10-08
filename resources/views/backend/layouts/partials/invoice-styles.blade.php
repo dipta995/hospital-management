@@ -81,6 +81,7 @@
 
     .inv-hero-title {
         margin: 0;
+        color: inherit;
         font-size: 1.65rem;
         font-weight: 800;
         letter-spacing: -0.02em;

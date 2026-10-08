@@ -56,6 +56,13 @@
                                        value="{{ $edited->creation_date ? \Carbon\Carbon::parse($edited->creation_date)->format('d M Y') : '—' }}">
                                 <small class="text-muted">Date is set at creation time</small>
                             </div>
+                            <div class="col-12">
+                                <label for="audit_reason" class="form-label">Edit করার কারণ @if(!empty($reasonRequired))<span class="text-danger">*</span>@endif</label>
+                                <textarea name="audit_reason" id="audit_reason" class="form-control" rows="2" maxlength="1000"
+                                          @if(!empty($reasonRequired)) required @endif
+                                          placeholder="যেমন: amount ভুল লেখা হয়েছিল">{{ old('audit_reason') }}</textarea>
+                                <x-default.input-error name="audit_reason"></x-default.input-error>
+                            </div>
                         </div>
                     </div>
                 </div>

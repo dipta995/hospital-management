@@ -6,6 +6,7 @@ use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Cost;
 use App\Models\Invoice;
+use App\Models\InvoiceCancelRequest;
 use App\Models\InvoiceList;
 use App\Models\InvoicePayment;
 use App\Models\CustomerBalance;
@@ -15,7 +16,9 @@ use App\Models\Setting;
 use App\Models\TestReport;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\InvoiceDeletionService;
 use App\Services\ReferCommissionService;
+use App\Services\SecurityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
@@ -204,6 +207,20 @@ class InvoiceController extends Controller
         $data['other_collection'] = $receivedByOthers;
         $data['reffers'] = Reefer::where('branch_id', auth()->user()->branch_id)
             ->where('type', Reefer::$typeArray[0])->get();
+        $security = app(SecurityService::class);
+        $data['security'] = $security;
+        $canApproveCancel = $security->allows('security.cancel_approve');
+        $data['cancelNeedsApproval'] = !$canApproveCancel
+            && $security->tablesReady()
+            && $security->enabled('security_cancel_approval');
+        $data['canRequestCancel'] = !$canApproveCancel && $security->tablesReady();
+        $data['canApproveCancel'] = $canApproveCancel;
+        $data['pendingCancels'] = $security->tablesReady()
+            ? InvoiceCancelRequest::with('requester:id,name')
+                ->whereIn('invoice_id', $data['datas']->pluck('id'))
+                ->where('status', InvoiceCancelRequest::STATUS_PENDING)
+                ->get()->keyBy('invoice_id')
+            : collect();
         return view('backend.pages.invoices.index', $data);
     }
 
@@ -439,8 +456,9 @@ class InvoiceController extends Controller
                         );
                     }
 
-                    // Send to customer
-                    if (isset($request['customerDetails']['patient_phone']) &&
+                    // The anti-fraud bill SMS already reaches the patient; avoid charging twice.
+                    if (!app(SecurityService::class)->enabled('security_patient_bill_sms') &&
+                        isset($request['customerDetails']['patient_phone']) &&
                         preg_match('/^\d{11}$/', $request['customerDetails']['patient_phone'])) {
                         smsSent(auth()->user()->branch_id, $request['customerDetails']['patient_phone'], $messagePatient);
                     }
@@ -455,6 +473,7 @@ class InvoiceController extends Controller
                         smsSent(auth()->user()->branch_id, $refDr->phone, $messageDr);
                     }
                 }
+                app(SecurityService::class)->afterInvoiceCreated($invoiceId);
 //            dd($invoiceId);
                 return response()->json(
                     [
@@ -527,8 +546,14 @@ class InvoiceController extends Controller
         }
 
         if (!$this->canEditInvoice($invoice)) {
-            return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> You cannot edit this invoice !");
+            return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> This is not your invoice !");
         }
+
+        $security = app(SecurityService::class);
+        if ($lockMessage = $security->invoiceLockMessage($invoice)) {
+            return RedirectHelper::routeError('admin.invoices.index', '<strong>Locked!</strong> ' . e($lockMessage));
+        }
+        $data['reasonRequired'] = $security->reasonRequired();
 
         if ($data['edited'] = $invoice) {
             $data['products'] = InvoiceList::where('branch_id', auth()->user()->branch_id)
@@ -578,17 +603,26 @@ class InvoiceController extends Controller
 
             if (!$this->canEditInvoice($row)) {
                 if ($request->wantsJson() || $request->ajax()) {
-                    return response()->json(['status' => 403, 'message' => 'You cannot edit this invoice.'], 403);
+                    return response()->json(['status' => 403, 'message' => 'This is not your invoice.'], 403);
                 }
 
-                return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> You cannot edit this invoice !");
+                return RedirectHelper::routeError('admin.invoices.index', "<strong>Sorry!!! </strong> This is not your invoice !");
+            }
+
+            $security = app(SecurityService::class);
+            if ($lockMessage = $security->invoiceLockMessage($row)) {
+                return response()->json(['status' => 423, 'message' => $lockMessage], 423);
+            }
+            $reason = $security->reasonFrom($request);
+            if (!$reason && $security->reasonRequired()) {
+                return response()->json(['status' => 422, 'message' => 'Edit করার কারণ লিখুন।'], 422);
             }
 
             $audit = app(AuditLogService::class);
-            $auditRelations = ['invoiceList.product', 'paidAmount', 'costs.category', 'reeferDr', 'reeferBy', 'admin'];
+            $auditRelations = InvoiceDeletionService::AUDIT_RELATIONS;
             $oldSnapshot = $audit->snapshot($row, $auditRelations);
 
-            \DB::transaction(function () use ($rules, $request, $row, $audit, $auditRelations, $oldSnapshot) {
+            \DB::transaction(function () use ($rules, $request, $row, $audit, $auditRelations, $oldSnapshot, $reason) {
                 $row->dr_refer_id = $request['customerDetails']['dr_refer_id'];
                 $row->dr_name = $request['customerDetails']['dr_refer_name'];
                 $row->refer_id = $request['customerDetails']['refer_id'];
@@ -654,9 +688,11 @@ class InvoiceController extends Controller
                     ]);
                 }
 
-                $row->refresh();
-                $audit->record('invoice', 'updated', $row, $oldSnapshot, $audit->snapshot($row, $auditRelations));
+                $row->unsetRelations()->refresh();
+                $audit->record('invoice', 'updated', $row, $oldSnapshot, $audit->snapshot($row, $auditRelations), $reason);
             });
+
+            $security->afterInvoiceUpdated($oldSnapshot, $row, $reason);
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['status' => 200, 'message' => 'Invoice updated successfully.']);
@@ -678,12 +714,12 @@ class InvoiceController extends Controller
             return false;
         }
 
-        if ($admin->hasAnyRole(['Super Admin', 'Admin', 'Owner'])) {
+        if ($admin->hasAnyRole(['Super Admin', 'Admin', 'Owner'])
+            || app(SecurityService::class)->allows('security.invoice_override', $admin)) {
             return true;
         }
 
-        return (int) $invoice->admin_id === (int) $admin->id
-            && Carbon::parse($invoice->creation_date, 'Asia/Dhaka')->isSameDay(Carbon::now('Asia/Dhaka'));
+        return (int) $invoice->admin_id === (int) $admin->id;
     }
 
     /**
@@ -696,26 +732,75 @@ class InvoiceController extends Controller
     {
         $this->checkOwnPermission('invoices.delete');
         $invoice = Invoice::where('branch_id', auth()->user()->branch_id)->find($id);
-        if (!is_null($invoice)) {
-            try {
-                $audit = app(AuditLogService::class);
-                $oldSnapshot = $audit->snapshot($invoice, ['invoiceList.product', 'paidAmount', 'costs.category', 'reeferDr', 'reeferBy', 'admin']);
-
-                \DB::beginTransaction();
-                $audit->record('invoice', 'deleted', $invoice, $oldSnapshot, null);
-                InvoiceList::where('invoice_id', $invoice->id)->delete();
-                InvoicePayment::where('invoice_id', $invoice->id)->delete();
-                Cost::where('invoice_id', $invoice->id)->delete();
-                $invoice->delete();
-                \DB::commit();
-                return response()->json(['status' => 200]);
-            } catch (\Throwable $e) {
-                \DB::rollBack();
-                return response()->json(['status' => 422, 'error' => 'Delete failed.']);
-            }
+        if (is_null($invoice)) {
+            return response()->json(['status' => 404, 'error' => 'Invoice not found.']);
         }
-        return response()->json(['status' => 404, 'error' => 'Invoice not found.']);
 
+        $security = app(SecurityService::class);
+        $reason = $security->reasonFrom(request());
+
+        if (!$security->allows('security.cancel_approve') && $security->tablesReady() && $security->enabled('security_cancel_approval')) {
+            return $this->createCancelRequest($invoice, $reason, $security);
+        }
+
+        if ($lockMessage = $security->invoiceLockMessage($invoice)) {
+            return response()->json(['status' => 423, 'error' => $lockMessage]);
+        }
+        if (!$reason && $security->reasonRequired()) {
+            return response()->json(['status' => 422, 'error' => 'Delete করার কারণ লিখুন।']);
+        }
+
+        try {
+            app(InvoiceDeletionService::class)->delete($invoice, $reason);
+            return response()->json(['status' => 200]);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['status' => 422, 'error' => 'Delete failed.']);
+        }
+    }
+
+    public function cancelRequest(Request $request, $id)
+    {
+        $this->checkOwnPermission('invoices.index');
+        $invoice = Invoice::where('branch_id', auth()->user()->branch_id)->find($id);
+        if (is_null($invoice)) {
+            return response()->json(['status' => 404, 'error' => 'Invoice not found.']);
+        }
+
+        $security = app(SecurityService::class);
+        if (!$security->tablesReady()) {
+            return response()->json(['status' => 503, 'error' => 'Security tables এখনো install করা হয়নি।']);
+        }
+
+        return $this->createCancelRequest($invoice, $security->reasonFrom($request), $security);
+    }
+
+    private function createCancelRequest(Invoice $invoice, ?string $reason, SecurityService $security)
+    {
+        if (!$reason) {
+            return response()->json(['status' => 422, 'error' => 'Cancel করার কারণ লিখুন।']);
+        }
+        if (InvoiceCancelRequest::where('invoice_id', $invoice->id)->where('status', InvoiceCancelRequest::STATUS_PENDING)->exists()) {
+            return response()->json(['status' => 409, 'error' => 'এই invoice-এর একটা cancel request আগে থেকেই pending আছে।']);
+        }
+
+        $cancelRequest = InvoiceCancelRequest::create([
+            'branch_id' => $invoice->branch_id,
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'patient_name' => $invoice->patient_name,
+            'total_amount' => $invoice->total_amount,
+            'paid_amount' => $security->paidAmount($invoice),
+            'requested_by' => auth()->id(),
+            'reason' => $reason,
+            'status' => InvoiceCancelRequest::STATUS_PENDING,
+        ]);
+        $security->afterCancelRequested($cancelRequest);
+
+        return response()->json([
+            'status' => 202,
+            'message' => 'Cancel request পাঠানো হয়েছে। Owner বা Super Admin approve করলে invoice বাতিল হবে।',
+        ]);
     }
 
     public function deletePreview($id)
@@ -906,6 +991,8 @@ class InvoiceController extends Controller
             $duePaid->save();
 
             \DB::commit();
+
+            app(SecurityService::class)->afterDuePaid($invoice, $amount);
 
             $message = $isReturn
                 ? '<strong>Done!</strong> Overpayment returned successfully.'

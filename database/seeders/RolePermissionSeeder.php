@@ -495,6 +495,10 @@ class RolePermissionSeeder extends Seeder
                 ]
             ],
 
+            [
+                'group_name' => \App\Services\SecurityService::PERMISSION_GROUP,
+                'permissions' => array_keys(\App\Services\SecurityService::PERMISSIONS),
+            ],
 
         ];
 

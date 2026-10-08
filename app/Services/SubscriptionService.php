@@ -32,6 +32,12 @@ class SubscriptionService
                 'subscription_id' => null,
                 'expired' => true,
                 'show_popup' => false,
+                'is_last_day' => false,
+                'popup_interval_minutes' => 0,
+                'popup_normal_interval_minutes' => 0,
+                'popup_last_day_interval_minutes' => 0,
+                'last_day_starts_at' => null,
+                'popup_close_delay' => 0,
                 'show_banner' => false,
                 'start_date' => null,
                 'start_date_pretty' => null,
@@ -48,26 +54,37 @@ class SubscriptionService
         }
 
         $now = Carbon::now('Asia/Dhaka');
-        $startDate = Carbon::parse($subscription->start_date)->startOfDay();
-        $endDate = Carbon::parse($subscription->end_date)->endOfDay();
+        $startDate = Carbon::parse(Carbon::parse($subscription->start_date)->toDateString(), 'Asia/Dhaka')->startOfDay();
+        $endDate = Carbon::parse(Carbon::parse($subscription->end_date)->toDateString(), 'Asia/Dhaka')->endOfDay();
 
         $daysUsed = 0;
         if ($now->greaterThanOrEqualTo($startDate)) {
-            $daysUsed = min(30, $startDate->diffInDays($now->copy()->startOfDay()) + 1);
+            $daysUsed = min(30, (int) round($startDate->diffInDays($now->copy()->startOfDay())) + 1);
         }
 
         $daysLeft = 0;
         if ($now->lessThanOrEqualTo($endDate)) {
-            $daysLeft = max(0, $now->copy()->startOfDay()->diffInDays($endDate->copy()->startOfDay()) + 1);
+            $daysLeft = max(0, (int) round($now->copy()->startOfDay()->diffInDays($endDate->copy()->startOfDay())) + 1);
         }
 
         $expired = $now->greaterThan($endDate);
+
+        $reminder = config('subscription.reminder');
+        $isLastDay = !$expired && $daysLeft <= 1;
+        $normalIntervalMinutes = max(1, (int) round($reminder['interval_hours'] * 60));
+        $lastDayIntervalMinutes = max(1, (int) round($reminder['last_day_interval_hours'] * 60));
 
         return [
             'has_subscription' => true,
             'subscription_id' => $subscription->id,
             'expired' => $expired,
-            'show_popup' => !$expired && $daysUsed >= 20,
+            'show_popup' => !$expired && $daysLeft <= $reminder['days_before'],
+            'is_last_day' => $isLastDay,
+            'popup_interval_minutes' => $isLastDay ? $lastDayIntervalMinutes : $normalIntervalMinutes,
+            'popup_normal_interval_minutes' => $normalIntervalMinutes,
+            'popup_last_day_interval_minutes' => $lastDayIntervalMinutes,
+            'last_day_starts_at' => $endDate->copy()->startOfDay()->getTimestampMs(),
+            'popup_close_delay' => max(0, $reminder['close_delay_seconds']),
             'show_banner' => !$expired && $daysUsed >= 28,
             'start_date' => $startDate->toDateString(),
             'start_date_pretty' => $startDate->format('jS F Y'),

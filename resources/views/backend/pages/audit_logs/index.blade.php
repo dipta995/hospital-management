@@ -5,6 +5,7 @@
 @endsection
 
 @section('admin-content')
+    @php $canDeleteTrash = canSecurity('security.audit_delete'); @endphp
     <div class="container-fluid py-3">
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
@@ -70,6 +71,7 @@
                         <th>Record No</th>
                         <th>Done By</th>
                         <th>Changes</th>
+                        <th>Reason</th>
                         <th class="text-end">View</th>
                     </tr>
                     </thead>
@@ -92,15 +94,30 @@
                                     {{ count($log->changes ?? []) }} item(s) changed
                                 @endif
                             </td>
+                            <td class="small" style="max-width: 260px;">
+                                @if(!empty($log->reason))
+                                    {{ \Illuminate\Support\Str::limit($log->reason, 80) }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td class="text-end">
                                 <a href="{{ route('admin.audit-logs.show', $log->id) }}" class="btn btn-sm btn-outline-primary">
                                     See Details
                                 </a>
+                                @if($canDeleteTrash)
+                                    <form method="POST" action="{{ route('admin.audit-logs.destroy', ['auditLog' => $log->id] + request()->query()) }}" class="d-inline"
+                                          onsubmit="return confirm('এই Trash রেকর্ড চিরতরে মুছে ফেলবেন? আর ফেরত আনা যাবে না।')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="মুছে ফেলুন"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">No trash history found.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No trash history found.</td>
                         </tr>
                     @endforelse
                     </tbody>

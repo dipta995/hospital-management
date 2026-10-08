@@ -37,13 +37,18 @@
                     </button>
                 </div>
                 <!-- Notification -->
+                @php
+                    $expiryNoteCount = expairyAlertNotificationCount();
+                    $cancelNotes = app(\App\Services\CancelRequestNotificationService::class)->forAdmin($userGuard);
+                @endphp
                 <div class="dropdown topbar-item">
                     <button type="button" class="topbar-button position-relative"
                             id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
                             aria-expanded="false">
                         <iconify-icon icon="solar:bell-bing-broken" class="fs-24 align-middle"></iconify-icon>
                         <span
-                            class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">{{ expairyAlertNotificationCount() }}<span
+                            class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill"><span
+                                id="nav-notification-count" data-base="{{ $expiryNoteCount }}">{{ $expiryNoteCount + $cancelNotes['count'] }}</span><span
                                 class="visually-hidden">{{ t('common.unread_messages') }}</span></span>
                     </button>
                     <div class="dropdown-menu py-0 dropdown-lg dropdown-menu-end"
@@ -61,6 +66,9 @@
                             </div>
                         </div>
                         <div data-simplebar style="max-height: 280px;">
+                            <div id="cancel-notifications">
+                                @include('backend.layouts.partials.cancel-notifications')
+                            </div>
                             <!-- Item -->
                             <a href="javascript:void(0);" class="dropdown-item py-3 border-bottom text-wrap">
                                 <div class="d-flex">
@@ -136,6 +144,11 @@
 
 
 <style>
+    .topbar {
+        height: auto;
+        min-height: var(--bs-topbar-height);
+    }
+
     .topbar-navbar {
         display: flex;
         align-items: center;
@@ -772,4 +785,75 @@
         update();
     });
 })();
+</script>
+
+<script>
+    (function () {
+        const listUrl = '{{ route('admin.invoice-cancel-requests.notifications') }}';
+        const seenUrl = '{{ route('admin.invoice-cancel-requests.notifications.seen') }}';
+        const pageUrl = '{{ route('admin.invoice-cancel-requests.index') }}';
+        const storePrefix = 'cancelNote:{{ $userGuard->id }}:';
+        const badge = document.getElementById('nav-notification-count');
+        const list = document.getElementById('cancel-notifications');
+        const bell = document.getElementById('page-header-notifications-dropdown');
+        const baseTitle = document.title;
+        if (!badge || !list) return;
+
+        function toast(text) {
+            let box = document.getElementById('cancel-note-toasts');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'cancel-note-toasts';
+                box.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2000;max-width:340px';
+                document.body.appendChild(box);
+            }
+            const item = document.createElement('div');
+            item.className = 'alert alert-danger alert-dismissible shadow mb-2';
+            item.style.cursor = 'pointer';
+            item.innerHTML = '<i class="fas fa-bell me-1"></i> <span></span><button type="button" class="btn-close" aria-label="Close"></button>';
+            item.querySelector('span').textContent = text;
+            item.addEventListener('click', function (e) {
+                if (e.target.classList.contains('btn-close')) {
+                    item.remove();
+                } else {
+                    window.location.href = pageUrl;
+                }
+            });
+            box.appendChild(item);
+            setTimeout(() => item.remove(), 15000);
+        }
+
+        function poll() {
+            if (document.hidden) return;
+            fetch(listUrl, {headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, credentials: 'same-origin'})
+                .then(response => response.ok ? response.json() : null)
+                .then(data => {
+                    if (!data) return;
+                    badge.textContent = (parseInt(badge.dataset.base, 10) || 0) + data.count;
+                    list.innerHTML = data.html;
+                    document.title = (data.count ? '(' + data.count + ') ' : '') + baseTitle;
+                    [['latest_pending', 'pending'], ['latest_reviewed', 'reviewed']].forEach(([key, name]) => {
+                        const item = data[key];
+                        if (item && item.id > (parseInt(localStorage.getItem(storePrefix + name), 10) || 0)) {
+                            localStorage.setItem(storePrefix + name, item.id);
+                            toast(item.text);
+                        }
+                    });
+                })
+                .catch(() => {});
+        }
+
+        poll();
+        setInterval(poll, 60000);
+        document.addEventListener('visibilitychange', poll);
+        if (bell) {
+            bell.addEventListener('shown.bs.dropdown', function () {
+                fetch(seenUrl, {
+                    method: 'POST',
+                    headers: {'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
+                    credentials: 'same-origin',
+                }).then(() => setTimeout(poll, 3000)).catch(() => {});
+            });
+        }
+    })();
 </script>

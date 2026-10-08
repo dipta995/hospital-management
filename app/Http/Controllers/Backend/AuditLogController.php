@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class AuditLogController extends Controller
@@ -91,12 +92,37 @@ class AuditLogController extends Controller
         ]);
     }
 
+    public function destroy(AuditLog $auditLog)
+    {
+        $admin = auth('admin')->user();
+        if (!canSecurity('security.audit_delete', $admin)) {
+            abort(403, 'Trash রেকর্ড মুছে ফেলার অনুমতি (security.audit_delete) নেই।');
+        }
+        if ((int) $auditLog->branch_id !== (int) $admin->branch_id) {
+            abort(404);
+        }
+
+        Log::warning('Trash record deleted', [
+            'audit_log_id' => $auditLog->id,
+            'module' => $auditLog->module,
+            'action' => $auditLog->action,
+            'auditable_id' => $auditLog->auditable_id,
+            'deleted_by' => $admin->id,
+            'deleted_by_name' => $admin->name,
+        ]);
+        $auditLog->delete();
+
+        return redirect()
+            ->route('admin.audit-logs.index', request()->only(['module', 'action', 'record_id', 'start_date', 'end_date', 'page']))
+            ->with('success', 'Trash রেকর্ড মুছে ফেলা হয়েছে।');
+    }
+
     private function authorizeAuditLogAccess(): void
     {
         $admin = auth('admin')->user();
 
         if (!canAccessAuditLogs($admin)) {
-            abort(403, 'Only Super Admin can view trash records.');
+            abort(403, 'Trash দেখার অনুমতি (security.audit_logs) নেই।');
         }
     }
 }

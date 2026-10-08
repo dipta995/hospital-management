@@ -279,6 +279,13 @@
                     <div class="inv-summary-row due"><span>Due</span><span class="val">৳ <span id="side-due">0.00</span></span></div>
                     <div class="inv-summary-row total"><span>Final</span><span class="val">৳ <span id="side-final">{{ number_format($edited->total_amount, 2) }}</span></span></div>
                     </div>
+                    <div class="px-3 pb-2">
+                        <label for="audit_reason" class="form-label small fw-semibold mb-1">
+                            Edit করার কারণ @if(!empty($reasonRequired))<span class="text-danger">*</span>@endif
+                        </label>
+                        <textarea id="audit_reason" class="form-control form-control-sm" rows="2" maxlength="1000"
+                                  placeholder="যেমন: ভুল টেস্ট যোগ হয়েছিল"></textarea>
+                    </div>
                     <button type="button" class="inv-summary-submit btn-store-data"><i class="fas fa-save me-1"></i> Update Invoice</button>
                 </div>
             </div>
@@ -563,11 +570,18 @@
                     return;
                 }
 
+                const auditReason = ($("#audit_reason").val() || "").trim();
+                if (@json(!empty($reasonRequired)) && !auditReason) {
+                    alert("Edit করার কারণ লিখুন।");
+                    $("#audit_reason").focus();
+                    return;
+                }
+
                 $.ajax({
                     url: "{{ route('admin.invoices.update',$edited->id) }}",
                     type: "POST",
                     contentType: "application/json",
-                    data: JSON.stringify({ _method: "PUT", products, customerDetails, paymentDetails }),
+                    data: JSON.stringify({ _method: "PUT", products, customerDetails, paymentDetails, audit_reason: auditReason }),
                     success: function () {
                         alert("Invoice updated successfully!");
                         location.reload();

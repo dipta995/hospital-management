@@ -192,14 +192,24 @@
                             $paidPct = $item->total_amount > 0
                                 ? min(100, round(($item->paid_amount_sum_paid_amount / $item->total_amount) * 100))
                                 : 100;
-                            $canEditAnyDate = auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Owner']);
+                            $canOverrideInvoice = $security->allows('security.invoice_override');
                             $canEditRow = $userGuard->can('invoices.edit')
-                                && ($canEditAnyDate
-                                    || \Carbon\Carbon::parse($item->creation_date)->setTimezone('Asia/Dhaka')->isToday());
+                                && ($canOverrideInvoice || auth()->user()->hasAnyRole(['Super Admin', 'Admin', 'Owner'])
+                                    || (int) $item->admin_id === (int) $userGuard->id);
+                            $invoiceLock = $security->invoiceLockMessage($item);
+                            $pendingCancel = $pendingCancels[$item->id] ?? null;
                         @endphp
-                        <tr id="table-data{{ $item->id }}">
+                        <tr id="table-data{{ $item->id }}" class="{{ $pendingCancel ? 'table-danger' : '' }}">
                             <td data-label="Invoice">
                                 <span class="inv-inv-no">{{ $item->invoice_number }}</span>
+                                @if ($pendingCancel)
+                                    <br>
+                                    <a href="{{ $canApproveCancel ? route('admin.invoice-cancel-requests.index') : 'javascript:void(0)' }}"
+                                       class="badge bg-danger text-decoration-none"
+                                       title="{{ $pendingCancel->requester->name ?? 'Unknown' }} cancel করতে চেয়েছে ({{ $pendingCancel->created_at?->format('d M Y h:i A') }})। কারণ: {{ $pendingCancel->reason }}">
+                                        <i class="fas fa-ban"></i> Cancel চাওয়া হয়েছে
+                                    </a>
+                                @endif
                             </td>
                             <td data-label="Patient">
                                 <div class="inv-patient-name">{{ $item->patient_name ?? 'NA' }}</div>
@@ -249,9 +259,11 @@
                             </td>
                             <td data-label="Actions" class="inv-actions-cell">
                                 <div class="inv-actions-grid">
-                                    @if ($canEditRow)
+                                    @if ($canEditRow && !$invoiceLock)
                                         <a href="{{ route($pageHeader['edit_route'], $item->id) }}"
                                            class="inv-act edit" title="Edit"><i class="fas fa-pen"></i></a>
+                                    @elseif ($canEditRow)
+                                        <span class="inv-act" title="{{ $invoiceLock }}" style="background:#e2e8f0;color:#475569;"><i class="fas fa-lock"></i></span>
                                     @else
                                         <span class="inv-act-slot" aria-hidden="true"></span>
                                     @endif
@@ -278,10 +290,18 @@
                                     <a href="{{ route('admin.invoices.show', $item->id) }}"
                                        class="inv-act view" title="View"><i class="fas fa-eye"></i></a>
 
-                                    @if ($userGuard->can('invoices.delete'))
+                                    @if ($userGuard->can('invoices.delete') && !$cancelNeedsApproval && !$invoiceLock)
                                         <a href="javascript:void(0)" class="inv-act del" title="Delete"
                                            onclick="invoiceDataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
                                             <i class="fas fa-trash"></i>
+                                        </a>
+                                    @elseif ($canRequestCancel && $pendingCancel)
+                                        <span class="inv-act" title="Cancel request পাঠানো আছে, approve-এর অপেক্ষায়" style="background:#e2e8f0;color:#475569;"><i class="fas fa-hourglass-half"></i></span>
+                                    @elseif ($canRequestCancel)
+                                        <a href="javascript:void(0)" class="inv-act del cancel-request-btn" title="Cancel request পাঠান"
+                                           style="background:#fef3c7;color:#92400e;"
+                                           onclick="invoiceCancelRequest({{ $item->id }},'{{ $pageHeader['base_url'] }}')">
+                                            <i class="fas fa-ban"></i>
                                         </a>
                                     @else
                                         <span class="inv-act-slot" aria-hidden="true"></span>

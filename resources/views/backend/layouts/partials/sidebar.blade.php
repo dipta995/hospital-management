@@ -45,6 +45,7 @@
             @include('backend.layouts.partials.sidebar._hr')
             @include('backend.layouts.partials.sidebar._inventory')
             @include('backend.layouts.partials.sidebar._admin')
+            @include('backend.layouts.partials.sidebar._security')
             @include('backend.layouts.partials.sidebar._tools')
 
         </ul>

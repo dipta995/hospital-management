@@ -138,8 +138,23 @@
                         <div class="text-muted small mt-1">
                             IP: {{ $log->ip_address ?? 'N/A' }}
                         </div>
+                        @if(!empty($log->reason))
+                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0">
+                                <strong>কারণ:</strong> {{ $log->reason }}
+                            </div>
+                        @endif
                     </div>
-                    <a href="{{ route('admin.audit-logs.index') }}" class="btn btn-light">Back to Trash History</a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('admin.audit-logs.index') }}" class="btn btn-light">Back to Trash History</a>
+                        @if(canSecurity('security.audit_delete'))
+                            <form method="POST" action="{{ route('admin.audit-logs.destroy', $log->id) }}"
+                                  onsubmit="return confirm('এই Trash রেকর্ড চিরতরে মুছে ফেলবেন? আর ফেরত আনা যাবে না।')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-outline-danger"><i class="fas fa-trash"></i> মুছে ফেলুন</button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

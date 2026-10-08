@@ -14,7 +14,15 @@ function phoneNoRegex()
 
 function canAccessAuditLogs($admin = null): bool
 {
-    return canManageSystemSchema($admin);
+    return canSecurity('security.audit_logs', $admin);
+}
+
+/**
+ * @param string $permission one of SecurityService::PERMISSIONS
+ */
+function canSecurity(string $permission, $admin = null): bool
+{
+    return app(\App\Services\SecurityService::class)->allows($permission, $admin);
 }
 
 function canManageSystemSchema($admin = null): bool

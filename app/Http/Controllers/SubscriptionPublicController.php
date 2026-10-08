@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Subscription;
 use App\Models\SubscriptionPaymentRequest;
+use App\Services\PayStationPaymentFinalizer;
+use App\Services\PayStationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -12,6 +14,8 @@ class SubscriptionPublicController extends Controller
     public function show($token)
     {
         $subscription = Subscription::where('public_token', $token)->firstOrFail();
+        app(PayStationPaymentFinalizer::class)->reconcile($subscription->id);
+        $subscription->refresh();
 
         return view('subscription.public-payment', [
             'subscription' => $subscription,
@@ -21,6 +25,10 @@ class SubscriptionPublicController extends Controller
     public function store(Request $request, $token)
     {
         $subscription = Subscription::where('public_token', $token)->firstOrFail();
+
+        if (app(PayStationService::class)->canPay($subscription)) {
+            return back()->withErrors(['transaction_id' => 'অনলাইন পেমেন্ট চালু আছে। অনুগ্রহ করে PayStation বাটন দিয়ে পেমেন্ট করুন।']);
+        }
 
         $request->validate([
             'transaction_id' => 'required|string|max:120',

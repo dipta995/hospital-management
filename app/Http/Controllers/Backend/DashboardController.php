@@ -38,7 +38,21 @@ class DashboardController extends Controller
             'canManageAuditLogs' => canAccessAuditLogs($admin),
             'todayLabel' => $nowDhaka->format('l, d M Y'),
             'adminName' => $admin?->name,
+            'securityOverview' => null,
         ];
+
+        $security = app(\App\Services\SecurityService::class);
+        if ($admin && $branchId && $security->allows('security.dashboard', $admin)) {
+            try {
+                $security->sendPendingDailySummary((int) $branchId);
+                $data['securityOverview'] = $security->dailyStats((int) $branchId, $nowDhaka->toDateString()) + [
+                    'owner_phones' => count($security->ownerPhones((int) $branchId)),
+                    'tables_ready' => $security->tablesReady(),
+                ];
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if (!$admin || !$admin->can('dashboards.view')) {
             return view('backend.pages.dashboards.index', $data);

@@ -19,6 +19,7 @@ class AuditLog extends Model
         'old_values',
         'new_values',
         'changes',
+        'reason',
         'ip_address',
         'user_agent',
     ];

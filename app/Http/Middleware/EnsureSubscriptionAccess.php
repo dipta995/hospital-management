@@ -21,12 +21,32 @@ class EnsureSubscriptionAccess
 
         view()->share('subscriptionMeta', $meta);
 
-        if ($meta['expired'] && !$request->routeIs('admin.subscriptions.*') && !$request->routeIs('admin.logout.submit')) {
-            $status = '<div class="alert alert-danger alert-dismissible show" role="alert">আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়েছে। সফটওয়্যার ব্যবহার চালিয়ে যেতে পেমেন্টের তথ্য জমা দিন এবং অনুমোদনের জন্য অপেক্ষা করুন।<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>';
+        if ($meta['expired'] && !$this->isAllowedWhileExpired($request, $admin)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 402,
+                    'message' => 'সাবস্ক্রিপশনের মেয়াদ শেষ হয়ে গেছে। সফটওয়্যার ব্যবহার করতে পেমেন্ট করুন।',
+                    'redirect' => route('admin.subscriptions.index'),
+                ], 402);
+            }
+
+            $status = view('backend.layouts.partials.subscription-expired-alert')->render();
 
             return redirect()->route('admin.subscriptions.index')->with('status', $status);
         }
 
         return $next($request);
+    }
+
+    /**
+     * Super Admin keeps the system-update routes so a missing schema can still be installed while expired.
+     */
+    private function isAllowedWhileExpired(Request $request, $admin): bool
+    {
+        if ($request->routeIs('admin.subscriptions.*', 'admin.logout.submit')) {
+            return true;
+        }
+
+        return $request->routeIs('admin.system.*') && $admin->hasRole('Super Admin');
     }
 }

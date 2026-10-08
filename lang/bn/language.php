@@ -385,6 +385,8 @@ return [
         'schema_updates_page_sub' => 'সার্ভারে কোড deploy করার পর নতুন database column/table এখান থেকে ইনস্টল করুন।',
         'schema_safe_note' => 'এই আপডেট শুধু missing column বা table যোগ করে। রোগী, invoice বা lab ডাটা মুছে বা পরিবর্তন করে না।',
         'open_schema_updates' => 'সিস্টেম আপডেট খুলুন',
+        'clear_app_cache' => 'ক্যাশ ক্লিয়ার',
+        'clear_app_cache_confirm' => 'Config, route, view ও application cache ক্লিয়ার করবেন? নতুন কোড deploy বা .env পরিবর্তনের পর এটা করুন।',
         'super_admin_only' => 'Super Admin',
         'ready' => 'প্রস্তুত',
         'pending' => 'বাকি',

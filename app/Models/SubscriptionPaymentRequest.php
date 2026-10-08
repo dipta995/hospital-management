@@ -17,6 +17,15 @@ class SubscriptionPaymentRequest extends Model
         'amount',
         'sender_number',
         'note',
+        'gateway',
+        'invoice_number',
+        'payment_method',
+        'gateway_response',
+        'payer_name',
+        'payer_email',
+        'invoice_no',
+        'invoiced_at',
+        'sms_sent_at',
         'status',
         'approved_by',
         'approved_at',
@@ -28,6 +37,9 @@ class SubscriptionPaymentRequest extends Model
         'transaction_date' => 'date',
         'approved_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'gateway_response' => 'array',
+        'invoiced_at' => 'datetime',
+        'sms_sent_at' => 'datetime',
     ];
 
     public function subscription()

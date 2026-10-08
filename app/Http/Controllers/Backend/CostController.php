@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\Reefer;
 use App\Models\Setting;
 use App\Services\AuditLogService;
+use App\Services\SecurityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -339,6 +340,11 @@ class CostController extends Controller
         if ($data['edited'] = Cost::where('branch_id', auth()->user()->branch_id)
             ->with('category')
             ->find($id)) {
+            $security = app(SecurityService::class);
+            if ($lockMessage = $security->ageLockMessage($data['edited'], 'cost')) {
+                return RedirectHelper::routeError($this->index_route, '<strong>Locked!</strong> ' . e($lockMessage));
+            }
+            $data['reasonRequired'] = $security->reasonRequired();
             return view('backend.pages.costs.edit', $data);
             if (\Carbon\Carbon::parse($data['edited']->created_at)->setTimezone('Asia/Dhaka')->isToday()) {
             } else {
@@ -366,6 +372,14 @@ class CostController extends Controller
         try {
             if ($row = Cost::where('branch_id', auth()->user()->branch_id)
                 ->find($id)) {
+                $security = app(SecurityService::class);
+                if ($lockMessage = $security->ageLockMessage($row, 'cost')) {
+                    return RedirectHelper::routeError($this->index_route, '<strong>Locked!</strong> ' . e($lockMessage));
+                }
+                if (!$security->reasonFrom($request) && $security->reasonRequired()) {
+                    return redirect()->back()->withInput()->withErrors(['audit_reason' => 'Edit করার কারণ লিখুন।']);
+                }
+
                 $audit = app(AuditLogService::class);
                 $auditRelations = ['category', 'admin', 'invoice', 'employee', 'reeferBy'];
                 $oldSnapshot = $audit->snapshot($row, $auditRelations);
@@ -409,6 +423,14 @@ class CostController extends Controller
 
         if (!$deleteData) {
             return response()->json(['status' => 404, 'message' => 'Cost not found']);
+        }
+
+        $security = app(SecurityService::class);
+        if ($lockMessage = $security->ageLockMessage($deleteData, 'cost')) {
+            return response()->json(['status' => 423, 'message' => $lockMessage]);
+        }
+        if (!$security->reasonFrom(request()) && $security->reasonRequired()) {
+            return response()->json(['status' => 422, 'message' => 'Delete করার কারণ লিখুন।']);
         }
 
         $audit = app(AuditLogService::class);

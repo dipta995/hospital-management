@@ -16,10 +16,18 @@
                     <h4 class="mb-3">সাবস্ক্রিপশন পেমেন্ট জমা</h4>
 
                     @if(session('success'))
-                        <div class="alert alert-success">{{ session('success') }}</div>
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                            @if(session('invoice_url'))
+                                <div class="mt-2">
+                                    <a href="{{ session('invoice_url') }}" target="_blank" class="btn btn-sm btn-success">Invoice দেখুন / প্রিন্ট করুন</a>
+                                    <a href="{{ session('invoice_url') }}?download=pdf" class="btn btn-sm btn-outline-success">PDF ডাউনলোড</a>
+                                </div>
+                            @endif
+                        </div>
                     @endif
 
-                    @if($errors->any())
+                    @if($errors->any() && !$errors->has('paystation') && !$errors->hasAny(['cust_name', 'cust_phone', 'cust_email']))
                         <div class="alert alert-danger">
                             <ul class="mb-0">
                                 @foreach($errors->all() as $error)
@@ -43,13 +51,18 @@
                         </div>
                     @endif
 
-                    @if($subscription->transaction_details_note)
+                    @php $gatewayPaymentOn = app(\App\Services\PayStationService::class)->canPay($subscription); @endphp
+
+                    @if($subscription->transaction_details_note && !$gatewayPaymentOn)
                         <div class="alert alert-info">
                             <strong>লেনদেনের তথ্য জমার নির্দেশনা:</strong><br>
                             {!! nl2br(e($subscription->transaction_details_note)) !!}
                         </div>
                     @endif
 
+                    @include('subscription.partials.paystation-button', ['subscription' => $subscription])
+
+                    @unless($gatewayPaymentOn)
                     <form method="POST" action="{{ route('subscription.payment.public.submit', $subscription->public_token) }}">
                         @csrf
                         <div class="row">
@@ -77,6 +90,7 @@
 
                         <button class="btn btn-primary" type="submit">লেনদেনের তথ্য জমা দিন</button>
                     </form>
+                    @endunless
                 </div>
             </div>
         </div>

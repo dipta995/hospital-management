@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Services\SchemaMigrationRegistryService;
+use App\Services\SecurityPermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
@@ -32,6 +33,21 @@ class SystemMaintenanceController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    public function installSecurityPermissions(Request $request, SecurityPermissionService $securityPermissionService)
+    {
+        if (!auth('admin')->check() || !auth('admin')->user()->hasRole('Super Admin')) {
+            abort(403, 'Only Super Admin can install security permissions.');
+        }
+
+        $result = $securityPermissionService->install();
+
+        if ($request->expectsJson()) {
+            return response()->json($result, ($result['success'] ?? false) ? 200 : 422);
+        }
+
+        return back()->with(($result['success'] ?? false) ? 'success' : 'error', $result['message']);
     }
 
     public function installAuditLogSchema(Request $request, SchemaMigrationRegistryService $schemaRegistry)
@@ -83,9 +99,7 @@ class SystemMaintenanceController extends Controller
 
         $type = ($result['success'] ?? false) ? 'success' : 'error';
 
-        return redirect()
-            ->route('admin.system.updates')
-            ->with($type, $result['message'] ?? 'Schema update failed.');
+        return back()->with($type, $result['message'] ?? 'Schema update failed.');
     }
 
     public function installSchema(Request $request, string $key, SchemaMigrationRegistryService $schemaRegistry)
