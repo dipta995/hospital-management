@@ -144,7 +144,7 @@ class ApiController extends Controller
     public function attendanceStore(Request $request, $branch_id, $rfid)
     {
         // Find employee by RFID
-        $employee = Employee::where('branch_id', $branch_id)
+        $employee = Employee::employedSince(now('Asia/Dhaka'))->where('branch_id', $branch_id)
             ->where('rfid', $rfid)->first();
 
         if ($employee) {

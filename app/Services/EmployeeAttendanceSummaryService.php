@@ -29,6 +29,12 @@ class EmployeeAttendanceSummaryService
         $daysInMonth = $monthDate->daysInMonth;
         $today = Carbon::now('Asia/Dhaka')->startOfDay();
         $countUntil = $monthEnd->lt($today) ? $monthEnd : $today;
+        $lastWorkingDay = $employee->isResigned() && $employee->resigned_at
+            ? $employee->resigned_at->copy()->startOfDay()
+            : null;
+        if ($lastWorkingDay && $lastWorkingDay->lt($countUntil)) {
+            $countUntil = $lastWorkingDay->lt($monthStart) ? $monthStart->copy()->subDay() : $lastWorkingDay->copy();
+        }
 
         $weeklyOffDays = $this->normalizeWeeklyOffDays($employee->weekly_off_days ?? []);
         $workingHoursPerDay = (float) ($employee->working_hours_per_day ?? 8);
@@ -94,7 +100,9 @@ class EmployeeAttendanceSummaryService
                 }
             }
 
-            if ($isFutureDay) {
+            if ($isFutureDay && $lastWorkingDay && $day->gt($lastWorkingDay)) {
+                $status = 'resigned';
+            } elseif ($isFutureDay) {
                 $status = 'upcoming';
                 $upcomingDayDates[] = $dateKey;
             } elseif ($hasAttendance) {
@@ -182,6 +190,100 @@ class EmployeeAttendanceSummaryService
             'missingDays' => $absenceCount,
             'recordCount' => $attendanceRecords->count(),
         ];
+    }
+
+    /**
+     * One row per employee for a single day, using the same status rules as summarize().
+     */
+    public function dailySheet(Collection $employees, Carbon $date): array
+    {
+        $dateKey = $date->toDateString();
+        $isFutureDay = $date->copy()->startOfDay()->gt(Carbon::now('Asia/Dhaka')->startOfDay());
+        $employeeIds = $employees->pluck('id');
+
+        $recordsByEmployee = Attendance::whereIn('employee_id', $employeeIds)
+            ->whereDate('date', $dateKey)
+            ->orderBy('in_time')
+            ->get()
+            ->groupBy('employee_id');
+
+        $leavesByEmployee = $this->leaveTableExists()
+            ? EmployeeLeaveDay::whereIn('employee_id', $employeeIds)->whereDate('date', $dateKey)->get()->keyBy('employee_id')
+            : collect();
+
+        $dayName = self::WEEK_DAYS[$date->dayOfWeek];
+        $totals = ['employees' => 0, 'present' => 0, 'open' => 0, 'leave' => 0, 'off_day' => 0, 'absence' => 0, 'upcoming' => 0, 'hours' => 0.0];
+        $rows = [];
+
+        foreach ($employees as $employee) {
+            $sessions = $recordsByEmployee->get($employee->id, collect())->values();
+            $leave = $leavesByEmployee->get($employee->id);
+            $isWeeklyOff = in_array($dayName, $this->normalizeWeeklyOffDays($employee->weekly_off_days ?? []), true);
+            $expectedHours = (float) ($employee->working_hours_per_day ?? 8);
+
+            $workedMinutes = 0;
+            $openSessions = 0;
+            foreach ($sessions as $session) {
+                if ($session->in_time && $session->out_time) {
+                    $workedMinutes += max(0, Carbon::parse($session->in_time)->diffInMinutes(Carbon::parse($session->out_time), false));
+                } elseif ($session->in_time) {
+                    $openSessions++;
+                }
+            }
+
+            if ($sessions->isNotEmpty()) {
+                $status = 'present';
+            } elseif ($leave) {
+                $status = 'leave';
+            } elseif ($isWeeklyOff) {
+                $status = 'off_day';
+            } elseif ($isFutureDay) {
+                $status = 'upcoming';
+            } else {
+                $status = 'absence';
+            }
+
+            $firstIn = $sessions->pluck('in_time')->filter()->first();
+            $lastOut = $sessions->pluck('out_time')->filter()->sort()->last();
+
+            $rows[] = [
+                'employee' => $employee,
+                'status' => $status,
+                'leave_label' => $leave?->type_label,
+                'is_paid_leave' => $leave ? (bool) $leave->is_paid : null,
+                'sessions' => $sessions,
+                'first_in' => $firstIn ? Carbon::parse($firstIn) : null,
+                'last_out' => $lastOut ? Carbon::parse($lastOut) : null,
+                'open_sessions' => $openSessions,
+                'worked_minutes' => $workedMinutes,
+                'expected_hours' => $expectedHours,
+                'short_minutes' => $status === 'present' && $openSessions === 0
+                    ? max(0, (int) round($expectedHours * 60) - $workedMinutes)
+                    : 0,
+                'notes' => $sessions->pluck('note')->filter()->implode('; '),
+            ];
+
+            $totals['employees']++;
+            $totals[$status]++;
+            if ($openSessions > 0) {
+                $totals['open']++;
+            }
+            $totals['hours'] += $workedMinutes / 60;
+        }
+
+        $totals['hours'] = round($totals['hours'], 2);
+
+        return [
+            'date' => $date,
+            'day_name' => $dayName,
+            'rows' => $rows,
+            'totals' => $totals,
+        ];
+    }
+
+    public static function formatMinutes(int $minutes): string
+    {
+        return sprintf('%d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
     public function summarizeMany(Collection $employees, string $month, string $year): array

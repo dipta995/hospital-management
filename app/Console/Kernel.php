@@ -16,6 +16,10 @@ class Kernel extends ConsoleKernel
             ->dailyAt('22:00')
             ->timezone('Asia/Dhaka')
             ->withoutOverlapping();
+
+        $schedule->command('subscription:paystation-reconcile')
+            ->everyFiveMinutes()
+            ->withoutOverlapping();
     }
 
     /**

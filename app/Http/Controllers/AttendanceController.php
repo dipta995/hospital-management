@@ -30,7 +30,7 @@ class AttendanceController extends Controller
             'fingerprint_data' => 'nullable|string',
         ]);
 
-        $employee = Employee::where('rfid', $data['rfid'])->first();
+        $employee = Employee::employedSince(Carbon::now('Asia/Dhaka'))->where('rfid', $data['rfid'])->first();
         if (!$employee) {
             return response()->json([
                 'status' => false,
@@ -101,7 +101,10 @@ class AttendanceController extends Controller
         $attendances = $query->orderBy('date', 'desc')->get();
         $groupedAttendances = $attendances->groupBy('date');
 
-        $employees = Employee::where('branch_id', auth()->user()->branch_id)->orderBy('name')->get();
+        $employees = Employee::where('branch_id', auth()->user()->branch_id)
+            ->employedSince($start)
+            ->orderBy('name')
+            ->get();
         $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
         $canSummarizeAttendance = $this->hrSchemaService->canSummarizeAttendance();
         $employeeSummaries = [];
@@ -142,6 +145,41 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Daily attendance sheet: every employee with status, in/out and worked time for one date
+     * Route: GET /admin/attendance/daily
+     */
+    public function daily(Request $request)
+    {
+        abort_unless(auth('admin')->user()?->can('employees.index'), 403, 'Unauthorized Access');
+
+        $request->validate(['date' => 'nullable|date']);
+        $date = $request->filled('date')
+            ? Carbon::parse($request->get('date'), 'Asia/Dhaka')->startOfDay()
+            : Carbon::now('Asia/Dhaka')->startOfDay();
+        $status = $request->get('status');
+
+        $employees = Employee::where('branch_id', auth()->user()->branch_id)
+            ->where(fn ($q) => $q->whereNull('status')->orWhereNotIn('status', ['Inactive', 'inactive', '0']))
+            ->employedSince($date)
+            ->orderBy('name')
+            ->get();
+
+        $sheet = $this->summaryService->dailySheet($employees, $date);
+        if ($status) {
+            $sheet['rows'] = array_values(array_filter($sheet['rows'], fn ($row) => $row['status'] === $status));
+        }
+
+        $data = compact('sheet', 'date', 'status', 'employees');
+
+        if ($request->get('export') === 'pdf') {
+            return Pdf::loadView('backend.pages.attendance.daily-sheet', $data)
+                ->stream('daily-attendance-' . $date->toDateString() . '.pdf');
+        }
+
+        return view('backend.pages.attendance.daily', $data);
+    }
+
+    /**
      * Manually create an attendance record
      * Route: POST /admin/attendance
      */
@@ -159,6 +197,11 @@ class AttendanceController extends Controller
 
         if ((int) $employee->branch_id !== (int) auth()->user()->branch_id) {
             abort(403, 'You are not allowed to add attendance for this employee.');
+        }
+
+        if (!$employee->wasEmployedOn($data['date'])) {
+            return back()->withInput()->with('error', $employee->name . ' resigned on '
+                . optional($employee->resigned_at)->format('d M Y') . '. Attendance cannot be added after that date.');
         }
 
         $date       = Carbon::parse($data['date'])->toDateString();

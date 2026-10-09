@@ -15,6 +15,15 @@
                     <div class="card">
                         <div class="card-body">
                             <h4 class="card-title">Payment — {{ $singleData->name }}</h4>
+                            @if($singleData->isResigned())
+                                <div class="alert alert-secondary py-2 small">
+                                    <strong>Resigned</strong>{{ $singleData->resigned_at ? ' — last working day ' . $singleData->resigned_at->format('d M Y') : '' }}
+                                    @if($singleData->resign_reason)
+                                        <br>Reason: {{ $singleData->resign_reason }}
+                                    @endif
+                                    <br><span class="text-muted">Final salary can still be paid from here.</span>
+                                </div>
+                            @endif
                             <div class="row mb-2">
                                 <div class="col-md-2">
                                     <a class="btn btn-info" data-bs-toggle="modal"

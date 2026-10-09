@@ -53,6 +53,23 @@
                                     <button type="submit" class="btn btn-info">Export Sheet</button>
                                 </div>
                             </form>
+
+                            <ul class="nav nav-pills emp-tabs mt-3 mb-2">
+                                @foreach(['current' => 'Current Staff', 'resigned' => 'Resigned', 'all' => 'All'] as $tabKey => $tabLabel)
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ $tab === $tabKey ? 'active' : '' }}"
+                                           href="{{ route($pageHeader['index_route'], ['tab' => $tabKey]) }}">
+                                            {{ $tabLabel }} <span class="badge {{ $tab === $tabKey ? 'bg-light text-dark' : 'bg-secondary' }}">{{ $tabCounts[$tabKey] }}</span>
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            @if(!$resignInstalled)
+                                <div class="alert alert-warning py-2 small mb-2">
+                                    Resign option is not active yet. Install <strong>Employee Resignation</strong> from Dashboard → System Updates.
+                                </div>
+                            @endif
+
                             <div class="table-responsive">
                                 <table class="table table-striped">
                                     <thead>
@@ -69,9 +86,19 @@
                                     </thead>
                                     <tbody>
                                     @forelse($datas as $item)
-                                        <tr id="table-data{{ $item->id }}">
-                                            <td>{{ $loop->index + 1 }}</td>
-                                            <td>{{ $item->name }}</td>
+                                        <tr id="table-data{{ $item->id }}" class="{{ $item->isResigned() ? 'emp-resigned' : '' }}">
+                                            <td>{{ $datas->firstItem() + $loop->index }}</td>
+                                            <td>
+                                                {{ $item->name }}
+                                                @if($item->isResigned())
+                                                    @php $leavingLater = $item->resigned_at && $item->resigned_at->isAfter(now('Asia/Dhaka')->startOfDay()); @endphp
+                                                    <br>
+                                                    <span class="badge {{ $leavingLater ? 'bg-warning text-dark' : 'bg-secondary' }}"
+                                                          @if($item->resign_reason) title="{{ $item->resign_reason }}" data-bs-toggle="tooltip" @endif>
+                                                        {{ $leavingLater ? 'Leaving' : 'Resigned' }}{{ $item->resigned_at ? ' · ' . $item->resigned_at->format('d M Y') : '' }}
+                                                    </span>
+                                                @endif
+                                            </td>
                                             <td>{{ $item->phone }}</td>
                                             <td>{{ $item->designation }}</td>
                                             {{-- <td>{{ $item->salary }}
@@ -146,7 +173,21 @@
                                                                 @if(!empty($hrSchemaInstalled))
                                                                     <a href="{{ route('admin.employees.leave-days.index', $item->id) }}" class="badge bg-secondary" title="Leave & Off Days"><i class="fas fa-calendar-alt"></i></a>
                                                                 @endif
-                                                                <a class="badge bg-danger" href="javascript:void(0)"
+                                                                @if($item->isResigned())
+                                                                    <form action="{{ route('admin.employees.rejoin', $item->id) }}" method="POST" class="d-inline"
+                                                                          onsubmit="return confirm('Make {{ e(addslashes($item->name)) }} active again?')">
+                                                                        @csrf
+                                                                        <button type="submit" class="badge bg-primary border-0" title="Rejoin"><i class="fas fa-user-check"></i></button>
+                                                                    </form>
+                                                                @elseif($resignInstalled)
+                                                                    <a href="javascript:void(0)" class="badge bg-dark" title="Resign"
+                                                                       data-bs-toggle="modal" data-bs-target="#resignModal"
+                                                                       data-id="{{ $item->id }}" data-name="{{ $item->name }}"
+                                                                       data-url="{{ route('admin.employees.resign', $item->id) }}">
+                                                                        <i class="fas fa-user-slash"></i>
+                                                                    </a>
+                                                                @endif
+                                                                <a class="badge bg-danger" href="javascript:void(0)" title="Delete"
                                                                     onclick="dataDelete({{ $item->id }},'{{ $pageHeader['base_url'] }}')"><i class="fas fa-trash"></i></a>
                                                           </td>
                                         </tr>
@@ -174,8 +215,63 @@
 
     </div>
     <!-- main-panel ends -->
+
+    @if($resignInstalled)
+        <div class="modal fade" id="resignModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" action="" class="modal-content" id="resignForm">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">Resign: <span id="resignName"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="resigned_at">Last working day <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="resigned_at" id="resigned_at"
+                                   value="{{ now('Asia/Dhaka')->toDateString() }}" required>
+                            <small class="text-muted">Attendance and salary sheets stop counting this employee after this date. A future date works as a notice period.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="resign_reason">Reason</label>
+                            <textarea class="form-control" name="resign_reason" id="resign_reason" rows="2" maxlength="500"
+                                      placeholder="e.g. Personal reason, better job, terminated"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="release_rfid" value="1" id="release_rfid">
+                            <label class="form-check-label" for="release_rfid">
+                                Release RFID card (so it can be given to a new employee)
+                            </label>
+                        </div>
+                        <div class="alert alert-info small mt-3 mb-0">
+                            Old salary, attendance and leave records are kept. You can Rejoin the employee later.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-dark"><i class="fas fa-user-slash"></i> Mark as Resigned</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 @endsection
 
-@push('scripts')
+@push('styles')
+    <style>
+        .emp-tabs .nav-link { padding: .35rem .9rem; font-size: .875rem; }
+        tr.emp-resigned td { color: #64748b; }
+    </style>
+@endpush
 
+@push('scripts')
+    <script>
+        document.getElementById('resignModal')?.addEventListener('show.bs.modal', function (event) {
+            var trigger = event.relatedTarget;
+            document.getElementById('resignForm').action = trigger.getAttribute('data-url');
+            document.getElementById('resignName').textContent = trigger.getAttribute('data-name');
+            document.getElementById('resign_reason').value = '';
+            document.getElementById('release_rfid').checked = false;
+        });
+    </script>
 @endpush

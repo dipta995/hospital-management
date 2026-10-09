@@ -233,6 +233,7 @@ return [
         'salary_sheet' => 'Salary Sheet',
         'attendance' => 'Attendance',
         'summary' => 'Summary',
+        'daily_attendance_sheet' => 'Daily Sheet',
         'general_inventory' => 'General Inventory',
         'inventory_module' => 'Inventory Module',
         'suppliers' => 'Suppliers',

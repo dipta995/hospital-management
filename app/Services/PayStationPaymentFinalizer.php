@@ -108,7 +108,7 @@ class PayStationPaymentFinalizer
 
         $paymentRequest->update(['gateway_response' => $status['response']]);
 
-        return ['ok' => false, 'retry' => false, 'message' => 'PayStation এখনও পেমেন্টটি সম্পন্ন হিসেবে দেখাচ্ছে না (processing)। bKash/Nagad-এ টাকা কেটে থাকলে কিছুক্ষণ পর সাবস্ক্রিপশন পেজে "যাচাই করুন" চাপুন।'];
+        return ['ok' => false, 'retry' => false, 'message' => 'PayStation এখনও পেমেন্টটি সম্পন্ন হিসেবে দেখাচ্ছে না (processing)। bKash/Nagad-এ টাকা কেটে থাকলে কয়েক মিনিটের মধ্যে স্বয়ংক্রিয়ভাবে যাচাই হয়ে সাবস্ক্রিপশন নবায়ন হবে; চাইলে সাবস্ক্রিপশন পেজে "যাচাই করুন" চাপুন।'];
     }
 
     /**
@@ -120,7 +120,8 @@ class PayStationPaymentFinalizer
             return;
         }
 
-        if ($throttle && !Cache::add('paystation_reconcile_' . $subscriptionId, 1, now()->addMinute())) {
+        $cacheKey = 'paystation_reconcile:' . config('database.connections.mysql.database') . ':' . $subscriptionId;
+        if ($throttle && !Cache::add($cacheKey, 1, now()->addMinute())) {
             return;
         }
 

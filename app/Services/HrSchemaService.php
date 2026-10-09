@@ -12,6 +12,10 @@ class HrSchemaService
         'database/migrations/2026_06_08_000002_create_employee_leave_days_table.php',
     ];
 
+    public const RESIGN_MIGRATION_PATH = 'database/migrations/2026_10_09_000001_add_resign_columns_to_employees_table.php';
+
+    private static array $resignColumnsCache = [];
+
     public function getStatus(): array
     {
         return [
@@ -27,6 +31,55 @@ class HrSchemaService
         $status = $this->getStatus();
 
         return !in_array(false, $status, true);
+    }
+
+    public function getResignStatus(): array
+    {
+        return [
+            'resigned_at' => Schema::hasColumn('employees', 'resigned_at'),
+            'resign_reason' => Schema::hasColumn('employees', 'resign_reason'),
+        ];
+    }
+
+    public function isResignInstalled(): bool
+    {
+        return !in_array(false, $this->getResignStatus(), true);
+    }
+
+    /**
+     * Cached per tenant database because it is checked inside Employee query scopes.
+     */
+    public static function hasResignColumns(): bool
+    {
+        $key = (string) config('database.connections.' . config('database.default') . '.database');
+
+        return self::$resignColumnsCache[$key] ??= Schema::hasColumn('employees', 'resigned_at');
+    }
+
+    public function installResign(): array
+    {
+        if ($this->isResignInstalled()) {
+            return [
+                'success' => true,
+                'message' => 'Employee resign columns are already installed.',
+                'status' => $this->getResignStatus(),
+            ];
+        }
+
+        Artisan::call('migrate', [
+            '--path' => self::RESIGN_MIGRATION_PATH,
+            '--force' => true,
+        ]);
+        self::$resignColumnsCache = [];
+
+        return [
+            'success' => $this->isResignInstalled(),
+            'message' => $this->isResignInstalled()
+                ? 'Employee resign columns installed successfully.'
+                : 'Migration ran but some columns are still missing. Check logs.',
+            'status' => $this->getResignStatus(),
+            'output' => Artisan::output(),
+        ];
     }
 
     public function canSummarizeAttendance(): bool

@@ -35,6 +35,11 @@ class PaymentGatewayMigrationService
         ];
     }
 
+    public static function flushCache(): void
+    {
+        static::$installed = null;
+    }
+
     public function isInstalled(): bool
     {
         if (static::$installed === null) {

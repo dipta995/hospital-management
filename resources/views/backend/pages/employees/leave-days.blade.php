@@ -148,6 +148,13 @@
             color: #64748b;
         }
 
+        .calendar-day.status-resigned {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #94a3b8;
+            opacity: .6;
+        }
+
         .legend-present { background: #dcfce7; border-color: #86efac; color: #14532d; }
         .legend-present .legend-dot { background: #16a34a; }
         .legend-absence { background: #fee2e2; border-color: #fca5a5; color: #7f1d1d; }
@@ -311,6 +318,7 @@
                                     'leave' => 'Leave',
                                     'off_day' => 'Off',
                                     'upcoming' => 'Soon',
+                                    'resigned' => 'Left',
                                 ];
                             @endphp
 

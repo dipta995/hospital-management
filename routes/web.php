@@ -243,6 +243,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::put('employees/{employee}/schedule', [EmployeeLeaveDayController::class, 'updateSchedule'])->name('employees.schedule.update');
     Route::post('employees/salary/{id}', [EmployeeController::class, 'salary'])->name('employees.salary');
     Route::get('employees/salary/delete/{id}', [EmployeeController::class, 'salaryDelete'])->name('employees.salary.delete');
+    Route::post('employees/{id}/resign', [EmployeeController::class, 'resign'])->name('employees.resign');
+    Route::post('employees/{id}/rejoin', [EmployeeController::class, 'rejoin'])->name('employees.rejoin');
     Route::resource('employees', EmployeeController::class, ['names' => 'employees']);
     Route::resource('cost-categories', CostCategoryController::class, ['names' => 'cost_categories']);
     Route::resource('costs', CostController::class, ['names' => 'costs']);
@@ -321,6 +323,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::post('/create-user-api', [ApiController::class, 'storeUser'])->name('users.store.api');
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('/attendance/daily', [AttendanceController::class, 'daily'])->name('attendance.daily');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::put('/attendance/{attendance}/time', [AttendanceController::class, 'updateTime'])->name('attendance.update-time');
 

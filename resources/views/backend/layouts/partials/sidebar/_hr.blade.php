@@ -44,6 +44,11 @@
                         <li class="sub-nav-item">
                             <a class="sub-nav-link" href="{{ route('admin.attendance.index') }}">{{ t('menu.summary') }}</a>
                         </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('admin.attendance.daily') }}">
+                                <i class="fas fa-clipboard-list fa-fw me-1"></i> {{ t('menu.daily_attendance_sheet') }}
+                            </a>
+                        </li>
                     @endif
                     @if ($userGuard->can('settings.edit'))
                         <li class="sub-nav-item">

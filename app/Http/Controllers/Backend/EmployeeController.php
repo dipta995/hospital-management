@@ -59,8 +59,40 @@ class EmployeeController extends Controller
         $currentMonth = Carbon::now()->format('F');
         $previousMonth = Carbon::now()->subMonth()->format('F');
         $currentYear = Carbon::now()->format('Y');
-        $employees = Employee::with('employeeSalaries')->where('branch_id', auth()->user()->branch_id)
-            ->orderBy('id', 'DESC')->paginate(20);
+        $resignInstalled = HrSchemaService::hasResignColumns();
+        $today = Carbon::now('Asia/Dhaka')->toDateString();
+        $tab = in_array($request->get('tab'), ['current', 'resigned', 'all'], true) ? $request->get('tab') : 'current';
+
+        $branchEmployees = fn () => Employee::where('branch_id', auth()->user()->branch_id);
+        $formerEmployees = function ($query) use ($resignInstalled, $today) {
+            $query->resigned();
+            if ($resignInstalled) {
+                $query->where(fn ($q) => $q->whereNull('resigned_at')->orWhere('resigned_at', '<', $today));
+            }
+            return $query;
+        };
+
+        $data['tab'] = $tab;
+        $data['tabCounts'] = [
+            'current' => $branchEmployees()->employedSince($today)->count(),
+            'resigned' => $formerEmployees($branchEmployees())->count(),
+            'all' => $branchEmployees()->count(),
+        ];
+        $data['resignInstalled'] = $resignInstalled;
+
+        $employeesQuery = $branchEmployees()->with('employeeSalaries');
+        if ($tab === 'current') {
+            $employeesQuery->employedSince($today)->orderBy('id', 'DESC');
+        } elseif ($tab === 'resigned') {
+            $formerEmployees($employeesQuery);
+            if ($resignInstalled) {
+                $employeesQuery->orderByDesc('resigned_at');
+            }
+            $employeesQuery->orderBy('id', 'DESC');
+        } else {
+            $employeesQuery->orderBy('id', 'DESC');
+        }
+        $employees = $employeesQuery->paginate(20)->withQueryString();
 
         $employees->getCollection()->transform(function ($employee) use ($previousMonth, $currentYear) {
             // Check if any salary record matches the current month and year
@@ -247,12 +279,79 @@ class EmployeeController extends Controller
             ->find($id);
 
         if (!is_null($deleteData)) {
+            if (HrSchemaService::hasResignColumns() && $this->hasHistory($deleteData)) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => $deleteData->name . ' has salary/attendance history. Use "Resign" instead of delete so the old records stay intact.',
+                ]);
+            }
+
             if ($deleteData->delete()) {
                 return response()->json(['status' => 200]);
             } else {
                 return response()->json(['status' => 422]);
             }
         }
+    }
+
+    /**
+     * Mark an employee as resigned instead of deleting, so salary and attendance history stays.
+     * The resign date is the last working day.
+     */
+    public function resign(Request $request, $id)
+    {
+        $this->checkOwnPermission('employees.edit');
+
+        if (!HrSchemaService::hasResignColumns()) {
+            return back()->with('error', 'Install "Employee Resignation" from Dashboard → System Updates first.');
+        }
+
+        $data = $request->validate([
+            'resigned_at' => 'required|date',
+            'resign_reason' => 'nullable|string|max:500',
+            'release_rfid' => 'nullable|boolean',
+        ]);
+
+        $employee = Employee::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+
+        $employee->status = Employee::STATUS_RESIGNED;
+        $employee->resigned_at = Carbon::parse($data['resigned_at'])->toDateString();
+        $employee->resign_reason = $data['resign_reason'] ?? null;
+        if (!empty($data['release_rfid'])) {
+            $employee->rfid = null;
+        }
+        $employee->save();
+
+        return back()->with('success', $employee->name . ' marked as resigned (last working day: '
+            . $employee->resigned_at->format('d M Y') . ').');
+    }
+
+    public function rejoin($id)
+    {
+        $this->checkOwnPermission('employees.edit');
+
+        $employee = Employee::where('branch_id', auth()->user()->branch_id)->findOrFail($id);
+        $employee->status = Employee::STATUS_ACTIVE;
+        if (HrSchemaService::hasResignColumns()) {
+            $employee->resigned_at = null;
+            $employee->resign_reason = null;
+        }
+        $employee->save();
+
+        if (!$employee->rfid) {
+            return redirect()->route($this->edit_route, $employee->id)
+                ->with('success', $employee->name . ' is active again. Assign an RFID card to resume attendance.');
+        }
+
+        return back()->with('success', $employee->name . ' is active again.');
+    }
+
+    private function hasHistory(Employee $employee): bool
+    {
+        return $employee->employeeSalaries()->exists()
+            || $employee->attendances()->exists()
+            || $employee->costs()->exists()
+            || ($this->hrSchemaService->isInstalled() && $employee->leaveDays()->exists());
     }
 
     public function salary(Request $request, $id)
@@ -398,6 +497,7 @@ class EmployeeController extends Controller
 
         // Get all employees for the branch with their salaries and attendance
         $employees = Employee::where('branch_id', auth()->user()->branch_id)
+            ->employedSince($monthDate->copy()->startOfMonth())
             ->with([
                 'employeeSalaries' => function ($query) use ($currentMonth, $currentYear, $previousMonth, $previousYear) {
                     $query->where(function ($q) use ($currentMonth, $currentYear, $previousMonth, $previousYear) {

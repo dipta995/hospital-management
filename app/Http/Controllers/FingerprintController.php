@@ -99,7 +99,7 @@ class FingerprintController extends Controller
         ]);
 
         $fingerID = trim((string) $request->finger_id);
-        $employee = Employee::where('rfid', $fingerID)->first();
+        $employee = Employee::employedSince(now('Asia/Dhaka'))->where('rfid', $fingerID)->first();
 
         if ($employee) {
             $dhakaNow = now()->setTimezone('Asia/Dhaka');

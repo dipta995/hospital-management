@@ -19,6 +19,7 @@ class SchemaMigrationRegistryService
         return [
             $this->auditLogsModule(),
             $this->hrScheduleModule(),
+            $this->employeeResignModule(),
             $this->pharmacyStatusModule(),
             $this->aiFeaturesModule(),
             $this->labFollowupModule(),
@@ -188,6 +189,23 @@ class SchemaMigrationRegistryService
                 'working_hours_per_day' => 'Working hours column',
                 'annual_leave_quota' => 'Annual leave quota column',
                 'employee_leave_days_table' => 'Employee leave days table',
+            ],
+        ];
+    }
+
+    private function employeeResignModule(): array
+    {
+        return [
+            'key' => 'employee_resign',
+            'label' => 'Employee Resignation',
+            'description' => 'Resign date and reason on employees, so ex-employees keep their salary/attendance history instead of being deleted. Adds columns only.',
+            'destructive' => false,
+            'status' => fn () => $this->hrSchemaService->getResignStatus(),
+            'installed' => fn () => $this->hrSchemaService->isResignInstalled(),
+            'install' => fn () => $this->hrSchemaService->installResign(),
+            'status_labels' => [
+                'resigned_at' => 'Resign date column',
+                'resign_reason' => 'Resign reason column',
             ],
         ];
     }
