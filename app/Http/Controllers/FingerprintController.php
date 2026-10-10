@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\Setting;
+use App\Services\AttendancePunchService;
 use Illuminate\Http\Request;
 
 class FingerprintController extends Controller
@@ -102,40 +102,13 @@ class FingerprintController extends Controller
         $employee = Employee::employedSince(now('Asia/Dhaka'))->where('rfid', $fingerID)->first();
 
         if ($employee) {
-            $dhakaNow = now()->setTimezone('Asia/Dhaka');
-            $today    = $dhakaNow->toDateString();
-            $mode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
-            $isHourly = $mode === 'hourly';
-
-            $openAttendance = \App\Models\Attendance::where('employee_id', $employee->id)
-                ->where('date', $today)
-                ->where('mode', $isHourly ? 'hourly' : 'standard')
-                ->whereNull('out_time')
-                ->orderByDesc('id')
-                ->first();
-
-            if ($openAttendance) {
-                $openAttendance->out_time = $dhakaNow->toDateTimeString();
-                $openAttendance->save();
-                $attendance = $openAttendance;
-                $message = 'Attendance OUT marked.';
-            } else {
-                $attendance = \App\Models\Attendance::create([
-                    'employee_id' => $employee->id,
-                    'fingerprint_data' => $fingerID,
-                    'mode' => $isHourly ? 'hourly' : 'standard',
-                    'hour_slot' => (int) $dhakaNow->format('G'),
-                    'date' => $today,
-                    'in_time' => $dhakaNow->toDateTimeString(),
-                    'out_time' => null,
-                ]);
-                $message = 'Attendance IN marked.';
-            }
+            $punch = app(AttendancePunchService::class)->punch($employee, 'fingerprint', $fingerID);
 
             return response()->json([
                 'status'  => true,
-                'message' => 'Fingerprint found. ' . $message,
-                'attendance' => $attendance
+                'result'  => $punch['result'],
+                'message' => 'Fingerprint found. ' . $punch['message'],
+                'attendance' => $punch['attendance']
             ], 200);
         }
 

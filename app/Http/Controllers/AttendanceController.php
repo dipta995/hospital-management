@@ -6,6 +6,9 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Services\EmployeeAttendanceSummaryService;
+use App\Services\AttendancePunchService;
+use App\Services\AttendanceRepairService;
+use App\Services\AttendanceSchemaService;
 use App\Services\HrSchemaService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -15,8 +18,27 @@ class AttendanceController extends Controller
 {
     public function __construct(
         private EmployeeAttendanceSummaryService $summaryService,
-        private HrSchemaService $hrSchemaService
+        private HrSchemaService $hrSchemaService,
+        private AttendancePunchService $punchService
     ) {
+    }
+
+    /**
+     * IN/OUT datetimes for a manual entry. An OUT earlier than IN means the duty ended the next day.
+     */
+    private function manualTimes(string $date, string $inTime, ?string $outTime): array
+    {
+        $in = Carbon::parse($date . ' ' . $inTime, 'Asia/Dhaka');
+        if (!$outTime) {
+            return [$in, null];
+        }
+
+        $out = Carbon::parse($date . ' ' . $outTime, 'Asia/Dhaka');
+        if ($out->lte($in)) {
+            $out->addDay();
+        }
+
+        return [$in, $out];
     }
 
     /**
@@ -38,41 +60,13 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        $now = Carbon::now('Asia/Dhaka');
-        $today = $now->toDateString();
-        $mode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
-        $isHourly = $mode === 'hourly';
-
-        $openAttendance = Attendance::where('employee_id', $employee->id)
-            ->where('date', $today)
-            ->where('mode', $isHourly ? 'hourly' : 'standard')
-            ->whereNull('out_time')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($openAttendance) {
-            $openAttendance->out_time = $now;
-            $openAttendance->save();
-
-            $attendance = $openAttendance;
-            $message = 'Attendance OUT marked.';
-        } else {
-            $attendance = Attendance::create([
-                'employee_id' => $employee->id,
-                'fingerprint_data' => $data['fingerprint_data'] ?? null,
-                'mode' => $isHourly ? 'hourly' : 'standard',
-                'hour_slot' => (int) $now->format('G'),
-                'date' => $today,
-                'in_time' => $now,
-                'out_time' => null,
-            ]);
-            $message = 'Attendance IN marked.';
-        }
+        $punch = $this->punchService->punch($employee, 'rfid', $data['fingerprint_data'] ?? null);
 
         return response()->json([
             'status' => true,
-            'message' => $message,
-            'attendance' => $attendance
+            'result' => $punch['result'],
+            'message' => $punch['message'],
+            'attendance' => $punch['attendance'],
         ]);
     }
 
@@ -180,6 +174,63 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Preview of old device punches re-paired with the night-duty rules.
+     * Route: GET /admin/attendance/repair
+     */
+    public function repair(Request $request, AttendanceRepairService $repairService)
+    {
+        abort_unless(auth('admin')->user()?->can('employees.edit'), 403, 'Unauthorized Access');
+
+        [$month, $year, $start, $end] = $this->repairRange($request);
+        $employees = $this->repairEmployees($start);
+        $plans = $repairService->plan($employees, $start, $end);
+
+        return view('backend.pages.attendance.repair', compact('month', 'year', 'plans', 'employees'));
+    }
+
+    /**
+     * Route: POST /admin/attendance/repair
+     */
+    public function applyRepair(Request $request, AttendanceRepairService $repairService)
+    {
+        abort_unless(auth('admin')->user()?->can('employees.edit'), 403, 'Unauthorized Access');
+
+        $request->validate(['employee_ids' => 'required|array|min:1', 'employee_ids.*' => 'integer']);
+        [$month, $year, $start, $end] = $this->repairRange($request);
+
+        $employees = $this->repairEmployees($start)->whereIn('id', array_map('intval', $request->input('employee_ids')));
+        $fixedEmployees = 0;
+        $sessions = 0;
+        foreach ($employees as $employee) {
+            $plan = $repairService->planFor($employee, $start, $end);
+            if ($plan) {
+                $sessions += $repairService->apply($plan);
+                $fixedEmployees++;
+            }
+        }
+
+        return redirect()->route('admin.attendance.repair', ['month' => $month, 'year' => $year])
+            ->with('success', "Fixed punches of {$fixedEmployees} employee(s); {$sessions} duty record(s) rebuilt for {$month} {$year}.");
+    }
+
+    private function repairRange(Request $request): array
+    {
+        $month = $request->get('month', now('Asia/Dhaka')->format('F'));
+        $year = (int) $request->get('year', now('Asia/Dhaka')->year);
+        $start = Carbon::parse("1 $month $year", 'Asia/Dhaka')->startOfMonth();
+
+        return [$start->format('F'), $year, $start, $start->copy()->endOfMonth()];
+    }
+
+    private function repairEmployees(Carbon $start)
+    {
+        return Employee::where('branch_id', auth()->user()->branch_id)
+            ->employedSince($start)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
      * Manually create an attendance record
      * Route: POST /admin/attendance
      */
@@ -189,7 +240,7 @@ class AttendanceController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'date'        => 'required|date',
             'in_time'     => 'required|date_format:H:i',
-            'out_time'    => 'nullable|date_format:H:i|after_or_equal:in_time',
+            'out_time'    => 'nullable|date_format:H:i|different:in_time',
             'note'        => 'nullable|string|max:500',
         ]);
 
@@ -204,23 +255,26 @@ class AttendanceController extends Controller
                 . optional($employee->resigned_at)->format('d M Y') . '. Attendance cannot be added after that date.');
         }
 
-        $date       = Carbon::parse($data['date'])->toDateString();
-        $inDateTime = Carbon::parse($date . ' ' . $data['in_time'])->toDateTimeString();
-        $outDateTime = !empty($data['out_time'])
-            ? Carbon::parse($date . ' ' . $data['out_time'])->toDateTimeString()
-            : null;
+        $date = Carbon::parse($data['date'])->toDateString();
+        [$in, $out] = $this->manualTimes($date, $data['in_time'], $data['out_time'] ?? null);
 
-        Attendance::create([
+        $attributes = [
             'employee_id' => $employee->id,
             'mode'        => 'standard',
             'hour_slot'   => 0,
             'date'        => $date,
-            'in_time'     => $inDateTime,
-            'out_time'    => $outDateTime,
+            'in_time'     => $in->toDateTimeString(),
+            'out_time'    => $out?->toDateTimeString(),
             'note'        => $data['note'] ?? null,
-        ]);
+        ];
+        if (AttendanceSchemaService::hasShifts()) {
+            $attributes['shift_id'] = $employee->shift_id;
+            $attributes['source'] = 'manual';
+        }
+        Attendance::create($attributes);
 
-        return back()->with('success', 'Attendance record added successfully.');
+        return back()->with('success', 'Attendance record added successfully.'
+            . ($out && $out->toDateString() !== $date ? ' (OUT on next day: ' . $out->format('d M h:i A') . ')' : ''));
     }
 
     public function updateTime(Request $request, Attendance $attendance)
@@ -232,26 +286,22 @@ class AttendanceController extends Controller
         $data = $request->validate([
             'date' => 'required|date',
             'in_time' => 'required|date_format:H:i',
-            'out_time' => 'nullable|date_format:H:i|after_or_equal:in_time',
+            'out_time' => 'nullable|date_format:H:i|different:in_time',
             'note' => 'nullable|string|max:500',
         ]);
 
         $attendanceDate = Carbon::parse($data['date'])->toDateString();
-        $inDateTime = Carbon::parse($attendanceDate . ' ' . $data['in_time'])->toDateTimeString();
-        $outDateTime = null;
-
-        if (!empty($data['out_time'])) {
-            $outDateTime = Carbon::parse($attendanceDate . ' ' . $data['out_time'])->toDateTimeString();
-        }
+        [$in, $out] = $this->manualTimes($attendanceDate, $data['in_time'], $data['out_time'] ?? null);
 
         $attendance->update([
             'date' => $attendanceDate,
-            'in_time' => $inDateTime,
-            'out_time' => $outDateTime,
-            'hour_slot' => $attendance->mode === 'hourly' ? (int) Carbon::parse($inDateTime)->format('G') : 0,
+            'in_time' => $in->toDateTimeString(),
+            'out_time' => $out?->toDateTimeString(),
+            'hour_slot' => $attendance->mode === 'hourly' ? (int) $in->format('G') : 0,
             'note' => $data['note'] ?? null,
         ]);
 
-        return back()->with('success', 'Attendance time updated successfully.');
+        return back()->with('success', 'Attendance time updated successfully.'
+            . ($out && $out->toDateString() !== $attendanceDate ? ' (OUT on next day: ' . $out->format('d M h:i A') . ')' : ''));
     }
 }

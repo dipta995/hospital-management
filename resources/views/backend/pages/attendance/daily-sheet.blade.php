@@ -66,7 +66,10 @@
             <td>Absent<strong>{{ $totals['absence'] }}</strong></td>
             <td>Leave<strong>{{ $totals['leave'] }}</strong></td>
             <td>Weekly Off<strong>{{ $totals['off_day'] }}</strong></td>
-            <td>Out Missing<strong>{{ $totals['open'] }}</strong></td>
+            <td>On Duty<strong>{{ $totals['open'] }}</strong></td>
+            <td>Missing OUT<strong>{{ $totals['missing_out'] }}</strong></td>
+            <td>Late<strong>{{ $totals['late'] }}</strong></td>
+            <td>Overtime<strong>{{ AttendanceSummary::formatMinutes($totals['overtime_minutes']) }}</strong></td>
             <td>Total Hours<strong>{{ number_format($totals['hours'], 2) }}</strong></td>
         </tr>
     </table>
@@ -81,7 +84,8 @@
             <th style="width: 9%;">Out</th>
             <th style="width: 8%;">Worked</th>
             <th style="width: 7%;">Short</th>
-            <th style="width: 17%;">Note</th>
+            <th style="width: 11%;">Late / Early / OT</th>
+            <th style="width: 12%;">Note</th>
             <th class="sign">Signature</th>
         </tr>
         </thead>
@@ -93,20 +97,36 @@
                 <td>
                     {{ $emp->name }}
                     @if($emp->designation)<br><span class="muted">{{ $emp->designation }}</span>@endif
+                    @if($row['shift'])<br><span class="muted">{{ $row['shift']->name }} ({{ $row['shift']->timeLabel() }})</span>@endif
                 </td>
                 <td class="{{ in_array($row['status'], ['absence', 'present'], true) ? $row['status'] : '' }}">
                     {{ $statusLabels[$row['status']] ?? $row['status'] }}
                     @if($row['leave_label'])<br><span class="muted">{{ $row['leave_label'] }}</span>@endif
                 </td>
                 <td>{{ $row['first_in']?->format('h:i A') ?? '' }}</td>
-                <td>{{ $row['open_sessions'] > 0 ? 'Not out' : ($row['last_out']?->format('h:i A') ?? '') }}</td>
+                <td>
+                    @if($row['missing_out'] > 0)
+                        <span class="absence">Missing OUT</span>
+                    @elseif($row['open_sessions'] > 0)
+                        On duty
+                    @else
+                        {{ $row['last_out']?->format('h:i A') ?? '' }}{{ $row['last_out'] && $row['last_out']->toDateString() !== $date->toDateString() ? ' (+1)' : '' }}
+                    @endif
+                </td>
                 <td>{{ $row['worked_minutes'] ? AttendanceSummary::formatMinutes($row['worked_minutes']) : '' }}</td>
                 <td>{{ $row['short_minutes'] > 0 ? AttendanceSummary::formatMinutes($row['short_minutes']) : '' }}</td>
+                <td>
+                    {{ collect([
+                        $row['late_minutes'] > 0 ? 'Late ' . AttendanceSummary::formatMinutes($row['late_minutes']) : null,
+                        $row['early_minutes'] > 0 ? 'Early ' . AttendanceSummary::formatMinutes($row['early_minutes']) : null,
+                        $row['overtime_minutes'] > 0 ? 'OT ' . AttendanceSummary::formatMinutes($row['overtime_minutes']) : null,
+                    ])->filter()->implode(', ') }}
+                </td>
                 <td>{{ $row['notes'] }}</td>
                 <td class="sign"></td>
             </tr>
         @empty
-            <tr><td colspan="9" style="text-align:center;">No employee found.</td></tr>
+            <tr><td colspan="10" style="text-align:center;">No employee found.</td></tr>
         @endforelse
         </tbody>
     </table>

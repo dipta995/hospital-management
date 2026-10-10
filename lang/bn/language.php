@@ -234,6 +234,7 @@ return [
         'attendance' => 'উপস্থিতি',
         'summary' => 'সারাংশ',
         'daily_attendance_sheet' => 'দৈনিক শিট',
+        'duty_shifts' => 'ডিউটি শিফট',
         'general_inventory' => 'সাধারণ ইনভেন্টরি',
         'inventory_module' => 'ইনভেন্টরি মডিউল',
         'suppliers' => 'সরবরাহকারী',

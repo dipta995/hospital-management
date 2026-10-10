@@ -1,3 +1,32 @@
+@if(isset($shifts))
+    <div class="card mt-3 border-primary">
+        <div class="card-body">
+            <h5 class="card-title text-primary">
+                <i class="fas fa-business-time"></i> Duty Shift
+            </h5>
+            <div class="row align-items-end">
+                <div class="col-md-6">
+                    <label for="shift_id" class="form-label">Shift</label>
+                    <select class="form-select" name="shift_id" id="shift_id">
+                        <option value="">No fixed shift (only working hours)</option>
+                        @foreach($shifts as $shiftOption)
+                            <option value="{{ $shiftOption->id }}" @selected((string) old('shift_id', ($edited ?? null)?->shift_id) === (string) $shiftOption->id)>
+                                {{ $shiftOption->name }} — {{ $shiftOption->timeLabel() }}{{ $shiftOption->is_active ? '' : ' (inactive)' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        Late, early leave and overtime are counted against this shift.
+                        <a href="{{ route('admin.attendance-shifts.index') }}" target="_blank">Manage shifts</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 @if(!empty($hrSchemaInstalled))
     <div class="card mt-3 border-info">
         <div class="card-body">

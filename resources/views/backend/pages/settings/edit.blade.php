@@ -522,17 +522,104 @@
                                                     Hourly (One row per hour)
                                                 </option>
                                             </select>
-                                            <small class="settings-help">Controls how RFID/fingerprint attendance is stored for this branch.</small>
+                                            <small class="settings-help">Standard: salary cut by absent days. Hourly: salary cut by missing hours.</small>
+                                        </div>
+                                    </div>
+                                    @php $att = fn ($key) => old($key, $edited[$key] ?? \App\Services\AttendanceSettings::DEFAULTS[$key]); @endphp
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_max_session_hours">Max Duty Length (hours)</label>
+                                            <input type="number" min="4" max="48" name="attendance_max_session_hours" id="attendance_max_session_hours"
+                                                   value="{{ $att('attendance_max_session_hours') }}" class="form-control">
+                                            <small class="settings-help">A punch within this time after IN is taken as OUT, even after midnight (night duty). Longer = "Missing OUT".</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="settings-field">
-                                            <label for="attendance_grace_minutes">Hourly Grace Minutes</label>
-                                            <input type="number" min="0" max="59" name="attendance_grace_minutes" id="attendance_grace_minutes"
-                                                   value="{{ old('attendance_grace_minutes', $edited['attendance_grace_minutes'] ?? 0) }}"
-                                                   placeholder="e.g. 5 or 10" class="form-control">
-                                            <small class="settings-help">Suggested: 5–10 minutes. Use 0 for strict hourly cutoff.</small>
+                                            <label for="attendance_duplicate_punch_minutes">Ignore Repeat Punch Within (minutes)</label>
+                                            <input type="number" min="0" max="30" name="attendance_duplicate_punch_minutes" id="attendance_duplicate_punch_minutes"
+                                                   value="{{ $att('attendance_duplicate_punch_minutes') }}" class="form-control">
+                                            <small class="settings-help">Stops accidental double card taps from creating IN + OUT. 0 = off.</small>
                                         </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_missing_out_policy">If OUT is Missing</label>
+                                            <select name="attendance_missing_out_policy" id="attendance_missing_out_policy" class="form-select">
+                                                <option value="review" @selected($att('attendance_missing_out_policy') == 'review')>Count 0 hours until admin fixes it</option>
+                                                <option value="shift" @selected($att('attendance_missing_out_policy') == 'shift')>Count full shift hours</option>
+                                                <option value="absent" @selected($att('attendance_missing_out_policy') == 'absent')>Count as absent</option>
+                                            </select>
+                                            <small class="settings-help">Missing OUT days are marked red on the Daily Sheet either way.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_grace_minutes">Late Grace (minutes)</label>
+                                            <input type="number" min="0" max="120" name="attendance_grace_minutes" id="attendance_grace_minutes"
+                                                   value="{{ $att('attendance_grace_minutes') }}" class="form-control">
+                                            <small class="settings-help">Arriving within this time after shift start is not late.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_early_leave_grace_minutes">Early Leave Grace (minutes)</label>
+                                            <input type="number" min="0" max="120" name="attendance_early_leave_grace_minutes" id="attendance_early_leave_grace_minutes"
+                                                   value="{{ $att('attendance_early_leave_grace_minutes') }}" class="form-control">
+                                            <small class="settings-help">Leaving within this time before shift end is not early leave.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_overtime_min_minutes">Minimum Overtime (minutes)</label>
+                                            <input type="number" min="0" max="240" name="attendance_overtime_min_minutes" id="attendance_overtime_min_minutes"
+                                                   value="{{ $att('attendance_overtime_min_minutes') }}" class="form-control">
+                                            <small class="settings-help">Extra work shorter than this is not counted as overtime.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_late_penalty_enabled">Late Penalty in Salary</label>
+                                            <select name="attendance_late_penalty_enabled" id="attendance_late_penalty_enabled" class="form-select">
+                                                <option value="0" @selected($att('attendance_late_penalty_enabled') == '0')>Off</option>
+                                                <option value="1" @selected($att('attendance_late_penalty_enabled') == '1')>On</option>
+                                            </select>
+                                            <div class="input-group input-group-sm mt-2">
+                                                <span class="input-group-text">Every</span>
+                                                <input type="number" min="1" max="31" name="attendance_late_penalty_count" class="form-control"
+                                                       value="{{ $att('attendance_late_penalty_count') }}" aria-label="Late days">
+                                                <span class="input-group-text">late days =</span>
+                                                <input type="number" min="0" max="5" step="0.5" name="attendance_late_penalty_days" class="form-control"
+                                                       value="{{ $att('attendance_late_penalty_days') }}" aria-label="Salary days">
+                                                <span class="input-group-text">day(s) salary cut</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="settings-field">
+                                            <label for="attendance_overtime_pay_enabled">Overtime Pay in Salary</label>
+                                            <select name="attendance_overtime_pay_enabled" id="attendance_overtime_pay_enabled" class="form-select">
+                                                <option value="0" @selected($att('attendance_overtime_pay_enabled') == '0')>Off</option>
+                                                <option value="1" @selected($att('attendance_overtime_pay_enabled') == '1')>On</option>
+                                            </select>
+                                            <div class="input-group input-group-sm mt-2">
+                                                <select name="attendance_overtime_rate_mode" class="form-select" aria-label="Overtime rate type">
+                                                    <option value="salary_based" @selected($att('attendance_overtime_rate_mode') == 'salary_based')>Hourly salary ×</option>
+                                                    <option value="fixed" @selected($att('attendance_overtime_rate_mode') == 'fixed')>Fixed ৳ per hour</option>
+                                                </select>
+                                                <input type="number" min="0" step="0.25" name="attendance_overtime_multiplier" class="form-control"
+                                                       value="{{ $att('attendance_overtime_multiplier') }}" aria-label="Multiplier" title="Multiplier (e.g. 1 or 1.5)">
+                                                <input type="number" min="0" step="1" name="attendance_overtime_fixed_rate" class="form-control"
+                                                       value="{{ $att('attendance_overtime_fixed_rate') }}" aria-label="Fixed rate" title="Fixed ৳ per hour">
+                                            </div>
+                                            <small class="settings-help">Hourly salary × multiplier (e.g. 1.5), or a fixed taka amount per overtime hour.</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="settings-help">
+                                            Duty shifts (start / end time, break) are set from
+                                            <a href="{{ route('admin.attendance-shifts.index') }}">HR → Shifts</a>.
+                                        </small>
                                     </div>
                                 </div>
                             </div>

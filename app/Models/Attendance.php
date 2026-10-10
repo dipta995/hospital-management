@@ -18,10 +18,17 @@ class Attendance extends Model
         'in_time',
         'out_time',
         'note',
+        'shift_id',
+        'source',
     ];
 
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(AttendanceShift::class, 'shift_id');
     }
 }

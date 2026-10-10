@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Backend;
 use App\Helper\RedirectHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\AttendanceShift;
 use App\Models\Cost;
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
 use App\Models\Setting;
+use App\Services\AttendanceSchemaService;
 use App\Services\EmployeeAttendanceSummaryService;
 use App\Services\HrSchemaService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -132,6 +134,7 @@ class EmployeeController extends Controller
         $data['pageHeader'] = $this->pageHeader;
         $data['weekDays'] = EmployeeAttendanceSummaryService::WEEK_DAYS;
         $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
+        $this->addShiftOptions($data);
         return view('backend.pages.employees.create', $data);
     }
 
@@ -217,6 +220,7 @@ class EmployeeController extends Controller
             ->find($id)) {
             $data['weekDays'] = EmployeeAttendanceSummaryService::WEEK_DAYS;
             $data['hrSchemaInstalled'] = $this->hrSchemaService->isInstalled();
+            $this->addShiftOptions($data, $data['edited']->shift_id);
             return view('backend.pages.employees.edit', $data);
         } else {
             return RedirectHelper::backWithInputFromException();
@@ -530,6 +534,10 @@ class EmployeeController extends Controller
         $totalOffDays = 0;
         $totalLeaveDays = 0;
         $totalAbsenceDays = 0;
+        $totalLatePenalty = 0;
+        $totalOvertimePay = 0;
+        $totalLateDays = 0;
+        $totalOvertimeHours = 0;
         $attendanceMode = Setting::getByBranch(auth()->user()->branch_id, 'attendance_mode', 'standard');
         $hrSchemaInstalled = $this->hrSchemaService->isInstalled();
         $canSummarizeAttendance = $this->hrSchemaService->canSummarizeAttendance();
@@ -547,6 +555,10 @@ class EmployeeController extends Controller
                 $attendanceDetails['hourlyDeduction'] = $attendanceMode === 'hourly'
                     ? $this->attendanceSummaryService->calculateHourlyDeduction($employee, $attendanceDetails)
                     : 0;
+                $attendanceDetails['latePenalty'] = $includeDeductions
+                    ? $this->attendanceSummaryService->calculateLatePenalty($employee, $attendanceDetails)
+                    : 0;
+                $attendanceDetails['overtimePay'] = $this->attendanceSummaryService->calculateOvertimePay($employee, $attendanceDetails);
             } else {
                 $attendanceDetails = $this->getAttendanceDetails($employee, $monthStart, $monthEnd, $currentMonth, $currentYear);
                 $attendanceDetails['absenceDeduction'] = 0;
@@ -567,10 +579,15 @@ class EmployeeController extends Controller
             if ($includeDeductions) {
                 $totalAbsenceDeductions += $attendanceDetails['absenceDeduction'] ?? 0;
                 $totalHourlyDeductions += $attendanceDetails['hourlyDeduction'] ?? 0;
+                $totalLatePenalty += $attendanceDetails['latePenalty'] ?? 0;
             }
+            $totalOvertimePay += $attendanceDetails['overtimePay'] ?? 0;
+            $totalLateDays += $attendanceDetails['lateCount'] ?? 0;
+            $totalOvertimeHours += $attendanceDetails['overtimeHours'] ?? 0;
         }
 
-        $netTotal = $totalBaseSalary - $totalDeductions - $totalHourlyDeductions - ($includeDeductions ? $totalAbsenceDeductions : 0);
+        $netTotal = $totalBaseSalary - $totalDeductions - $totalHourlyDeductions - $totalLatePenalty + $totalOvertimePay
+            - ($includeDeductions ? $totalAbsenceDeductions : 0);
 
         $data = [
             'pageHeader' => $this->pageHeader,
@@ -595,6 +612,10 @@ class EmployeeController extends Controller
             'totalLeaveDays' => $totalLeaveDays,
             'totalAbsenceDays' => $totalAbsenceDays,
             'totalAbsenceDeductions' => $totalAbsenceDeductions,
+            'totalLatePenalty' => $totalLatePenalty,
+            'totalOvertimePay' => $totalOvertimePay,
+            'totalLateDays' => $totalLateDays,
+            'totalOvertimeHours' => round($totalOvertimeHours, 2),
             'attendanceMode' => $attendanceMode,
             'hrSchemaInstalled' => $hrSchemaInstalled,
             'canSummarizeAttendance' => $canSummarizeAttendance,
@@ -603,8 +624,27 @@ class EmployeeController extends Controller
         return view('backend.pages.employees.salary-sheet', $data);
     }
 
+    private function addShiftOptions(array &$data, $currentShiftId = null): void
+    {
+        if (!AttendanceSchemaService::hasShifts()) {
+            return;
+        }
+
+        $data['shifts'] = AttendanceShift::where('branch_id', auth()->user()->branch_id)
+            ->where(fn ($q) => $q->where('is_active', true)->orWhere('id', $currentShiftId))
+            ->orderBy('start_time')
+            ->get();
+    }
+
     private function applyScheduleFields(Employee $employee, Request $request): void
     {
+        if (AttendanceSchemaService::hasShifts() && $request->has('shift_id')) {
+            $shiftId = $request->input('shift_id');
+            $employee->shift_id = $shiftId && AttendanceShift::where('branch_id', auth()->user()->branch_id)->whereKey($shiftId)->exists()
+                ? (int) $shiftId
+                : null;
+        }
+
         if (!$this->hrSchemaService->isInstalled()) {
             return;
         }

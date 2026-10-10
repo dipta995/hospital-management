@@ -19,7 +19,19 @@
                             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
                                 + Add Attendance
                             </button>
+                            <a href="{{ route('admin.attendance.daily') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-clipboard-list"></i> Daily Sheet
+                            </a>
+                            <a href="{{ route('admin.attendance-shifts.index') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-business-time"></i> Shifts
+                            </a>
+                            <a href="{{ route('admin.attendance.repair', ['month' => $month, 'year' => $year]) }}" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-tools"></i> Fix Night Duty Punches
+                            </a>
                         </div>
+                        @if($errors->any())
+                            <div class="alert alert-danger">{{ $errors->first() }}</div>
+                        @endif
                         <form method="get" class="row mb-3">
                             <div class="col-md-3">
                                 <label for="employee_id" class="form-label">Employee</label>
@@ -74,6 +86,10 @@
                                         <th>Absent</th>
                                         <th>Hours</th>
                                         <th>Rate</th>
+                                        <th>Late</th>
+                                        <th>Early</th>
+                                        <th>OT</th>
+                                        <th>Missing OUT</th>
                                         <th>Action</th>
                                     </tr>
                                     </thead>
@@ -89,6 +105,13 @@
                                             <td class="text-danger">{{ $summary['absenceCount'] }}</td>
                                             <td>{{ number_format($summary['totalHours'], 2) }}</td>
                                             <td>{{ $summary['attendanceRate'] }}%</td>
+                                            <td class="{{ $summary['lateCount'] ? 'text-warning fw-semibold' : '' }}">
+                                                {{ $summary['lateCount'] }}
+                                                @if($summary['lateMinutes'])<small class="text-muted">({{ \App\Services\EmployeeAttendanceSummaryService::formatMinutes($summary['lateMinutes']) }})</small>@endif
+                                            </td>
+                                            <td>{{ $summary['earlyLeaveCount'] }}</td>
+                                            <td class="text-primary">{{ $summary['overtimeMinutes'] ? \App\Services\EmployeeAttendanceSummaryService::formatMinutes($summary['overtimeMinutes']) : '0' }}</td>
+                                            <td class="{{ $summary['missingOutCount'] ? 'text-danger fw-bold' : '' }}">{{ $summary['missingOutCount'] }}</td>
                                             <td>
                                                 <a href="{{ route('admin.employees.leave-days.index', ['employee' => $empId, 'month' => $month, 'year' => $year]) }}"
                                                    class="btn btn-sm btn-outline-primary">Manage</a>
@@ -113,7 +136,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php use Carbon\Carbon; @endphp
+                                    @php
+                                        use Carbon\Carbon;
+                                        $missingOutBefore = Carbon::now('Asia/Dhaka')->subHours(
+                                            \App\Services\AttendanceSettings::forBranch(auth()->user()->branch_id)->maxSessionHours()
+                                        );
+                                    @endphp
                                     @forelse($groupedAttendances ?? [] as $date => $items)
                                         @php
                                             $employeeGroups = $items->groupBy('employee_id');
@@ -143,7 +171,17 @@
                                                     @foreach($sorted as $session)
                                                         <div>
                                                             {{ $loop->iteration }}. IN: {{ $session->in_time ? Carbon::parse($session->in_time)->format('h:i:s A') : '-' }}
-                                                            | OUT: {{ $session->out_time ? Carbon::parse($session->out_time)->format('h:i:s A') : 'Open' }}
+                                                            | OUT:
+                                                            @if($session->out_time)
+                                                                {{ Carbon::parse($session->out_time)->format('h:i:s A') }}
+                                                                @if(Carbon::parse($session->out_time)->toDateString() !== Carbon::parse($session->date)->toDateString())
+                                                                    <span class="text-primary fw-semibold">(+1 day)</span>
+                                                                @endif
+                                                            @elseif(Carbon::parse($session->in_time, 'Asia/Dhaka')->lt($missingOutBefore))
+                                                                <span class="badge bg-danger">Missing OUT</span>
+                                                            @else
+                                                                <span class="badge bg-success">On duty</span>
+                                                            @endif
                                                             | Mode: {{ ucfirst($session->mode ?? 'standard') }}
                                                             @if($session->note) | Note: {{ $session->note }} @endif
                                                         </div>
@@ -207,6 +245,7 @@
 </div>
 @endsection
 @push('scripts')
+    @include('backend.pages.attendance.partials.overnight-hint')
 @endpush
 
 <!-- Add Attendance Modal -->

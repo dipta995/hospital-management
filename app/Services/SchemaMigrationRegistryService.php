@@ -12,6 +12,7 @@ class SchemaMigrationRegistryService
         private LabFollowupSchemaService $labFollowupSchemaService,
         private PaymentGatewayMigrationService $paymentGatewaySchemaService,
         private SecuritySchemaService $securitySchemaService,
+        private AttendanceSchemaService $attendanceSchemaService,
     ) {}
 
     public function all(): array
@@ -20,6 +21,7 @@ class SchemaMigrationRegistryService
             $this->auditLogsModule(),
             $this->hrScheduleModule(),
             $this->employeeResignModule(),
+            $this->attendanceShiftsModule(),
             $this->pharmacyStatusModule(),
             $this->aiFeaturesModule(),
             $this->labFollowupModule(),
@@ -189,6 +191,25 @@ class SchemaMigrationRegistryService
                 'working_hours_per_day' => 'Working hours column',
                 'annual_leave_quota' => 'Annual leave quota column',
                 'employee_leave_days_table' => 'Employee leave days table',
+            ],
+        ];
+    }
+
+    private function attendanceShiftsModule(): array
+    {
+        return [
+            'key' => 'attendance_shifts',
+            'label' => 'Attendance Shifts',
+            'description' => 'Duty shifts (late / early leave / overtime) and punch source tracking. Adds a table and columns only.',
+            'destructive' => false,
+            'status' => fn () => $this->attendanceSchemaService->getStatus(),
+            'installed' => fn () => $this->attendanceSchemaService->isInstalled(),
+            'install' => fn () => $this->attendanceSchemaService->install(),
+            'status_labels' => [
+                'attendance_shifts_table' => 'Shifts table',
+                'employees_shift_id' => 'Employee shift column',
+                'attendances_shift_id' => 'Attendance shift column',
+                'attendances_source' => 'Punch source column',
             ],
         ];
     }

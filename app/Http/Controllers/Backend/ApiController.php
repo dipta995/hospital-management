@@ -148,32 +148,7 @@ class ApiController extends Controller
             ->where('rfid', $rfid)->first();
 
         if ($employee) {
-            $now = \Carbon\Carbon::now('Asia/Dhaka');
-            $date = $now->toDateString();
-            $mode = Setting::getByBranch($employee->branch_id, 'attendance_mode', 'standard');
-            $isHourly = $mode === 'hourly';
-
-            $openAttendance = Attendance::where('employee_id', $employee->id)
-                ->where('date', $date)
-                ->where('mode', $isHourly ? 'hourly' : 'standard')
-                ->whereNull('out_time')
-                ->orderByDesc('id')
-                ->first();
-
-            if ($openAttendance) {
-                $openAttendance->out_time = $now;
-                $openAttendance->save();
-            } else {
-                $attendance = Attendance::create([
-                    'employee_id' => $employee->id,
-                    'fingerprint_data' => (string) $rfid,
-                    'mode' => $isHourly ? 'hourly' : 'standard',
-                    'hour_slot' => (int) $now->format('G'),
-                    'date' => $date,
-                    'in_time' => $now,
-                    'out_time' => null,
-                ]);
-            }
+            app(\App\Services\AttendancePunchService::class)->punch($employee, 'api', (string) $rfid);
 
             // Return a success response (1) to ESP
             return response('1', 200)->header('Content-Type', 'text/plain');

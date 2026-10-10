@@ -17,6 +17,16 @@
         .att-kpi-icon.off_day { background: #f1f5f9; color: #475569; }
         .att-kpi-icon.open { background: #fef3c7; color: #d97706; }
         .att-kpi-icon.hours { background: #ede9fe; color: #7c3aed; }
+        .att-kpi-icon.missing { background: #fee2e2; color: #b91c1c; }
+        .att-kpi-icon.late { background: #ffedd5; color: #c2410c; }
+        .att-kpi-icon.overtime { background: #dbeafe; color: #1d4ed8; }
+        .att-flag { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin: 1px 2px 1px 0; white-space: nowrap; }
+        .att-flag.late { background: #ffedd5; color: #9a3412; }
+        .att-flag.early { background: #fef9c3; color: #854d0e; }
+        .att-flag.ot { background: #dbeafe; color: #1e40af; }
+        .att-flag.missing { background: #fee2e2; color: #991b1b; }
+        .att-flag.duty { background: #dcfce7; color: #166534; }
+        .att-row-missing td { background: #fff5f5; }
         .att-session { font-size: 0.8rem; white-space: nowrap; }
         .att-row-absence td { background: #fff7f7; }
         .att-date-nav { display: flex; gap: 6px; align-items: flex-end; }
@@ -110,7 +120,19 @@
             </div>
             <div class="inv-kpi">
                 <div class="inv-kpi-icon att-kpi-icon open"><i class="fas fa-door-open"></i></div>
-                <div><div class="inv-kpi-label">Out Missing</div><div class="inv-kpi-value">{{ $totals['open'] }}</div></div>
+                <div><div class="inv-kpi-label">On Duty Now</div><div class="inv-kpi-value">{{ $totals['open'] }}</div></div>
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon att-kpi-icon missing"><i class="fas fa-exclamation-triangle"></i></div>
+                <div><div class="inv-kpi-label">Missing OUT</div><div class="inv-kpi-value">{{ $totals['missing_out'] }}</div></div>
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon att-kpi-icon late"><i class="fas fa-user-clock"></i></div>
+                <div><div class="inv-kpi-label">Late</div><div class="inv-kpi-value">{{ $totals['late'] }}</div></div>
+            </div>
+            <div class="inv-kpi">
+                <div class="inv-kpi-icon att-kpi-icon overtime"><i class="fas fa-business-time"></i></div>
+                <div><div class="inv-kpi-label">Overtime</div><div class="inv-kpi-value">{{ AttendanceSummary::formatMinutes($totals['overtime_minutes']) }}</div></div>
             </div>
             <div class="inv-kpi">
                 <div class="inv-kpi-icon att-kpi-icon hours"><i class="fas fa-clock"></i></div>
@@ -132,6 +154,7 @@
                         <th>Worked</th>
                         <th>Expected</th>
                         <th>Short</th>
+                        <th>Late / Early / OT</th>
                         <th>Note</th>
                         <th class="text-end">Action</th>
                     </tr>
@@ -139,11 +162,14 @@
                     <tbody>
                     @forelse($sheet['rows'] as $row)
                         @php $emp = $row['employee']; @endphp
-                        <tr class="{{ $row['status'] === 'absence' ? 'att-row-absence' : '' }}">
+                        <tr class="{{ $row['missing_out'] > 0 ? 'att-row-missing' : ($row['status'] === 'absence' ? 'att-row-absence' : '') }}">
                             <td>{{ $loop->iteration }}</td>
                             <td>
                                 <div class="fw-semibold">{{ $emp->name }}</div>
                                 <small class="text-muted">{{ $emp->designation ?: '—' }}</small>
+                                @if($row['shift'])
+                                    <div><small class="text-primary">{{ $row['shift']->name }} · {{ $row['shift']->timeLabel() }}</small></div>
+                                @endif
                             </td>
                             <td>
                                 <span class="att-status {{ $row['status'] }}">{{ $statusLabels[$row['status']] ?? $row['status'] }}</span>
@@ -153,18 +179,33 @@
                             </td>
                             <td>{{ $row['first_in']?->format('h:i A') ?? '—' }}</td>
                             <td>
-                                @if($row['open_sessions'] > 0)
-                                    <span class="text-warning fw-semibold">Not out</span>
+                                @if($row['missing_out'] > 0)
+                                    <span class="att-flag missing">Missing OUT</span>
+                                @elseif($row['open_sessions'] > 0)
+                                    <span class="att-flag duty">On duty</span>
                                 @else
                                     {{ $row['last_out']?->format('h:i A') ?? '—' }}
+                                    @if($row['last_out'] && $row['last_out']->toDateString() !== $date->toDateString())
+                                        <small class="text-primary fw-semibold">(+1)</small>
+                                    @endif
                                 @endif
                             </td>
                             <td>
                                 @forelse($row['sessions'] as $session)
+                                    @php
+                                        $sessionOut = $session->out_time ? \Carbon\Carbon::parse($session->out_time) : null;
+                                    @endphp
                                     <div class="att-session">
                                         {{ $session->in_time ? \Carbon\Carbon::parse($session->in_time)->format('h:i A') : '—' }}
                                         →
-                                        {{ $session->out_time ? \Carbon\Carbon::parse($session->out_time)->format('h:i A') : 'Open' }}
+                                        @if($sessionOut)
+                                            {{ $sessionOut->format('h:i A') }}
+                                            @if($sessionOut->toDateString() !== $date->toDateString())
+                                                <small class="text-primary fw-semibold">(+1)</small>
+                                            @endif
+                                        @else
+                                            Open
+                                        @endif
                                     </div>
                                 @empty
                                     <span class="text-muted">—</span>
@@ -174,6 +215,20 @@
                             <td>{{ in_array($row['status'], ['present', 'absence'], true) ? rtrim(rtrim(number_format($row['expected_hours'], 2), '0'), '.') . 'h' : '—' }}</td>
                             <td class="{{ $row['short_minutes'] > 0 ? 'text-danger fw-semibold' : 'text-muted' }}">
                                 {{ $row['short_minutes'] > 0 ? AttendanceSummary::formatMinutes($row['short_minutes']) : '—' }}
+                            </td>
+                            <td>
+                                @if($row['late_minutes'] > 0)
+                                    <span class="att-flag late">Late {{ AttendanceSummary::formatMinutes($row['late_minutes']) }}</span>
+                                @endif
+                                @if($row['early_minutes'] > 0)
+                                    <span class="att-flag early">Early {{ AttendanceSummary::formatMinutes($row['early_minutes']) }}</span>
+                                @endif
+                                @if($row['overtime_minutes'] > 0)
+                                    <span class="att-flag ot">OT {{ AttendanceSummary::formatMinutes($row['overtime_minutes']) }}</span>
+                                @endif
+                                @if(!$row['late_minutes'] && !$row['early_minutes'] && !$row['overtime_minutes'])
+                                    <span class="text-muted">—</span>
+                                @endif
                             </td>
                             <td><small>{{ $row['notes'] ?: '' }}</small></td>
                             <td class="text-end">
@@ -244,4 +299,5 @@
             });
         });
     </script>
+    @include('backend.pages.attendance.partials.overnight-hint')
 @endpush

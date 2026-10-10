@@ -101,6 +101,10 @@
                 <th>Absent</th>
                 <th>Hours</th>
                 <th>Rate</th>
+                <th>Late</th>
+                <th>Early</th>
+                <th>OT</th>
+                <th>Missing OUT</th>
             </tr>
             </thead>
             <tbody>
@@ -115,6 +119,10 @@
                     <td>{{ $summary['absenceCount'] }}</td>
                     <td>{{ number_format($summary['totalHours'], 2) }}</td>
                     <td>{{ $summary['attendanceRate'] }}%</td>
+                    <td>{{ $summary['lateCount'] }}</td>
+                    <td>{{ $summary['earlyLeaveCount'] }}</td>
+                    <td>{{ \App\Services\EmployeeAttendanceSummaryService::formatMinutes($summary['overtimeMinutes']) }}</td>
+                    <td>{{ $summary['missingOutCount'] }}</td>
                 </tr>
             @endforeach
             </tbody>
@@ -162,7 +170,7 @@
                         @foreach($sorted as $session)
                             <div>
                                 {{ $loop->iteration }}. IN {{ $session->in_time ? Carbon::parse($session->in_time)->format('h:i:s A') : '-' }}
-                                | OUT {{ $session->out_time ? Carbon::parse($session->out_time)->format('h:i:s A') : 'Open' }}
+                                | OUT {{ $session->out_time ? Carbon::parse($session->out_time)->format('h:i:s A') : 'Open' }}{{ $session->out_time && Carbon::parse($session->out_time)->toDateString() !== Carbon::parse($session->date)->toDateString() ? ' (+1 day)' : '' }}
                             </div>
                         @endforeach
                     </td>

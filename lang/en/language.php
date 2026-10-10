@@ -234,6 +234,7 @@ return [
         'attendance' => 'Attendance',
         'summary' => 'Summary',
         'daily_attendance_sheet' => 'Daily Sheet',
+        'duty_shifts' => 'Shifts',
         'general_inventory' => 'General Inventory',
         'inventory_module' => 'Inventory Module',
         'suppliers' => 'Suppliers',

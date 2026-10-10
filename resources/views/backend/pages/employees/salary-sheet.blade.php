@@ -419,7 +419,7 @@
                                 <div class="summary-item">
                                     <span class="summary-label">Total Deductions</span>
                                     <span class="summary-value deduction-amount">
-                                        ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0), 2) }}
+                                        ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0) + $totalLatePenalty, 2) }}
                                     </span>
                                 </div>
                             </div>
@@ -465,6 +465,8 @@
                                                     <th style="width: 6%">Leave</th>
                                                     <th style="width: 6%">Absent</th>
                                                     <th style="width: 6%">Rate</th>
+                                                    <th style="width: 5%" title="Late days">Late</th>
+                                                    <th style="width: 5%" title="Overtime hours">OT (h)</th>
                                                 @endif
                                                 <th style="width: 8%">Hours</th>
                                                 <th style="width: 9%">Base Salary</th>
@@ -517,8 +519,10 @@
                                                         ? ($attendanceDetails['absenceDeduction'] ?? 0)
                                                         : 0;
 
-                                                    $totalDeductionsForEmployee = $salaryPaymentDeductions + $hourlyDeduction + $absenceDeduction;
-                                                    $netSalary = $baseSalary - $totalDeductionsForEmployee;
+                                                    $latePenalty = $attendanceDetails['latePenalty'] ?? 0;
+                                                    $overtimePay = $attendanceDetails['overtimePay'] ?? 0;
+                                                    $totalDeductionsForEmployee = $salaryPaymentDeductions + $hourlyDeduction + $absenceDeduction + $latePenalty;
+                                                    $netSalary = $baseSalary - $totalDeductionsForEmployee + $overtimePay;
                                                     $paidAmount = $currentMonthPaid ? $currentMonthPaid->salary : 0;
                                                     $isPaid = $currentMonthPaid ? true : false;
                                                 @endphp
@@ -534,6 +538,8 @@
                                                         <td>{{ $attendanceDetails['leaveCount'] ?? 0 }}</td>
                                                         <td class="deduction-amount">{{ $attendanceDetails['absenceCount'] ?? 0 }}</td>
                                                         <td>{{ $attendanceDetails['attendanceRate'] ?? 0 }}%</td>
+                                                        <td class="{{ ($attendanceDetails['lateCount'] ?? 0) > 0 ? 'deduction-amount' : '' }}">{{ $attendanceDetails['lateCount'] ?? 0 }}</td>
+                                                        <td>{{ number_format($attendanceDetails['overtimeHours'] ?? 0, 1) }}</td>
                                                     @endif
                                                     <td>{{ number_format($attendanceDetails['totalHours'] ?? 0, 2) }}</td>
                                                     <td class="salary-amount">৳ {{ number_format($baseSalary, 2) }}</td>
@@ -541,13 +547,22 @@
                                                     @if($includeDeductions)
                                                         <td class="deduction-amount">
                                                             {{ $totalDeductionsForEmployee > 0 ? '- ৳ ' . number_format($totalDeductionsForEmployee, 2) : '৳ 0' }}
+                                                            @if($latePenalty > 0)
+                                                                <br><small>incl. late ৳ {{ number_format($latePenalty, 2) }}</small>
+                                                            @endif
                                                         </td>
                                                         <td class="net-amount">
                                                             ৳ {{ number_format(max(0, $netSalary), 2) }}
+                                                            @if($overtimePay > 0)
+                                                                <br><small class="text-success">incl. OT + ৳ {{ number_format($overtimePay, 2) }}</small>
+                                                            @endif
                                                         </td>
                                                     @else
                                                         <td class="salary-amount">
-                                                            ৳ {{ number_format($baseSalary, 2) }}
+                                                            ৳ {{ number_format($baseSalary + $overtimePay, 2) }}
+                                                            @if($overtimePay > 0)
+                                                                <br><small class="text-success">incl. OT + ৳ {{ number_format($overtimePay, 2) }}</small>
+                                                            @endif
                                                         </td>
                                                     @endif
 
@@ -619,9 +634,21 @@
                                                     <span class="deduction-amount">- ৳ {{ number_format($totalAbsenceDeductions, 2) }}</span>
                                                 </p>
                                             @endif
+                                            @if($totalLatePenalty > 0)
+                                                <p class="mb-1">
+                                                    <strong>Late Penalty:</strong>
+                                                    <span class="deduction-amount">- ৳ {{ number_format($totalLatePenalty, 2) }}</span>
+                                                </p>
+                                            @endif
                                             <p class="mb-1">
                                                 <strong>Total Deductions:</strong>
-                                                <span class="deduction-amount">- ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0), 2) }}</span>
+                                                <span class="deduction-amount">- ৳ {{ number_format($totalDeductions + $totalHourlyDeductions + ($totalAbsenceDeductions ?? 0) + $totalLatePenalty, 2) }}</span>
+                                            </p>
+                                        @endif
+                                        @if($totalOvertimePay > 0)
+                                            <p class="mb-1">
+                                                <strong>Overtime Pay:</strong>
+                                                <span class="text-success fw-bold">+ ৳ {{ number_format($totalOvertimePay, 2) }}</span>
                                             </p>
                                         @endif
                                         <p class="mb-0">

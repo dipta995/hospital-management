@@ -324,6 +324,11 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::get('/get-services-by-category/{id}', [ApiController::class, 'getByCategory']);
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/daily', [AttendanceController::class, 'daily'])->name('attendance.daily');
+    Route::get('/attendance/repair', [AttendanceController::class, 'repair'])->name('attendance.repair');
+    Route::post('/attendance/repair', [AttendanceController::class, 'applyRepair'])->name('attendance.repair.apply');
+    Route::resource('attendance-shifts', \App\Http\Controllers\Backend\AttendanceShiftController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->names('attendance-shifts');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::put('/attendance/{attendance}/time', [AttendanceController::class, 'updateTime'])->name('attendance.update-time');
 

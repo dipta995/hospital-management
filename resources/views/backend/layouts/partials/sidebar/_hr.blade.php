@@ -10,13 +10,13 @@
         'icon' => 'fa-id-badge',
     ])
     <li class="nav-item sidebar-module sidebar-module-hr" data-sidebar-section="hr">
-        <a class="nav-link menu-arrow {{ Route::is('admin.employees.*', 'admin.attendance.*') ? 'active' : 'collapsed' }}"
+        <a class="nav-link menu-arrow {{ Route::is('admin.employees.*', 'admin.attendance.*', 'admin.attendance-shifts.*') ? 'active' : 'collapsed' }}"
            href="#sidebarHrModule" data-bs-toggle="collapse" role="button"
-           aria-expanded="{{ Route::is('admin.employees.*', 'admin.attendance.*') ? 'true' : 'false' }}" aria-controls="sidebarHrModule">
+           aria-expanded="{{ Route::is('admin.employees.*', 'admin.attendance.*', 'admin.attendance-shifts.*') ? 'true' : 'false' }}" aria-controls="sidebarHrModule">
             <span class="nav-icon"><i class="fas fa-users-cog"></i></span>
             <span class="nav-text">{{ t('menu.hr_module') }}</span>
         </a>
-        <div class="{{ Route::is('admin.employees.*', 'admin.attendance.*') ? 'collapse show' : 'collapse' }}" id="sidebarHrModule">
+        <div class="{{ Route::is('admin.employees.*', 'admin.attendance.*', 'admin.attendance-shifts.*') ? 'collapse show' : 'collapse' }}" id="sidebarHrModule">
             <ul class="nav sub-navbar-nav sidebar-module-inner">
 
                 @if ($userGuard->can('employees.index') || $userGuard->can('employees.create'))
@@ -49,10 +49,15 @@
                                 <i class="fas fa-clipboard-list fa-fw me-1"></i> {{ t('menu.daily_attendance_sheet') }}
                             </a>
                         </li>
+                        <li class="sub-nav-item">
+                            <a class="sub-nav-link" href="{{ route('admin.attendance-shifts.index') }}">
+                                <i class="fas fa-business-time fa-fw me-1"></i> {{ t('menu.duty_shifts') }}
+                            </a>
+                        </li>
                     @endif
                     @if ($userGuard->can('settings.edit'))
                         <li class="sub-nav-item">
-                            <a class="sub-nav-link" href="{{ route('admin.settings.edit', auth()->id()) }}#attendance-config">{{ t('menu.settings') }}</a>
+                            <a class="sub-nav-link" href="{{ route('admin.settings.edit', auth()->id()) }}#section-attendance">{{ t('menu.settings') }}</a>
                         </li>
                     @endif
                 @endif

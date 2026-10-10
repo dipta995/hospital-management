@@ -95,6 +95,11 @@ class Employee extends Model
         return $this->hasMany(Attendance::class, 'employee_id', 'id');
     }
 
+    public function shift()
+    {
+        return $this->belongsTo(AttendanceShift::class, 'shift_id');
+    }
+
     // // Virtual attribute to calculate remaining salary
     // public function getNetSalaryAttribute()
     // {
